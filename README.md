@@ -15,22 +15,6 @@
 ***注：目前移动端支持若依管理平台全系列（单应用、微服务、MySQL版、Oracle版、SqlServer版、Antd版等），需要适配其他版本的请到上面地址下载移动端源码。***
 <br><br>
 
-###  :strawberry: 扫码预览
-<table>
-    <tr>
-        <td valign="top" width="180"><img src="https://images.gitee.com/uploads/images/2022/0526/091635_6bfffb01_1203341.png"/></td>
-        <td valign="center" align="center" width="180">尚未发布</td>
-        <td valign="center" align="center" width="180">尚未发布</td>
-        <td valign="center" align="center" width="180">尚未发布</td>
-    </tr>
-    <tr>
-        <td valign="top" align="center">H5</td>
-        <td valign="top" align="center">微信小程序</td>
-        <td valign="top" align="center">支付宝小程序</td>
-        <td valign="top" align="center">其他</td>
-    </tr>
-</table>
-<br><br>
 
 ###  :watermelon:  技术栈
 | 组件       | 版本     |
