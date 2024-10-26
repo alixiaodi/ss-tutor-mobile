@@ -38,7 +38,7 @@ import { isEmpty } from '@/utils/verify.js'
 export default {
 	data() {
 		return {
-			title: '若依权限管理系统',
+			title: '自考导师',
 			subTitle: '欢迎回来，开始工作吧！',
 			// 图形验证码信息
 			captcha: null,
