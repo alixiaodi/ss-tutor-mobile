@@ -25,9 +25,10 @@
     </view>
     <DraggableTags 
       :tags="tagsList"
-      :iconType="'add'"
-      @dragStart="dragStart"
-      @dragEnd="dragEnd"
+      icon-type="add"
+      :random-color="false"
+      @change="onTagsChange"
+        @remove="handleTagRemove"
       style="margin-top: 20px; display: block;" 
     />
   </view>
@@ -49,8 +50,13 @@ export default {
     DraggableTags,
   },
   methods: {
+    handleTagRemove(tag) {
+      console.log(tag);
+    },
     onTagsChange(newTags) {
       this.tagsList = [...newTags]
+      console.log(this.tagsList);
+      
     },
     selectSubject() {
       uni.navigateTo({
@@ -178,7 +184,9 @@ export default {
         { text: '敏捷开发', type: 'primary' },
         { text: '版本控制', type: 'warning' },
         { text: '持续集成', type: 'success' },
-        { text: '部署运维', type: 'info' }
+        { text: '我的内容非常多了', type: 'info' },
+        { text: '我的内容非常多了我的更多了', type: 'info' },
+        { text: '你看我的呢', type: 'info' }
       ],
     };
   },

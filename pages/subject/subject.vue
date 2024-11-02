@@ -37,23 +37,12 @@
             style="position: relative; z-index: 1"
           >
             <template v-if="selectedList && selectedList.length > 0">
-              <template v-if="selectedList && selectedList.length > 0">
-                <u-tag
-                  v-for="(item, index) in selectedList"
-                  :key="index"
-                  :text="item.dictLabel"
-                  :data-label="item.dictLabel"
-                  plain
-                  size="medium"
-                  closable
-                  type="primary"
-                  style="margin: 4px; display: inline-block; cursor: move"
-                  @close="() => {
-                    unselectedList.push(item);
-                    selectedList.splice(index, 1);
-                  }"
-                ></u-tag>
-                 
+              <template v-if="selectedList && selectedList.length > 0"> 
+                <DraggableTags
+                  :tags="selectedList"
+                  @change="onTagsChange"
+                  @remove="handleTagRemove"
+                ></DraggableTags> 
               </template>
             </template>
             <template v-else>
@@ -182,7 +171,7 @@
 
 <script>
 import Sortable from "sortablejs";
-
+import DraggableTags from "@/components/DraggableTags/DraggableTags.vue";
 import * as DictApi from "@/api/dict";
 
 export default {
@@ -226,13 +215,19 @@ export default {
   onLoad(options) {
     // 检查是否有examId参数
     if (!options || !options.code) {
-      uni.navigateBack();
+      // TODO  uni.navigateBack();
       return;
     }
     // 加载考试项目
     this.initData(options.code);
   },
   methods: {
+    onTagsChange(newTags) {
+      this.selectedList = [...newTags]
+    },
+    handleTagRemove(tag) {
+      console.log(tag);
+    },
     addSubject(index) {
       // 获取点击的科目
       const subject = this.unselectedList[index];
@@ -376,9 +371,19 @@ export default {
       // #endif
     },
     initData(code) {
-      DictApi.getDictList("subject_" + code).then((res) => {
-        this.selectedList = res.data;
-      });
+      // DictApi.getDictList("subject_" + code).then((res) => {
+      //   this.selectedList = res.data;
+      // });
+      
+      // 使用演示数据
+      this.selectedList = [
+        { dictLabel: '数据结构', dictValue: '1' },
+        { dictLabel: '算法分析', dictValue: '2' },
+        { dictLabel: '软件工程', dictValue: '3' },
+        { dictLabel: '计算机网络', dictValue: '4' },
+        { dictLabel: '操作系统', dictValue: '5' },
+        { dictLabel: '数据库系统', dictValue: '6' }
+      ];
       // this.indexList = [
       //   "语文",
       //   "数学",

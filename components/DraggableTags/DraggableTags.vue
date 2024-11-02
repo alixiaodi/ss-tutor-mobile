@@ -1,18 +1,15 @@
 <template>
   <view class="draggable-tags">
     <view class="tags-container">
-      <view
-        v-for="(tag, index) in innerTags"
-        :key="`tag-${index}`"
-        class="tag-item"
-        :class="[tag.type, { 'dragging': currentDragIndex === index, 'others-dragging': currentDragIndex !== -1 && currentDragIndex !== index }]"
-        :style="getTagStyle(index)"
-        @touchstart="handleTouchStart($event, index)"
-        @touchmove="handleTouchMove($event, index)"
-        @touchend="handleTouchEnd(index)"
-      >
-        {{ tag.text }}
-        <text v-if="closeable" class="close-icon" @click.stop="removeTag(index)">
+      <view v-for="(tag, index) in innerTags" :key="`tag-${index}`" class="tag-item"
+        :class="[{ 'dragging': currentDragIndex === index, 'others-dragging': currentDragIndex !== -1 && currentDragIndex !== index }]"
+        :style="getTagStyle(index)" @touchstart="handleTouchStart($event, index)"
+        @touchmove="handleTouchMove($event, index)" @touchend="handleTouchEnd(index)" @click="showFullText(tag.text)">
+        <text class="tag-text">{{ tag.text }}</text>
+        <text v-if="closeable" class="close-icon" @click.stop="removeTag(index)" :style="[
+          iconType === 'add' ? '' : 'color: #ff6b6b',
+          randomColor ? 'color: #ffffff' : ''
+        ]">
           {{ iconType === 'add' ? '+' : '×' }}
         </text>
       </view>
@@ -35,7 +32,17 @@ export default {
     iconType: {
       type: String,
       default: 'close',
-      validator: value => ['close', 'add'].includes(value)
+      validator(value) {
+        if (!['close', 'add'].includes(value)) {
+          console.warn(`iconType 必须是 'close' 或 'add', 收到的值是: ${value}`);
+          return false;
+        }
+        return true;
+      }
+    },
+    randomColor: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -51,11 +58,15 @@ export default {
   watch: {
     tags: {
       handler(newVal) {
-        this.innerTags = [...newVal]
+        this.innerTags = newVal.map(tag => ({
+          ...tag,
+          randomColor: this.randomColor ? this.getRandomColor() : null
+        }));
       },
       immediate: true
     }
   },
+  emits: ['change', 'remove'],
   methods: {
     handleTouchStart(event, index) {
       this.currentDragIndex = index
@@ -66,17 +77,17 @@ export default {
     },
     handleTouchMove(event, index) {
       if (this.currentDragIndex === -1) return
-      
+
       const currentX = event.touches[0].clientX
       const currentY = event.touches[0].clientY
-      
+
       // 更新拖动位置
       this.dragX = currentX - this.startX
       this.dragY = currentY - this.startY
-      
+
       const deltaX = currentX - this.startX
       const deltaY = currentY - this.startY
-      
+
       // 计算移动距离，判断是否需要交换位置
       if (Math.abs(deltaY) > 30 || Math.abs(deltaX) > 30) {
         this.findClosestTagIndex(currentX, currentY).then(targetIndex => {
@@ -105,50 +116,72 @@ export default {
           resolve(data)
         }).exec()
       })
-      
+
       const tags = await tagsPromise
       let closestIndex = -1
       let minDistance = Infinity
-      
+
       tags.forEach((rect, index) => {
         const centerX = rect.left + rect.width / 2
         const centerY = rect.top + rect.height / 2
         const distance = Math.sqrt(
           Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
         )
-        
+
         if (distance < minDistance) {
           minDistance = distance
           closestIndex = index
         }
       })
-      
+
       return closestIndex
     },
     swapTags(fromIndex, toIndex) {
       const temp = this.innerTags[fromIndex]
       this.innerTags.splice(fromIndex, 1)
       this.innerTags.splice(toIndex, 0, temp)
-    },
-    removeTag(index) {
-      this.innerTags.splice(index, 1)
       this.$emit('change', [...this.innerTags])
     },
+    removeTag(index) {
+      const removedTag = this.innerTags[index]
+      this.innerTags.splice(index, 1)
+      this.$emit('remove', { tag: removedTag, index })
+      this.$emit('change', [...this.innerTags])
+    },
+    getRandomColor() {
+      const colors = [
+        '#409eff', // 蓝色
+        '#67c23a', // 绿色
+        '#e6a23c', // 橙色
+        '#f56c6c'  // 红色
+      ];
+      return colors[Math.floor(Math.random() * colors.length)];
+    },
     getTagStyle(index) {
-      if (index === this.currentDragIndex) {
-        return {
-          transform: `translate(${this.dragX}px, ${this.dragY}px)`,
-          zIndex: 100,
-          opacity: 0.8,
-          transition: 'none'  // 拖动时取消过渡效果
-        }
-
+      const baseStyle = {
+        transform: index === this.currentDragIndex 
+          ? `translate(${this.dragX}px, ${this.dragY}px)`
+          : 'translate(0, 0)',
+        zIndex: index === this.currentDragIndex ? 100 : 1,
+        transition: index === this.currentDragIndex ? 'none' : 'all 0.3s'
+      };
+      
+      // 如果启用随机颜色，直接使用标签的随机颜色
+      if (this.randomColor) {
+        baseStyle.backgroundColor = this.innerTags[index].randomColor;
+        baseStyle.color = '#ffffff';
+        baseStyle.border = 'none'; // 移除默认边框
       }
-      return {
-        transform: 'translate(0, 0)',
-        zIndex: 1,
-        transition: 'all 0.3s'  // 其他标签有平滑过渡效果
-      }
+      
+      return baseStyle;
+    },
+    showFullText(text) {
+      uni.showToast({
+        title: text,
+        icon: 'none',
+        duration: 2000,
+        position: 'bottom'
+      })
     }
   }
 }
@@ -160,93 +193,53 @@ export default {
   min-height: 100rpx;
   padding: 20rpx;
   box-sizing: border-box;
-  
+
   .tags-container {
     display: flex;
     flex-wrap: wrap;
     gap: 20rpx;
+    justify-content: flex-start;
   }
-  
+
   .tag-item {
+    width: calc((100% - 40rpx) / 3);
+    box-sizing: border-box;
     background-color: #f0f0f0;
     border-radius: 6rpx;
     padding: 10rpx 20rpx;
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: space-between;
     font-size: 28rpx;
     touch-action: none;
     transition: transform 0.2s;
-    
+
+    .tag-text {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 10rpx; // 为关闭按钮留出空间
+    }
+
     &.dragging {
-      background: #e6e6e6;  // 拖动时的背景色
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);  // 添加阴影效果
+      background: #e6e6e6; // 拖动时的背景色
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); // 添加阴影效果
     }
-    
+
     &.others-dragging {
-      transition: transform 0.3s ease;  // 其他标签的过渡效果
+      transition: transform 0.3s ease; // 其他标签的过渡效果
     }
-    
+
     .close-icon {
-      margin-left: 10rpx;
+      flex-shrink: 0; // 防止关闭按钮被压缩
       color: rgba(0, 0, 0, 0.5);
       font-size: 32rpx;
       font-weight: bold;
       padding: 0 4rpx;
-      
+
       &:hover {
         color: rgba(0, 0, 0, 0.8);
-      }
-    }
-    
-    &.primary {
-      background-color: #409eff;
-      color: white;
-      
-      .close-icon {
-        color: rgba(255, 255, 255, 0.9);
-        
-        &:hover {
-          color: #fff;
-        }
-      }
-    }
-    
-    &.warning {
-      background-color: #e6a23c;
-      color: white;
-      
-      .close-icon {
-        color: rgba(255, 255, 255, 0.9);
-        
-        &:hover {
-          color: #fff;
-        }
-      }
-    }
-    
-    &.success {
-      background-color: #67c23a;
-      color: white;
-      
-      .close-icon {
-        color: rgba(255, 255, 255, 0.9);
-        
-        &:hover {
-          color: #fff;
-        }
-      }
-    }
-    
-    &.info {
-      background-color: #909399;
-      color: white;
-      
-      .close-icon {
-        color: rgba(255, 255, 255, 0.9);
-        
-        &:hover {
-          color: #fff;
-        }
       }
     }
   }
