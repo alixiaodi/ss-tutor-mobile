@@ -5,11 +5,11 @@ const environment = {
 		// baseURL: 'http://localhost:8080',
 		
 		// 直接使用线上后端
-		baseURL: 'http://vue.ruoyi.vip/prod-api'
+		baseURL: 'http://192.168.1.103:9994'
 	},
 	// 生产环境配置
 	production: {
-		baseURL: 'http://vue.ruoyi.vip/prod-api' // 发布时需要修改为后端实际地址
+		baseURL: 'http://localhost:9994' // 发布时需要修改为后端实际地址
 	}
 }
 

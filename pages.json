@@ -83,6 +83,20 @@
 				"navigationBarTitleText": "操作日志",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path" : "pages/subject/subject",
+			"style" : 
+			{
+				"navigationBarTitleText" : "选择学科"
+			}
+		},
+		{
+			"path" : "pages/exam/exam",
+			"style" : 
+			{
+				"navigationBarTitleText" : "选择考试"
+			}
 		}
 	],
 	"tabBar": {
