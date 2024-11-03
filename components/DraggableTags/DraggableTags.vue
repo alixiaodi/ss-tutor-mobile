@@ -1,11 +1,12 @@
 <template>
   <view class="draggable-tags">
+    <text class="drag-hint">拖拽可排序</text>
     <view class="tags-container">
       <view v-for="(tag, index) in innerTags" :key="`tag-${index}`" class="tag-item"
         :class="[{ 'dragging': currentDragIndex === index, 'others-dragging': currentDragIndex !== -1 && currentDragIndex !== index }]"
         :style="getTagStyle(index)" @touchstart="handleTouchStart($event, index)"
-        @touchmove="handleTouchMove($event, index)" @touchend="handleTouchEnd(index)" @click="showFullText(tag.text)">
-        <text class="tag-text">{{ tag.text }}</text>
+        @touchmove="handleTouchMove($event, index)" @touchend="handleTouchEnd(index)" @click="showFullText(tag.dictLabel)">
+        <text class="tag-text">{{ tag.dictLabel }}</text>
         <text v-if="closeable" class="close-icon" @click.stop="removeTag(index)" :style="[
           iconType === 'add' ? '' : 'color: #ff6b6b',
           randomColor ? 'color: #ffffff' : ''
@@ -43,6 +44,10 @@ export default {
     randomColor: {
       type: Boolean,
       default: false
+    },
+    preserveColor: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -52,15 +57,22 @@ export default {
       startY: 0,
       startX: 0,
       dragX: 0,
-      dragY: 0
+      dragY: 0,
+      tagColorMap: new Map()
     }
   },
   watch: {
     tags: {
       handler(newVal) {
+        newVal.forEach(tag => {
+          if (!this.tagColorMap.has(tag.dictCode)) {
+            this.tagColorMap.set(tag.dictCode, this.generateRandomColor());
+          }
+        });
+
         this.innerTags = newVal.map(tag => ({
           ...tag,
-          randomColor: this.randomColor ? this.getRandomColor() : null
+          randomColor: this.randomColor ? this.tagColorMap.get(tag.dictCode) : null
         }));
       },
       immediate: true
@@ -148,12 +160,12 @@ export default {
       this.$emit('remove', { tag: removedTag, index })
       this.$emit('change', [...this.innerTags])
     },
-    getRandomColor() {
+    generateRandomColor() {
       const colors = [
         '#409eff', // 蓝色
         '#67c23a', // 绿色
-        '#e6a23c', // 橙色
-        '#f56c6c'  // 红色
+        '#f56c6c', // 红色
+        '#ff9800'  // 橙色
       ];
       return colors[Math.floor(Math.random() * colors.length)];
     },
@@ -166,11 +178,10 @@ export default {
         transition: index === this.currentDragIndex ? 'none' : 'all 0.3s'
       };
       
-      // 如果启用随机颜色，直接使用标签的随机颜色
-      if (this.randomColor) {
+      if (this.randomColor && this.innerTags[index]) {
         baseStyle.backgroundColor = this.innerTags[index].randomColor;
-        baseStyle.color = '#ffffff';
-        baseStyle.border = 'none'; // 移除默认边框
+        baseStyle.color = '#333333';
+        baseStyle.border = 'none';
       }
       
       return baseStyle;
@@ -182,6 +193,28 @@ export default {
         duration: 2000,
         position: 'bottom'
       })
+    },
+    getTagColor(tag) {
+      const colors = [
+        '#E3F2FD', '#E8F5E9', '#FFF3E0', '#F3E5F5', 
+        '#E1F5FE', '#E0F2F1', '#FBE9E7', '#F1F8E9'
+      ];
+      
+      if (tag.dictCode) {
+        const index = Math.abs(this.hashCode(tag.dictCode)) % colors.length;
+        return colors[index];
+      }
+      
+      return colors[Math.floor(Math.random() * colors.length)];
+    },
+    hashCode(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      return hash;
     }
   }
 }
@@ -193,6 +226,14 @@ export default {
   min-height: 100rpx;
   padding: 20rpx;
   box-sizing: border-box;
+
+  .drag-hint {
+    display: block;
+    color: #999;
+    font-size: 24rpx;
+    margin-bottom: 16rpx;
+    padding-left: 10rpx;
+  }
 
   .tags-container {
     display: flex;

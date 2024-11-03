@@ -37,13 +37,13 @@
             style="position: relative; z-index: 1"
           >
             <template v-if="selectedList && selectedList.length > 0">
-              <template v-if="selectedList && selectedList.length > 0"> 
-                <DraggableTags
-                  :tags="selectedList"
-                  @change="onTagsChange"
-                  @remove="handleTagRemove"
-                ></DraggableTags> 
-              </template>
+              <DraggableTags
+                :tags="selectedList"
+                @change="onTagsChange"
+                @remove="handleTagRemove"
+                :random-color="true"
+                :preserve-color="true"
+              ></DraggableTags>
             </template>
             <template v-else>
               <view
@@ -95,32 +95,13 @@
           >
           <view ref="selectedTags" class="tag-list">
             <template v-if="unselectedList && unselectedList.length > 0">
-              <u-tag
-                :text="item.dictLabel"
-                :data-label="item.dictLabel"
-                plain
-                size="medium"
-                type="primary"
-                v-for="(item, index) in unselectedList"
-                :key="index"
-                style="
-                  margin: 6px;
-                  display: inline-block;
-                  cursor: pointer;
-                  position: relative;
-                  border-radius: 6px;
-                "
-                @click="addSubject(index)"
-                icon="plus"
-                :iconStyle="{
-                  color: '#2979ff',
-                  fontSize: '12px',
-                  position: 'absolute',
-                  top: '2px',
-                  right: '2px',
-                }"
-              >
-              </u-tag>
+              <DraggableTags
+                :tags="unselectedList"
+                :random-color="false"
+                @change="addSelectChange"
+                @remove="addSelect"
+                :icon-type="'add'"
+              ></DraggableTags>
             </template>
             <template v-else>
               <view
@@ -170,15 +151,15 @@
 </template>
 
 <script>
-import Sortable from "sortablejs";
 import DraggableTags from "@/components/DraggableTags/DraggableTags.vue";
 import * as DictApi from "@/api/dict";
+import * as SubjectApi from "@/api/subject";
 
 export default {
   mounted() {
     // 在 nextTick 中初始化，确保 DOM 已经渲染
     this.$nextTick(() => {
-      this.initSortable();
+      this.initTagPositions();
     });
 
     // #ifdef APP-PLUS
@@ -188,11 +169,11 @@ export default {
   components: {},
   data() {
     return {
+      examId: "",
       selectedList: [],
       unselectedList: [],
       indexList: [],
       selectedIndex: undefined,
-      sortableInstance: null,
       tagPositions: null,
       dragStartIndex: -1,
       dragEndIndex: -1,
@@ -210,6 +191,7 @@ export default {
       moveY: 0,
       isMoving: false,
       dragTimer: null,
+      selectedCodes: [],
     };
   },
   onLoad(options) {
@@ -219,14 +201,21 @@ export default {
       return;
     }
     // 加载考试项目
+    this.examId = options.code;
     this.initData(options.code);
   },
   methods: {
+    addSelectChange(newTags) {
+      this.unselectedList = [...newTags];
+    },
+    addSelect(tag) {
+      this.selectedList.push(tag.tag);
+    },
     onTagsChange(newTags) {
-      this.selectedList = [...newTags]
+      this.selectedList = [...newTags];
     },
     handleTagRemove(tag) {
-      console.log(tag);
+      this.unselectedList.push(tag.tag);
     },
     addSubject(index) {
       // 获取点击的科目
@@ -247,157 +236,66 @@ export default {
         });
       }
     },
-    initSortable() {
-      // #ifdef H5 
-      const query = uni.createSelectorQuery().in(this);
-      query
-        .select(".tag-list")
-        .boundingClientRect((data) => {
-          if (data) {
-            const el = document.querySelector(".tag-list");
-            if (el) {
-              // 如果已存在实例，先销毁
-              if (this.sortableInstance) {
-                this.sortableInstance.destroy();
-              }
-
-              this.sortableInstance = new Sortable(el, {
-                animation: 150,
-                onEnd: ({ oldIndex, newIndex }) => {
-                  // 创建一个新的数组副本
-                  const newList = Array.from(this.selectedList);
-                  const itemToMove = newList.splice(oldIndex, 1)[0];
-                  newList.splice(newIndex, 0, itemToMove);
-
-                  // 使用 setTimeout 确保在下一个事件循环中更新
-                  setTimeout(() => {
-                    // 完全替换数组
-                    this.selectedList = [];
-                    this.$nextTick(() => {
-                      this.selectedList = newList;
-                    });
-                  }, 0);
-
-                  // 打印日志以验证数据变化
-                  console.log("数据更新:", {
-                    oldIndex,
-                    newIndex,
-                    newList,
-                  });
-                },
-              });
-            }
-          }
-        })
-        .exec();
-      // #endif
-
-      // #ifdef APP-PLUS
-      const query = uni.createSelectorQuery().in(this);
-      query
-        .selectAll('.u-tag')
-        .boundingClientRect(data => {
-          if (data && data.length) {
-            this.tagPositions = data.map(item => ({
-              left: item.left,
-              top: item.top,
-              width: item.width,
-              height: item.height
-            }));
-          }
-        })
-        .exec();
-
-      // 添加触摸事件处理
-      this.$nextTick(() => {
-        const query = uni.createSelectorQuery().in(this);
-        query.select('.tag-list').boundingClientRect(data => {
-          if (!data) return;
-          
-          const tagList = data;
-          let startX = 0;
-          let startY = 0;
-          let initialIndex = -1;
-          let currentIndex = -1;
-          
-          // 使用原生触摸事件
-          uni.$on('touchstart', (e) => {
-            const touch = e.touches[0];
-            startX = touch.clientX;
-            startY = touch.clientY;
-            
-            // 找到触摸的标签索引
-            const target = e.target;
-            if (target && target.classList.contains('u-tag')) {
-              initialIndex = this.selectedList.findIndex(item => 
-                item.dictLabel === target.dataset.label
-              );
-              target.style.opacity = '0.6';
-              target.style.transform = 'scale(1.1)';
-            }
-          });
-
-          uni.$on('touchmove', (e) => {
-            if (initialIndex === -1) return;
-            
-            const touch = e.touches[0];
-            const moveX = touch.clientX - startX;
-            const moveY = touch.clientY - startY;
-            
-            const target = e.target;
-            if (target && target.classList.contains('u-tag')) {
-              target.style.transform = `translate(${moveX}px, ${moveY}px) scale(1.1)`;
-              
-              currentIndex = this.getIndexAtPosition(touch.clientX, touch.clientY);
-            }
-          });
-
-          uni.$on('touchend', () => {
-            if (initialIndex === -1) return;
-            
-            if (currentIndex !== -1 && currentIndex !== initialIndex) {
-              // 更新数据
-              const newList = Array.from(this.selectedList);
-              const [removed] = newList.splice(initialIndex, 1);
-              newList.splice(currentIndex, 0, removed);
-              this.selectedList = newList;
-            }
-            
-            initialIndex = -1;
-            currentIndex = -1;
-          });
-        }).exec();
-      });
-      // #endif
-    },
     initData(code) {
-      // DictApi.getDictList("subject_" + code).then((res) => {
-      //   this.selectedList = res.data;
-      // });
+      let selectedCodes;
       
-      // 使用演示数据
-      this.selectedList = [
-        { dictLabel: '数据结构', dictValue: '1' },
-        { dictLabel: '算法分析', dictValue: '2' },
-        { dictLabel: '软件工程', dictValue: '3' },
-        { dictLabel: '计算机网络', dictValue: '4' },
-        { dictLabel: '操作系统', dictValue: '5' },
-        { dictLabel: '数据库系统', dictValue: '6' }
-      ];
-      // this.indexList = [
-      //   "语文",
-      //   "数学",
-      //   "英语",
-      //   "物理",
-      //   "化学",
-      //   "生物",
-      //   "政治",
-      //   "历史",
-      //   "地理",
-      // ];
-      // this.selectedIndex = 0;
-      // this.selectedList = ["语文", "数", "英语"];
-      // console.log(this.selectedList);
+      // #ifdef H5 || MP-WEIXIN
+      // 在小程序和H5中使用 getCurrentPages
+      const pages = getCurrentPages();
+      const currentPage = pages[pages.length - 1];
+      selectedCodes = currentPage.$page?.options?.selectedCodes;
+      // #endif
+      
+      // #ifdef APP-PLUS
+      // 在APP中从路由参数获取
+      selectedCodes = this.$route?.query?.selectedCodes;
+      // #endif
+
+      DictApi.getDictList("subject_" + code).then((res) => {
+        // Validate response data
+        if (!res || !res.data) {
+          console.error('Invalid response from getDictList:', res);
+          this.unselectedList = [];
+          return;
+        }
+
+        // Get all available subjects
+        const allSubjects = res.data;
+
+        // If code and selectedCodes don't match, select all subjects
+        if (code !== selectedCodes) {
+          this.selectedList = JSON.parse(JSON.stringify(allSubjects));
+          this.unselectedList = [];
+          return;
+        }
+        
+        // Query selected subjects only if codes match
+        SubjectApi.getSubject().then((selectedRes) => {
+          if (!selectedRes?.data || selectedRes.data.length === 0) {
+            this.selectedList = JSON.parse(JSON.stringify(allSubjects));
+            this.unselectedList = [];
+            return;
+          }
+
+          const selectedCodes = selectedRes.data.map(item => Number(item.subjectCode));
+          
+          this.selectedList = allSubjects.filter(subject =>
+            selectedCodes.includes(Number(subject.dictCode))
+          );
+          
+          this.unselectedList = allSubjects.filter(subject =>
+            !selectedCodes.includes(Number(subject.dictCode))
+          );
+        }).catch(error => {
+          console.error('Error fetching selected subjects:', error);
+          this.selectedList = JSON.parse(JSON.stringify(allSubjects));
+          this.unselectedList = [];
+        });
+      }).catch(error => {
+        console.error('Error fetching dict list:', error);
+        this.selectedList = [];
+        this.unselectedList = [];
+      });
     },
     closeTag(index) {
       this.selectedList.splice(index, 1);
@@ -413,11 +311,15 @@ export default {
     },
     getIndexAtPosition(x, y) {
       if (!this.tagPositions) return -1;
-      
+
       for (let i = 0; i < this.tagPositions.length; i++) {
         const pos = this.tagPositions[i];
-        if (x >= pos.left && x <= pos.left + pos.width &&
-            y >= pos.top && y <= pos.top + pos.height) {
+        if (
+          x >= pos.left &&
+          x <= pos.left + pos.width &&
+          y >= pos.top &&
+          y <= pos.top + pos.height
+        ) {
           return i;
         }
       }
@@ -426,15 +328,26 @@ export default {
     confirmSelection() {
       if (this.selectedList.length === 0) {
         uni.showToast({
-          title: '请至少选择一个科目',
-          icon: 'none'
+          title: "请至少选择一个科目",
+          icon: "none",
         });
         return;
       }
-
-      // 这里添加你的确认逻辑
-      uni.navigateBack({
-        delta: 1
+      SubjectApi.addSubject({
+        examId: this.examId,
+        subjectIds: this.selectedList.map((item) => item.dictCode),
+      }).then((res) => {
+        uni.showToast({ 
+          title: "添加成功", 
+          icon: "none",
+          duration: 1000,
+          success: () => {
+            // 等待 toast 显示完成后再跳转
+            setTimeout(() => {
+              uni.switchTab({ url: "/pages/index/index" });
+            }, 1000);
+          }
+        });
       });
     },
     initTagPositions() {
@@ -442,28 +355,28 @@ export default {
       const systemInfo = uni.getSystemInfoSync();
       const containerWidth = systemInfo.windowWidth - 32; // 减去右padding
       this.itemWidth = (containerWidth - 20) / this.gridColumns; // 20是列间距总和
-      
+
       this.selectedList = this.selectedList.map((item, index) => {
         const row = Math.floor(index / this.gridColumns);
         const col = index % this.gridColumns;
         const x = col * (this.itemWidth + 10); // 10是列间距
         const y = row * (this.itemHeight + 10); // 10是行间距
-        
+
         return {
           ...item,
           x,
           y,
           initialX: x,
           initialY: y,
-          index
+          index,
         };
       });
-      
+
       // 保存所有可能的位置
-      this.positions = this.selectedList.map(item => ({
+      this.positions = this.selectedList.map((item) => ({
         x: item.x,
         y: item.y,
-        index: item.index
+        index: item.index,
       }));
       // #endif
     },
@@ -473,28 +386,28 @@ export default {
 
     onDragMove(e, index) {
       if (this.draggingIndex === -1) return;
-      
+
       const { x, y } = e.detail;
       const currentPosition = { x, y };
-      
+
       // 找到最近的位置
       let nearestIndex = -1;
       let minDistance = Infinity;
-      
+
       this.positions.forEach((position, idx) => {
         if (idx === index) return;
-        
+
         const distance = Math.sqrt(
           Math.pow(currentPosition.x - position.x, 2) +
-          Math.pow(currentPosition.y - position.y, 2)
+            Math.pow(currentPosition.y - position.y, 2)
         );
-        
+
         if (distance < minDistance) {
           minDistance = distance;
           nearestIndex = idx;
         }
       });
-      
+
       // 如果找到合适的位置且距离小于阈值，则交换位置
       if (nearestIndex !== -1 && minDistance < this.itemWidth / 2) {
         this.swapItems(index, nearestIndex);
@@ -512,7 +425,7 @@ export default {
       const [removed] = newList.splice(fromIndex, 1);
       newList.splice(toIndex, 0, removed);
       this.selectedList = newList;
-      
+
       // 更新位置信息
       this.$nextTick(() => {
         this.initTagPositions();
@@ -521,136 +434,138 @@ export default {
 
     dragStart(event, index) {
       // 防止多指触控
-      if (event.touches.length > 1) return
-      
-      const touch = event.touches[0]
-      this.startX = touch.clientX
-      this.startY = touch.clientY
-      this.currentDrag = index
-      this.isMoving = true
-      
+      if (event.touches.length > 1) return;
+
+      const touch = event.touches[0];
+      this.startX = touch.clientX;
+      this.startY = touch.clientY;
+      this.currentDrag = index;
+      this.isMoving = true;
+
       // 添加触感反馈
-      plus.device.vibrate(10)
-      
+      plus.device.vibrate(10);
+
       // 获取元素位置信息
-      uni.createSelectorQuery()
+      uni
+        .createSelectorQuery()
         .in(this)
-        .selectAll('.subject-item')
-        .boundingClientRect(rects => {
-          this.itemRects = rects
+        .selectAll(".subject-item")
+        .boundingClientRect((rects) => {
+          this.itemRects = rects;
         })
-        .exec()
+        .exec();
     },
 
     dragMove(event, index) {
-      if (this.currentDrag === -1) return
-      
-      const touch = event.touches[0]
-      this.moveX = touch.clientX - this.startX
-      this.moveY = touch.clientY - this.startY
-      
+      if (this.currentDrag === -1) return;
+
+      const touch = event.touches[0];
+      this.moveX = touch.clientX - this.startX;
+      this.moveY = touch.clientY - this.startY;
+
       // 使用节流优化性能
-      if (this.dragTimer) return
+      if (this.dragTimer) return;
       this.dragTimer = setTimeout(() => {
-        this.checkPosition(touch, index)
-        this.dragTimer = null
-      }, 50)
+        this.checkPosition(touch, index);
+        this.dragTimer = null;
+      }, 50);
     },
 
     checkPosition(touch, index) {
-      if (!this.itemRects[index]) return
-      
+      if (!this.itemRects[index]) return;
+
       const currentRect = {
         left: this.itemRects[index].left + this.moveX,
         top: this.itemRects[index].top + this.moveY,
         width: this.itemRects[index].width,
-        height: this.itemRects[index].height
-      }
-      
-      let targetIndex = -1
-      let minDistance = Infinity
-      
+        height: this.itemRects[index].height,
+      };
+
+      let targetIndex = -1;
+      let minDistance = Infinity;
+
       this.itemRects.forEach((rect, idx) => {
-        if (idx === index) return
-        
+        if (idx === index) return;
+
         const distance = this.getDistance(
           currentRect.left + currentRect.width / 2,
           currentRect.top + currentRect.height / 2,
           rect.left + rect.width / 2,
           rect.top + rect.height / 2
-        )
-        
+        );
+
         if (distance < minDistance && distance < rect.width) {
-          minDistance = distance
-          targetIndex = idx
+          minDistance = distance;
+          targetIndex = idx;
         }
-      })
-      
+      });
+
       if (targetIndex !== -1) {
-        this.swapItems(index, targetIndex)
-        plus.device.vibrate(5) // 轻微振动反馈
+        this.swapItems(index, targetIndex);
+        plus.device.vibrate(5); // 轻微振动反馈
       }
     },
 
     dragEnd() {
-      if (this.currentDrag === -1) return
-      
-      this.isMoving = false
-      this.moveX = 0
-      this.moveY = 0
-      
+      if (this.currentDrag === -1) return;
+
+      this.isMoving = false;
+      this.moveX = 0;
+      this.moveY = 0;
+
       // 使用 nextTick 确保动画正常执行
       this.$nextTick(() => {
         setTimeout(() => {
-          this.currentDrag = -1
-        }, 300)
-      })
+          this.currentDrag = -1;
+        }, 300);
+      });
     },
 
     getDistance(x1, y1, x2, y2) {
-      return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))
+      return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
     },
 
     swapItems(fromIndex, toIndex) {
-      const newList = [...this.selectedList]
-      const temp = newList[fromIndex]
-      newList[fromIndex] = newList[toIndex]
-      newList[toIndex] = temp
-      this.selectedList = newList
-      
+      const newList = [...this.selectedList];
+      const temp = newList[fromIndex];
+      newList[fromIndex] = newList[toIndex];
+      newList[toIndex] = temp;
+      this.selectedList = newList;
+
       // 更新位置信息
       this.$nextTick(() => {
-        uni.createSelectorQuery()
+        uni
+          .createSelectorQuery()
           .in(this)
-          .selectAll('.subject-item')
-          .boundingClientRect(rects => {
-            this.itemRects = rects
+          .selectAll(".subject-item")
+          .boundingClientRect((rects) => {
+            this.itemRects = rects;
           })
-          .exec()
-      })
+          .exec();
+      });
     },
 
     handleClose(index) {
-      if (this.isMoving) return // 拖动时禁止关闭
-      this.unselectedList.push(this.selectedList[index])
-      this.selectedList.splice(index, 1)
+      if (this.isMoving) return; // 拖动时禁止关闭
+      this.unselectedList.push(this.selectedList[index]);
+      this.selectedList.splice(index, 1);
     },
 
     getDragStyle(index) {
       if (index === this.currentDrag) {
         return {
           transform: `translate3d(${this.moveX}px, ${this.moveY}px, 0)`,
-          transition: this.isMoving ? 'none' : 'transform 0.3s'
-        }
+          transition: this.isMoving ? "none" : "transform 0.3s",
+        };
       }
-      return {}
-    }
+      return {};
+    },
   },
   beforeDestroy() {
     // #ifdef APP-PLUS
-    uni.$off('touchstart');
-    uni.$off('touchmove');
-    uni.$off('touchend');
+    uni.$off("touchstart");
+    uni.$off("touchmove");
+    uni.$off("touchend");
     // #endif
   },
   watch: {
@@ -662,8 +577,8 @@ export default {
         });
         // #endif
       },
-      deep: true
-    }
+      deep: true,
+    },
   },
   // 页面显示时也重新计算位置
   onShow() {
@@ -672,7 +587,7 @@ export default {
       this.initTagPositions();
     });
     // #endif
-  }
+  },
 };
 </script>
 
@@ -687,7 +602,7 @@ export default {
 
 .scroll-content {
   flex: 1;
-  height: 0; // 重要：防止scroll-view溢出
+  height: 0; // 重要：止scroll-view溢出
   ::-webkit-scrollbar {
     display: none; // 隐藏webkit浏览器的滚动条
     width: 0;
@@ -717,9 +632,9 @@ export default {
   z-index: 2;
   background: #fff;
 
-  // 只有带有 --with-border 修饰符的标题才显示底部横线
+  // 只有带有 --with-border 修饰符的题才显示底部横线
   &.section-title--with-border::after {
-    content: '';
+    content: "";
     position: absolute;
     left: -16px;
     right: -16px;
@@ -745,7 +660,7 @@ export default {
 .movable-view {
   z-index: 1;
   transition: transform 0.2s;
-  
+
   &.dragging {
     z-index: 2;
     transition: none;
@@ -780,10 +695,10 @@ export default {
   position: absolute;
   z-index: 1;
   padding: 5px;
-  
+
   &.dragging {
     z-index: 2;
-    
+
     .subject-item {
       transform: scale(1.05);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -800,14 +715,14 @@ export default {
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  
+
   .subject-text {
     font-size: 14px;
     color: #333;
     max-width: 80%;
     text-align: center;
   }
-  
+
   .close-btn {
     position: absolute;
     right: 8px;
@@ -842,7 +757,7 @@ export default {
   touch-action: none;
   will-change: transform;
   transition: all 0.3s ease;
-  
+
   &.dragging {
     z-index: 100;
     opacity: 0.9;
@@ -850,17 +765,17 @@ export default {
     transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
-  
+
   &.item-moving {
     transition: transform 0.3s ease;
   }
-  
+
   .subject-text {
     font-size: 14px;
     color: #333;
     line-height: 1.4;
   }
-  
+
   .close-btn {
     position: absolute;
     right: 6px;
@@ -874,7 +789,7 @@ export default {
     background: rgba(0, 0, 0, 0.06);
     color: #666;
     font-size: 16px;
-    
+
     &:active {
       background: rgba(0, 0, 0, 0.1);
     }

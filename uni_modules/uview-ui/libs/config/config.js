@@ -30,5 +30,10 @@ export default {
         'u-light-color': '#c0c4cc'
     },
 	// 默认单位，可以通过配置为rpx，那么在用于传入组件大小参数为数值时，就默认为rpx
-	unit: 'px'
+	unit: 'px',
+	style: {
+		primaryColor: '#3c9cff',
+		primaryTextColor: '#ffffff',
+		// ...other styles
+	}
 }

@@ -49,18 +49,36 @@ module.exports = (vm) => {
     // 关闭loading
     uni.hideLoading();
 
+
     // 自定义参数
     const custom = response.config?.custom
     if (data.code !== 200) { 
       // 如果没有显式定义custom的toast参数为false的话，默认对报错进行toast弹出提示
       if (custom.toast !== false) {
-        uni.$u.toast(data.msg)
+        uni.$u.toast({
+          message: data.msg,
+          duration: 0,
+          type: 'error'
+        })
       }
 
       // 判断状态码
       switch (data.code) {
         case 401: {
-          uni.reLaunch({ url: '/' })
+          console.log('401');
+          uni.reLaunch({
+            url: '/pages/login/index',
+            success: () => {
+              console.log('Redirected to login page');
+            },
+            fail: (err) => {
+              console.error('Redirect failed:', err);
+              // Fallback to navigateTo if reLaunch fails
+              uni.navigateTo({
+                url: '/pages/login/index'
+              });
+            }
+          });
           return;
         }
       }

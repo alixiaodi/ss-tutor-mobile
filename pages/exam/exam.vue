@@ -29,7 +29,7 @@
               :text="item.dictLabel"
               plain
               size="medium"
-              type="primary"
+              :type="item.isSelected ? 'success' : 'primary'"
               v-for="(item, index) in unselectedList"
               :key="index"
               style="
@@ -58,6 +58,7 @@
 import Sortable from "sortablejs";
 import Navbar from "@/components/navbar/Navbar";
 import * as DictApi from "@/api/dict";
+import * as UserApi from "@/api/user";
 
 export default {
   mounted() {},
@@ -73,6 +74,7 @@ export default {
       examTypeList: [],
       selectedExamType: null,
       sortableInstance: null,
+      userExamCodes: [],
     };
   },
   onLoad() {
@@ -82,7 +84,7 @@ export default {
   methods: {
     addSubject(item) {
       uni.navigateTo({
-        url: "/pages/subject/subject?code=" + item.dictCode,
+        url: `/pages/subject/subject?code=${item.dictCode}&selectedCodes=${this.userExamCodes}`,
       });
     },
     initSortable() {
@@ -130,17 +132,23 @@ export default {
         .exec();
       // #endif
     },
-    initData() {
+    async initData() {
+      // Get user info first
+      try {
+        const userInfo = await UserApi.getInfo();
+        this.userExamCodes = userInfo.data?.examCode || [];
+      } catch (error) {
+        console.error('Failed to fetch user info:', error);
+        this.userExamCodes = [];
+      }
+
+      // Then get exam types
       DictApi.getDictList("exam_type").then((res) => {
         this.examTypeList = res.data;
         if (this.examTypeList.length > 0) {
           this.selectItem(this.examTypeList[0]);
         }
       });
-      // this.indexList = ["自考-本科", "自考-专科"];
-
-      // this.selectedList = ["语文", "数学", "英语"];
-      // console.log(this.selectedList);
     },
     closeTag(index) {
       this.selectedList.splice(index, 1);
@@ -148,7 +156,11 @@ export default {
     selectItem(item) {
       this.selectedExamType = item.dictValue;
       DictApi.getDictList("exam_list_" + item.dictValue).then((res) => {
-        this.unselectedList = res.data;
+        const examList = Array.isArray(res.data) ? res.data : [];
+        this.unselectedList = examList.map(item => ({
+          ...item,
+          isSelected: this.userExamCodes.includes(item.dictCode)
+        }));
       });
     },
   },

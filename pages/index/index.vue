@@ -1,9 +1,8 @@
 <template>
   <view class="index-content">
-
-    <view>
+    <view class="header">
       <u-row
-        customStyle="margin: 0; background: linear-gradient(to bottom, #2BB5A0, #4ECDB6); border-radius: 0 0 30px 30px; padding: 20px; padding-top: calc(var(--status-bar-height) + 24px); box-shadow: 0 2px 10px rgba(0,0,0,0.1);"
+        customStyle="margin: 0; background: linear-gradient(to bottom, #2BB5A0, #4ECDB6); border-radius: 0 0 30px 30px; padding: 20px; padding-top: calc(var(--status-bar-height) + 24px); padding-bottom: 90px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);"
       >
         <u-col span="6">
           <span
@@ -11,11 +10,8 @@
             class="subject-selector"
             style="cursor: pointer"
           >
-            <text class="subject-text">软件工程</text>
-            <image
-              src="/static/svg/exchange.svg"
-              class="selector-icon"
-            ></image>
+            <text class="subject-text">{{ examName }}</text>
+            <image src="/static/svg/exchange.svg" class="selector-icon"></image>
           </span>
         </u-col>
         <u-col span="6">
@@ -23,20 +19,70 @@
         </u-col>
       </u-row>
     </view>
-    <DraggableTags 
-      :tags="tagsList"
-      icon-type="add"
-      :random-color="false"
-      @change="onTagsChange"
-        @remove="handleTagRemove"
-      style="margin-top: 20px; display: block;" 
-    />
+
+    <!-- 调整位置的 tabs -->
+    <view class="content-container">
+      <view class="tabs-container">
+        <u-tabs
+          :list="operationList"
+          :current="currentIndex"
+          @change="handleSelect"
+          scrollable
+          keyName="subjectName"
+          activeStyle="color: #4ECDB6; font-weight: bold; transform: scale(1.05);"
+          inactiveStyle="color: #666;"
+          lineColor="#4ECDB6"
+          itemStyle="padding-left: 15px; padding-right: 15px; padding-bottom: 8px; white-space: nowrap;"
+          :lineHeight="3"
+          :lineWidth="30"
+        >
+          <template #right>
+            <view class="menu-icon" @click="showMenu">
+              <u-icon name="more-dot-fill" size="24" color="#666"></u-icon>
+            </view>
+          </template>
+        </u-tabs>
+      </view>
+    </view>
+    <!-- 添加内容模块 -->
+    <view class="content-modules">
+      <view class="grid-container">
+        <view class="module-card" @click="navigateTo('/pages/mock-exam/index')">
+          <image src="/static/icons/exam.png" class="module-icon"></image>
+          <text class="module-title">AI模拟考试</text>
+        </view>
+
+        <view
+          class="module-card"
+          @click="navigateTo('/pages/ai-predict/index')"
+        >
+          <image src="/static/icons/predict.png" class="module-icon"></image>
+          <text class="module-title">AI押题</text>
+        </view>
+        <view
+          class="module-card"
+          @click="navigateTo('/pages/past-papers/index')"
+        >
+          <image
+            src="/static/icons/papers.png"
+            class="module-icon"
+            style="width: 80px; height: 32px; object-fit: contain"
+          ></image>
+          <text class="module-title">历年真题</text>
+        </view>
+
+        <view class="module-card" @click="navigateTo('/pages/ai-tutor/index')">
+          <image src="/static/icons/tutor.png" class="module-icon"></image>
+          <text class="module-title">AI导师</text>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script>
 import Navbar from "@/components/navbar/Navbar";
-import DraggableTags from "@/components/DraggableTags/DraggableTags";
+import * as SubjectApi from "@/api/subject";
 
 let _now = new Date();
 let now_time = {};
@@ -47,21 +93,41 @@ now_time.day = _now.getDay();
 export default {
   components: {
     Navbar,
-    DraggableTags,
+  },
+  onShow() {
+    this.loadSubjectData();
   },
   methods: {
-    handleTagRemove(tag) {
-      console.log(tag);
-    },
-    onTagsChange(newTags) {
-      this.tagsList = [...newTags]
-      console.log(this.tagsList);
-      
+    loadSubjectData() {
+      SubjectApi.getSubject().then((res) => {
+        this.operationList = res.data.subjects;
+        this.examName = res.data.examName;
+      });
     },
     selectSubject() {
       uni.navigateTo({
         url: "/pages/exam/exam",
       });
+    },
+    handleSelect(index) {
+      if (this.operationList && this.operationList[index]) {
+        this.currentIndex = index;
+        uni.showToast({
+          title: this.operationList[index].subjectName,
+          icon: "none",
+        });
+      }
+    },
+    showMenu() {
+      uni.showActionSheet({
+        itemList: this.operationList.map((item) => item.subjectName),
+        success: (res) => {
+          this.handleSelect(res.tapIndex);
+        },
+      });
+    },
+    navigateTo(url) {
+      uni.navigateTo({ url });
     },
   },
   data() {
@@ -162,7 +228,7 @@ export default {
           time: "12:41",
           type: "extend",
           money: "122.12",
-          desc: "信用卡转出",
+          desc: "信用卡转",
         },
         {
           date: now_time.month + "-13",
@@ -172,43 +238,29 @@ export default {
           desc: "银行卡收入",
         },
       ],
-      tagsList: [
-        { text: '数据结构', type: 'primary' },
-        { text: '算法分析', type: 'warning' },
-        { text: '软件测试', type: 'success' },
-        { text: '需求分析', type: 'info' },
-        { text: '系统设计', type: 'primary' },
-        { text: '项目管理', type: 'warning' },
-        { text: '软件架构', type: 'success' },
-        { text: '代码审查', type: 'info' },
-        { text: '敏捷开发', type: 'primary' },
-        { text: '版本控制', type: 'warning' },
-        { text: '持续集成', type: 'success' },
-        { text: '我的内容非常多了', type: 'info' },
-        { text: '我的内容非常多了我的更多了', type: 'info' },
-        { text: '你看我的呢', type: 'info' }
-      ],
+      currentIndex: 0,
+      operationList: [],
+      examName: "",
     };
   },
 };
 </script>
-
 <style lang="scss">
 .subject-selector {
   text-align: left;
   position: absolute;
   /* #ifdef APP-PLUS */
-  top: calc(var(--status-bar-height) + 6px);
+  top: calc(var(--status-bar-height) + 12px);
   /* #endif */
   /* #ifndef APP-PLUS */
-  top: calc(var(--status-bar-height) + 12px);
+  top: calc(var(--status-bar-height) + 18px);
   /* #endif */
   padding-left: 15px;
   left: 0;
   color: #ffffff;
   display: flex;
   align-items: center;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .subject-text {
@@ -222,6 +274,100 @@ export default {
   height: 40rpx;
   margin-left: 12rpx;
   filter: brightness(0) invert(1);
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+.header {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 5px;
+}
+
+.content-container {
+  padding: 0 10px;
+}
+
+.tabs-container {
+  position: relative;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.95);
+  margin-top: -60px;
+  border-radius: 15px;
+  padding: 5px 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.tabs-container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tabs-container::-webkit-scrollbar-thumb {
+  background: #4ecdb6;
+  border-radius: 2px;
+}
+
+.tabs-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+.menu-icon {
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  cursor: pointer;
+}
+
+.content-modules {
+  margin-top: 30px;
+  padding: 0 15px;
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.module-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  height: 120px;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    background: #fafafa;
+  }
+}
+
+.module-icon {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 12px;
+  opacity: 0.9;
+}
+
+.module-title {
+  font-size: 15px;
+  color: #2c3e50;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.3px;
 }
 </style>
+

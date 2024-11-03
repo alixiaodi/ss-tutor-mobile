@@ -97,6 +97,12 @@
 			{
 				"navigationBarTitleText" : "选择考试"
 			}
+		},
+		{
+			"path": "pages/mock-exam/index",
+			"style": {
+			"navigationBarTitleText" : "AI模拟考试"
+			}
 		}
 	],
 	"tabBar": {
@@ -113,7 +119,8 @@
 			"pagePath": "pages/work/index",
 			"iconPath": "static/img/tabbar/center.png",
 			"selectedIconPath": "static/img/tabbar/center_art.png",
-			"text": "工作台"
+			"text": "工作台" ,
+			"visible": false
 		}, {
 			"pagePath": "pages/center/index",
 			"iconPath": "static/img/tabbar/user.png",
