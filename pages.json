@@ -107,6 +107,12 @@
 			"style": {
 				"navigationBarTitleText": "AI模拟考试"
 			}
+		},
+		{
+			"path": "pages/past-papers/index",
+			"style": {
+				"navigationBarTitleText": "历年真题"
+			}
 		}
 	],
 	"tabBar": {

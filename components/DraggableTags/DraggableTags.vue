@@ -2,16 +2,33 @@
   <view class="draggable-tags">
     <text class="drag-hint">拖拽可排序</text>
     <view class="tags-container">
-      <view v-for="(tag, index) in innerTags" :key="`tag-${index}`" class="tag-item"
-        :class="[{ 'dragging': currentDragIndex === index, 'others-dragging': currentDragIndex !== -1 && currentDragIndex !== index }]"
-        :style="getTagStyle(index)" @touchstart="handleTouchStart($event, index)"
-        @touchmove="handleTouchMove($event, index)" @touchend="handleTouchEnd(index)" @click="showFullText(tag.dictLabel)">
+      <view
+        v-for="(tag, index) in innerTags"
+        :key="`tag-${index}`"
+        class="tag-item"
+        :class="[
+          {
+            dragging: currentDragIndex === index,
+            'others-dragging': currentDragIndex !== -1 && currentDragIndex !== index,
+          },
+        ]"
+        :style="getTagStyle(index)"
+        @touchstart="handleTouchStart($event, index)"
+        @touchmove="handleTouchMove($event, index)"
+        @touchend="handleTouchEnd(index)"
+        @click="showFullText(tag.dictLabel)"
+      >
         <text class="tag-text">{{ tag.dictLabel }}</text>
-        <text v-if="closeable" class="close-icon" @click.stop="removeTag(index)" :style="[
-          iconType === 'add' ? '' : 'color: #ff6b6b',
-          randomColor ? 'color: #ffffff' : ''
-        ]">
-          {{ iconType === 'add' ? '+' : '×' }}
+        <text
+          v-if="closeable"
+          class="close-icon"
+          @click.stop="removeTag(index)"
+          :style="[
+            iconType === 'add' ? '' : 'color: #ff6b6b',
+            randomColor ? 'color: #ffffff' : '',
+          ]"
+        >
+          {{ iconType === "add" ? "+" : "×" }}
         </text>
       </view>
     </view>
@@ -20,35 +37,35 @@
 
 <script>
 export default {
-  name: 'DraggableTags',
+  name: "DraggableTags",
   props: {
     tags: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     closeable: {
       type: Boolean,
-      default: true
+      default: true,
     },
     iconType: {
       type: String,
-      default: 'close',
+      default: "close",
       validator(value) {
-        if (!['close', 'add'].includes(value)) {
+        if (!["close", "add"].includes(value)) {
           console.warn(`iconType 必须是 'close' 或 'add', 收到的值是: ${value}`);
           return false;
         }
         return true;
-      }
+      },
     },
     randomColor: {
       type: Boolean,
-      default: false
+      default: false,
     },
     preserveColor: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
   data() {
     return {
@@ -58,166 +75,180 @@ export default {
       startX: 0,
       dragX: 0,
       dragY: 0,
-      tagColorMap: new Map()
-    }
+      tagColorMap: new Map(),
+      swapTimeout: null,
+    };
   },
   watch: {
     tags: {
       handler(newVal) {
-        newVal.forEach(tag => {
+        newVal.forEach((tag) => {
           if (!this.tagColorMap.has(tag.dictCode)) {
             this.tagColorMap.set(tag.dictCode, this.generateRandomColor());
           }
         });
 
-        this.innerTags = newVal.map(tag => ({
+        this.innerTags = newVal.map((tag) => ({
           ...tag,
-          randomColor: this.randomColor ? this.tagColorMap.get(tag.dictCode) : null
+          randomColor: this.randomColor ? this.tagColorMap.get(tag.dictCode) : null,
         }));
       },
-      immediate: true
-    }
+      immediate: true,
+    },
   },
-  emits: ['change', 'remove'],
+  emits: ["change", "remove"],
   methods: {
     handleTouchStart(event, index) {
-      this.currentDragIndex = index
-      this.startX = event.touches[0].clientX
-      this.startY = event.touches[0].clientY
-      this.dragX = 0
-      this.dragY = 0
+      this.currentDragIndex = index;
+      const touch = event.touches[0];
+      this.startX = touch.pageX;
+      this.startY = touch.pageY;
+      this.dragX = 0;
+      this.dragY = 0;
     },
     handleTouchMove(event, index) {
-      if (this.currentDragIndex === -1) return
+      if (this.currentDragIndex === -1) return;
 
-      const currentX = event.touches[0].clientX
-      const currentY = event.touches[0].clientY
+      const touch = event.touches[0];
 
-      // 更新拖动位置
-      this.dragX = currentX - this.startX
-      this.dragY = currentY - this.startY
+      // 计算移动距离，不设限制
+      this.dragX = touch.pageX - this.startX;
+      this.dragY = touch.pageY - this.startY;
 
-      const deltaX = currentX - this.startX
-      const deltaY = currentY - this.startY
+      // 使用 uni.createSelectorQuery 获取实际位置
+      const query = uni.createSelectorQuery().in(this);
+      query
+        .selectAll(".tag-item")
+        .boundingClientRect((rects) => {
+          if (!rects || !rects.length) return;
 
-      // 计算移动距离，判断是否需要交换位置
-      if (Math.abs(deltaY) > 30 || Math.abs(deltaX) > 30) {
-        this.findClosestTagIndex(currentX, currentY).then(targetIndex => {
-          if (targetIndex !== -1 && targetIndex !== this.currentDragIndex) {
-            this.swapTags(this.currentDragIndex, targetIndex)
-            this.currentDragIndex = targetIndex
-            this.startX = currentX
-            this.startY = currentY
+          // 找到最近的标签
+          let closestIndex = -1;
+          let minDistance = Infinity;
+
+          rects.forEach((rect, idx) => {
+            if (idx === this.currentDragIndex) return;
+
+            const distance = Math.sqrt(
+              Math.pow(touch.pageX - (rect.left + rect.width / 2), 2) +
+                Math.pow(touch.pageY - (rect.top + rect.height / 2), 2)
+            );
+
+            // 增大判定范围
+            if (distance < minDistance && distance < rect.width * 1.5) {
+              minDistance = distance;
+              closestIndex = idx;
+            }
+          });
+
+          // 如果找到合适的位置则交换
+          if (closestIndex !== -1 && closestIndex !== this.currentDragIndex) {
+            this.swapTags(this.currentDragIndex, closestIndex);
+            this.currentDragIndex = closestIndex;
+
+            // 更新起始位置
+            this.startX = touch.pageX;
+            this.startY = touch.pageY;
+            this.dragX = 0;
+            this.dragY = 0;
           }
         })
-      }
+        .exec();
     },
     handleTouchEnd(index) {
       if (this.currentDragIndex !== -1) {
-        this.currentDragIndex = -1
-        this.dragX = 0
-        this.dragY = 0
-        this.$emit('change', [...this.innerTags])
+        // 重置所有状态
+        this.currentDragIndex = -1;
+        this.dragX = 0;
+        this.dragY = 0;
+        this.$emit("change", [...this.innerTags]);
       }
     },
-    async findClosestTagIndex(x, y) {
-      // 使用 uniapp 的 API 获取元素位置信息
-      const query = uni.createSelectorQuery().in(this)
-      const tagsPromise = new Promise(resolve => {
-        query.selectAll('.tag-item').boundingClientRect(data => {
-          resolve(data)
-        }).exec()
-      })
-
-      const tags = await tagsPromise
-      let closestIndex = -1
-      let minDistance = Infinity
-
-      tags.forEach((rect, index) => {
-        const centerX = rect.left + rect.width / 2
-        const centerY = rect.top + rect.height / 2
-        const distance = Math.sqrt(
-          Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
-        )
-
-        if (distance < minDistance) {
-          minDistance = distance
-          closestIndex = index
-        }
-      })
-
-      return closestIndex
-    },
     swapTags(fromIndex, toIndex) {
-      const temp = this.innerTags[fromIndex]
-      this.innerTags.splice(fromIndex, 1)
-      this.innerTags.splice(toIndex, 0, temp)
-      this.$emit('change', [...this.innerTags])
+      const newTags = [...this.innerTags];
+      const temp = newTags[fromIndex];
+      newTags[fromIndex] = newTags[toIndex];
+      newTags[toIndex] = temp;
+
+      this.innerTags = newTags;
+      this.$emit("change", this.innerTags);
     },
     removeTag(index) {
-      const removedTag = this.innerTags[index]
-      this.innerTags.splice(index, 1)
-      this.$emit('remove', { tag: removedTag, index })
-      this.$emit('change', [...this.innerTags])
+      const removedTag = this.innerTags[index];
+      this.innerTags.splice(index, 1);
+      this.$emit("remove", { tag: removedTag, index });
+      this.$emit("change", [...this.innerTags]);
     },
     generateRandomColor() {
       const colors = [
-        '#409eff', // 蓝色
-        '#67c23a', // 绿色
-        '#f56c6c', // 红色
-        '#ff9800'  // 橙色
+        "#409eff", // 蓝色
+        "#67c23a", // 绿色
+        "#f56c6c", // 红色
+        "#ff9800", // 橙色
       ];
       return colors[Math.floor(Math.random() * colors.length)];
     },
     getTagStyle(index) {
-      const baseStyle = {
-        transform: index === this.currentDragIndex 
-          ? `translate(${this.dragX}px, ${this.dragY}px)`
-          : 'translate(0, 0)',
+      const style = {
+        transform:
+          index === this.currentDragIndex
+            ? `translate3d(${this.dragX}px, ${this.dragY}px, 0)`
+            : "translate3d(0, 0, 0)",
         zIndex: index === this.currentDragIndex ? 100 : 1,
-        transition: index === this.currentDragIndex ? 'none' : 'all 0.3s'
+        transition: index === this.currentDragIndex ? "none" : "transform 0.2s ease",
       };
-      
+
       if (this.randomColor && this.innerTags[index]) {
-        baseStyle.backgroundColor = this.innerTags[index].randomColor;
-        baseStyle.color = '#333333';
-        baseStyle.border = 'none';
+        style.backgroundColor = this.innerTags[index].randomColor;
+        style.color = "#333333";
+        style.border = "none";
       }
-      
-      return baseStyle;
+
+      return style;
     },
     showFullText(text) {
       uni.showToast({
         title: text,
-        icon: 'none',
+        icon: "none",
         duration: 2000,
-        position: 'bottom'
-      })
+        position: "bottom",
+      });
     },
     getTagColor(tag) {
       const colors = [
-        '#E3F2FD', '#E8F5E9', '#FFF3E0', '#F3E5F5', 
-        '#E1F5FE', '#E0F2F1', '#FBE9E7', '#F1F8E9'
+        "#E3F2FD",
+        "#E8F5E9",
+        "#FFF3E0",
+        "#F3E5F5",
+        "#E1F5FE",
+        "#E0F2F1",
+        "#FBE9E7",
+        "#F1F8E9",
       ];
-      
+
       if (tag.dictCode) {
         const index = Math.abs(this.hashCode(tag.dictCode)) % colors.length;
         return colors[index];
       }
-      
+
       return colors[Math.floor(Math.random() * colors.length)];
     },
     hashCode(str) {
       let hash = 0;
       for (let i = 0; i < str.length; i++) {
         const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
+        hash = (hash << 5) - hash + char;
         hash = hash & hash;
       }
       return hash;
+    },
+  },
+  beforeDestroy() {
+    if (this.swapTimeout) {
+      clearTimeout(this.swapTimeout);
     }
-  }
-}
+  },
+};
 </script>
 
 <style lang="scss" scoped>
@@ -240,6 +271,7 @@ export default {
     flex-wrap: wrap;
     gap: 20rpx;
     justify-content: flex-start;
+    position: relative;
   }
 
   .tag-item {
@@ -253,7 +285,7 @@ export default {
     justify-content: space-between;
     font-size: 28rpx;
     touch-action: none;
-    transition: transform 0.2s;
+    position: relative;
 
     .tag-text {
       flex: 1;

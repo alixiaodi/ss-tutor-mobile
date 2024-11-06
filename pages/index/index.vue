@@ -5,11 +5,7 @@
         customStyle="margin: 0; background: linear-gradient(to bottom, #2BB5A0, #4ECDB6); border-radius: 0 0 30px 30px; padding: 20px; padding-top: calc(var(--status-bar-height) + 24px); padding-bottom: 90px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);"
       >
         <u-col span="6">
-          <span
-            @click="selectSubject"
-            class="subject-selector"
-            style="cursor: pointer"
-          >
+          <span @click="selectSubject" class="subject-selector" style="cursor: pointer">
             <text class="subject-text">{{ examName }}</text>
             <image src="/static/svg/exchange.svg" class="selector-icon"></image>
           </span>
@@ -52,17 +48,11 @@
           <text class="module-title">AI模拟考试</text>
         </view>
 
-        <view
-          class="module-card"
-          @click="navigateTo('/pages/ai-predict/index')"
-        >
+        <view class="module-card" @click="navigateTo('/pages/ai-predict/index')">
           <image src="/static/icons/predict.png" class="module-icon"></image>
           <text class="module-title">AI押题</text>
         </view>
-        <view
-          class="module-card"
-          @click="navigateTo('/pages/past-papers/index')"
-        >
+        <view class="module-card" @click="navigateTo('/pages/past-papers/index')">
           <image
             src="/static/icons/papers.png"
             class="module-icon"
@@ -115,14 +105,8 @@ export default {
       });
     },
     handleSelect(index) {
-      if (this.operationList && this.operationList[index]) {
-        this.currentIndex = index;
-        this.currentSubjectCode = this.operationList[index].code;
-        uni.showToast({
-          title: this.operationList[index].subjectName,
-          icon: "none",
-        });
-      }
+      this.currentIndex = index.index;
+      this.currentSubjectCode = index.subjectCode;
     },
     showMenu() {
       uni.showActionSheet({
@@ -133,7 +117,7 @@ export default {
       });
     },
     navigateTo(url) {
-      if (url === '/pages/mock-exam/index') {
+      if (url === "/pages/mock-exam/index" || url === "/pages/past-papers/index") {
         url = `${url}?subjectCode=${this.currentSubjectCode}`;
       }
       uni.navigateTo({ url });
@@ -381,4 +365,3 @@ export default {
   letter-spacing: 0.3px;
 }
 </style>
-

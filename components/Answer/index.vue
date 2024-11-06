@@ -711,7 +711,7 @@ export default {
             return null;
           }
           // TODO: 实际的填空题答案比对逻辑
-          console.log("填空题答案比对逻辑");
+          // console.log("填空题答案比对逻辑");
           return null; // 暂时返回 null，不显示对错
 
         case "essay":
