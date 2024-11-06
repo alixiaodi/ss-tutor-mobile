@@ -50,3 +50,5 @@ nbdist/
 !*/build/*.html
 !*/build/*.xml
 package-lock.json
+.vscode
+.nvmrc

@@ -85,23 +85,27 @@
 			}
 		},
 		{
-			"path" : "pages/subject/subject",
-			"style" : 
-			{
-				"navigationBarTitleText" : "选择学科"
+			"path": "pages/subject/subject",
+			"style": {
+				"navigationBarTitleText": "选择学科"
 			}
 		},
 		{
-			"path" : "pages/exam/exam",
-			"style" : 
-			{
-				"navigationBarTitleText" : "选择考试"
+			"path": "pages/exam/exam",
+			"style": {
+				"navigationBarTitleText": "选择考试"
 			}
 		},
 		{
 			"path": "pages/mock-exam/index",
 			"style": {
-			"navigationBarTitleText" : "AI模拟考试"
+				"navigationBarTitleText": "AI模拟考试"
+			}
+		},
+		{
+			"path": "pages/mock-exam/exam",
+			"style": {
+				"navigationBarTitleText": "AI模拟考试"
 			}
 		}
 	],
@@ -110,37 +114,41 @@
 		"selectedColor": "#000000",
 		"borderStyle": "black",
 		"backgroundColor": "#ffffff",
-		"list": [{
-			"pagePath": "pages/index/index",
-			"iconPath": "static/img/tabbar/home.png",
-			"selectedIconPath": "static/img/tabbar/home_art.png",
-			"text": "首页"
-		}, {
-			"pagePath": "pages/work/index",
-			"iconPath": "static/img/tabbar/center.png",
-			"selectedIconPath": "static/img/tabbar/center_art.png",
-			"text": "工作台" ,
-			"visible": false
-		}, {
-			"pagePath": "pages/center/index",
-			"iconPath": "static/img/tabbar/user.png",
-			"selectedIconPath": "static/img/tabbar/user_art.png",
-			"text": "我的"
-		}]
+		"list": [
+			{
+				"pagePath": "pages/index/index",
+				"iconPath": "static/img/tabbar/home.png",
+				"selectedIconPath": "static/img/tabbar/home_art.png",
+				"text": "首页"
+			},
+			{
+				"pagePath": "pages/work/index",
+				"iconPath": "static/img/tabbar/center.png",
+				"selectedIconPath": "static/img/tabbar/center_art.png",
+				"text": "工作台",
+				"visible": false
+			},
+			{
+				"pagePath": "pages/center/index",
+				"iconPath": "static/img/tabbar/user.png",
+				"selectedIconPath": "static/img/tabbar/user_art.png",
+				"text": "我的"
+			}
+		]
 	},
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "uni-app",
 		"navigationBarBackgroundColor": "#F8F8F8",
 		"backgroundColor": "#F8F8F8",
-    "app-plus": {
-      "softinputMode": "adjustResize"
-    }
+		"app-plus": {
+			"softinputMode": "adjustResize"
+		}
 	},
 	"easycom": {
 		"^u-(.*)": "@/uni_modules/uview-ui/components/u-$1/u-$1.vue"
 	},
-	"condition" : { //模式配置，仅开发期间生效
+	"condition": { //模式配置，仅开发期间生效
 		"current": 0, //当前激活的模式(list 的索引项)
 		"list": [
 			{

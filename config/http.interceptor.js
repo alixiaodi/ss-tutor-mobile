@@ -45,7 +45,6 @@ module.exports = (vm) => {
 	// 响应拦截
   uni.$u.http.interceptors.response.use((response) => { /* 对响应成功做点什么 可使用async await 做异步操作*/
     const data = response.data
-
     // 关闭loading
     uni.hideLoading();
 
@@ -55,11 +54,11 @@ module.exports = (vm) => {
     if (data.code !== 200) { 
       // 如果没有显式定义custom的toast参数为false的话，默认对报错进行toast弹出提示
       if (custom.toast !== false) {
-        uni.$u.toast({
-          message: data.msg,
-          duration: 0,
-          type: 'error'
-        })
+        uni.showToast({
+          title: data.msg || '请求失败',
+          icon: 'error',
+          duration: 2000
+        });
       }
 
       // 判断状态码

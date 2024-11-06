@@ -47,7 +47,7 @@
     <!-- 添加内容模块 -->
     <view class="content-modules">
       <view class="grid-container">
-        <view class="module-card" @click="navigateTo('/pages/mock-exam/index')">
+        <view class="module-card" @click="navigateTo(`/pages/mock-exam/index`)">
           <image src="/static/icons/exam.png" class="module-icon"></image>
           <text class="module-title">AI模拟考试</text>
         </view>
@@ -102,6 +102,11 @@ export default {
       SubjectApi.getSubject().then((res) => {
         this.operationList = res.data.subjects;
         this.examName = res.data.examName;
+        this.examCode = res.data.examCode;
+        if (this.operationList && this.operationList.length > 0) {
+          this.currentSubjectCode = this.operationList[0].subjectCode;
+          this.currentIndex = 0;
+        }
       });
     },
     selectSubject() {
@@ -112,6 +117,7 @@ export default {
     handleSelect(index) {
       if (this.operationList && this.operationList[index]) {
         this.currentIndex = index;
+        this.currentSubjectCode = this.operationList[index].code;
         uni.showToast({
           title: this.operationList[index].subjectName,
           icon: "none",
@@ -127,6 +133,9 @@ export default {
       });
     },
     navigateTo(url) {
+      if (url === '/pages/mock-exam/index') {
+        url = `${url}?subjectCode=${this.currentSubjectCode}`;
+      }
       uni.navigateTo({ url });
     },
   },
@@ -241,6 +250,8 @@ export default {
       currentIndex: 0,
       operationList: [],
       examName: "",
+      examCode: "",
+      currentSubjectCode: "",
     };
   },
 };
