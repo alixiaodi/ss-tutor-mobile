@@ -4,21 +4,11 @@
     <view class="exam-header">
       <!-- #ifdef H5 -->
       <view class="back-btn" @click="handleBack">
-        <svg
-          t="1730634015516"
-          class="icon"
-          viewBox="0 0 1024 1024"
-          version="1.1"
-          xmlns="http://www.w3.org/2000/svg"
-          p-id="9822"
-          width="16"
-          height="16"
-        >
+        <svg t="1730634015516" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
+          p-id="9822" width="16" height="16">
           <path
             d="M475 276V141.4c-12.1-56.3-58.2-22-58.2-22L96.6 395.9c-70.4 48.9-4.8 85.7-4.8 85.7l315.4 274.1c63.1 46.5 67.9-24.5 67.9-24.5V606.4C795.3 506 926.3 907.5 926.3 907.5c12.1 22 19.4 0 19.4 0C1069.4 305.4 475 276 475 276z"
-            fill="#383838"
-            p-id="9823"
-          ></path>
+            fill="#383838" p-id="9823"></path>
         </svg>
         <text class="back-text">首页</text>
       </view>
@@ -29,11 +19,7 @@
     <!-- 题目区域 -->
     <view class="exam-content">
       <swiper class="swiper" :current="currentQuestion" @change="handlePageChange">
-        <swiper-item
-          v-for="(question, index) in questions"
-          :key="index"
-          class="swiper-item"
-        >
+        <swiper-item v-for="(question, index) in questions" :key="index" class="swiper-item">
           <view class="question-card">
             <view class="question-title">
               <text class="question-index">{{ index + 1 }}/{{ questions.length }}</text>
@@ -44,20 +30,14 @@
             <view class="options" :class="question.type">
               <!-- 单选题 -->
               <template v-if="question.type === 'single'">
-                <view
-                  v-for="(option, optIndex) in question.options"
-                  :key="option.value"
-                  class="option-item"
-                  :class="{
-                    active: answers[index] === option.value,
-                    'correct-option': answers[index] && option.value === question.correct,
-                    'wrong-option':
-                      answers[index] &&
-                      answers[index] === option.value &&
-                      option.value !== question.correct,
-                  }"
-                  @click="selectAnswer(index, option.value)"
-                >
+                <view v-for="(option, optIndex) in question.options" :key="option.value" class="option-item" :class="{
+                  active: answers[index] === option.value,
+                  'correct-option': answers[index] && option.value === question.correct,
+                  'wrong-option':
+                    answers[index] &&
+                    answers[index] === option.value &&
+                    option.value !== question.correct,
+                }" @click="selectAnswer(index, option.value)">
                   <view class="option-prefix">{{ optionLabels[optIndex] }}</view>
                   <view class="option-text">{{ option.text }}</view>
                 </view>
@@ -65,21 +45,15 @@
 
               <!-- 多选题 -->
               <template v-else-if="question.type === 'multiple'">
-                <view
-                  v-for="(option, optIndex) in question.options"
-                  :key="option.value"
-                  class="option-item"
-                  :class="{
-                    active: isOptionSelected(index, option.value),
-                    'correct-option':
-                      answers[index] && question.correct.includes(option.value),
-                    'wrong-option':
-                      answers[index] &&
-                      isOptionSelected(index, option.value) &&
-                      !question.correct.includes(option.value),
-                  }"
-                  @click="toggleMultipleChoice(index, option.value)"
-                >
+                <view v-for="(option, optIndex) in question.options" :key="option.value" class="option-item" :class="{
+                  active: isOptionSelected(index, option.value),
+                  'correct-option':
+                    answers[index] && question.correct.includes(option.value),
+                  'wrong-option':
+                    answers[index] &&
+                    isOptionSelected(index, option.value) &&
+                    !question.correct.includes(option.value),
+                }" @click="toggleMultipleChoice(index, option.value)">
                   <view class="option-prefix checkbox">{{ optionLabels[optIndex] }}</view>
                   <view class="option-text">{{ option.text }}</view>
                 </view>
@@ -88,23 +62,13 @@
               <!-- 填空题 -->
               <template v-else-if="question.type === 'blank'">
                 <view class="blank-content">
-                  <template
-                    v-for="(part, partIndex) in parseBlankContent(question.content)"
-                  >
-                    <text
-                      v-if="part.type === 'text'"
-                      :key="'text-' + partIndex"
-                      class="blank-text"
-                      >{{ part.content }}</text
-                    >
+                  <template v-for="(part, partIndex) in parseBlankContent(question.content)">
+                    <text v-if="part.type === 'text'" :key="'text-' + partIndex" class="blank-text">{{ part.content
+                      }}</text>
                     <view v-else :key="'blank-' + partIndex" class="blank-wrapper">
-                      <input
-                        class="blank-input"
-                        type="text"
-                        :value="getBlankAnswer(index, part.index)"
+                      <input class="blank-input" type="text" :value="getBlankAnswer(index, part.index)"
                         :placeholder="'填空' + (part.index + 1)"
-                        @input="(e) => updateBlankAnswer(index, part.index, e)"
-                      />
+                        @input="(e) => updateBlankAnswer(index, part.index, e)" />
                     </view>
                   </template>
                 </view>
@@ -113,48 +77,30 @@
               <!-- 论述题 -->
               <template v-else-if="question.type === 'essay'">
                 <view class="essay-container">
-                  <textarea
-                    class="essay-input"
-                    v-model="answers[index]"
-                    :placeholder="question.placeholder || '请输入你的答案...'"
-                    :maxlength="question.maxLength || 1000"
-                    auto-height
-                    @input="updateEssayAnswer(index, $event)"
-                  >
+                  <textarea class="essay-input" v-model="answers[index]"
+                    :placeholder="question.placeholder || '请输入你答案...'" :maxlength="question.maxLength || 1000"
+                    auto-height @input="updateEssayAnswer(index, $event)">
                   </textarea>
                   <view class="essay-footer">
-                    <text class="word-count"
-                      >{{ getWordCount(answers[index]) }}/{{
-                        question.maxLength || 1000
-                      }}</text
-                    >
-                    <text class="tip" v-if="question.minLength"
-                      >至少输入 {{ question.minLength }} 字</text
-                    >
+                    <text class="word-count">{{ getWordCount(answers[index]) }}/{{
+                      question.maxLength || 1000
+                    }}</text>
+                    <text class="tip" v-if="question.minLength">至少输入 {{ question.minLength }} 字</text>
                   </view>
                 </view>
               </template>
             </view>
             <!-- 答案解析部分 -->
             <template v-if="isBlankQuestion(question.type) || question.type === 'essay'">
-              <view
-                v-if="showingAnswer && currentQuestion === index"
-                class="explanation-section"
-              >
+              <view v-if="showingAnswer && currentQuestion === index" class="explanation-section">
                 <view class="explanation-header">
                   <text class="answer-title">参考答案</text>
                 </view>
                 <!-- 只在有内容时显示 -->
-                <view
-                  v-if="question.correct && question.correct.trim()"
-                  class="explanation-content"
-                >
+                <view v-if="question.correct && question.correct.trim()" class="explanation-content">
                   {{ question.correct.trim() }}
                 </view>
-                <view
-                  v-if="question.explanation && question.explanation.trim()"
-                  class="explanation-text"
-                >
+                <view v-if="question.explanation && question.explanation.trim()" class="explanation-text">
                   <text class="explanation-label">解析：</text>
                   {{ question.explanation.trim() }}
                 </view>
@@ -165,18 +111,13 @@
             <template v-else>
               <view v-if="shouldShowExplanation(index)" class="explanation-section">
                 <view class="explanation-header">
-                  <text
-                    :class="[
-                      'result-text',
-                      checkAnswer(question, answers[index]) ? 'correct' : 'wrong',
-                    ]"
-                  >
+                  <text :class="[
+                    'result-text',
+                    checkAnswer(question, answers[index]) ? 'correct' : 'wrong',
+                  ]">
                     {{ checkAnswer(question, answers[index]) ? "回答正确" : "回答错误" }}
                   </text>
-                  <text
-                    v-if="!checkAnswer(question, answers[index])"
-                    class="correct-answer"
-                  >
+                  <text v-if="!checkAnswer(question, answers[index])" class="correct-answer">
                     正确答案: {{ question.correct }}
                   </text>
                 </view>
@@ -190,21 +131,13 @@
       </swiper>
 
       <view class="exam-footer" @click.stop>
-        <view
-          class="nav-btn"
-          @click="prevQuestion"
-          :class="{ disabled: currentQuestion === 0 }"
-        >
+        <view class="nav-btn" @click="prevQuestion" :class="{ disabled: currentQuestion === 0 }">
           <text>上一题</text>
         </view>
 
         <!-- 添加查看答案按钮 -->
-        <view
-          v-if="shouldShowViewAnswerButton"
-          class="view-answer-btn"
-          :class="{ active: showingAnswer }"
-          @click="toggleAnswerView"
-        >
+        <view v-if="shouldShowViewAnswerButton" class="view-answer-btn" :class="{ active: showingAnswer }"
+          @click="toggleAnswerView">
           <text class="btn-icon" :class="{ active: showingAnswer }">{{
             showingAnswer ? "✕" : "?"
           }}</text>
@@ -215,11 +148,7 @@
           <text>提交</text>
         </view>
 
-        <view
-          class="nav-btn"
-          @click="nextQuestion"
-          :class="{ disabled: currentQuestion === questions.length - 1 }"
-        >
+        <view class="nav-btn" @click="nextQuestion" :class="{ disabled: currentQuestion === questions.length - 1 }">
           <text>下一题</text>
         </view>
       </view>
@@ -230,39 +159,29 @@
       <view class="drawer-content" @click.stop>
         <view class="drawer-header">
           <text>答题卡</text>
-          <text class="answered-count"
-            >已答 {{ answeredCount }}/{{ questions.length }}</text
-          >
+          <text class="answered-count">已答 {{ answeredCount }}/{{ questions.length }}</text>
         </view>
         <!-- 添加scroll-view -->
         <scroll-view class="question-grid-scroll" scroll-y>
           <view class="question-grid">
-            <view
-              v-for="(question, index) in questions"
-              :key="index"
-              :class="[
-                'question-item',
-                {
-                  current: currentQuestion === index,
-                  unanswered:
-                    !answers[index] || updateQuestionStatus(index) === 'unanswered',
-                  answered:
-                    answers[index] && updateQuestionStatus(index) !== 'unanswered',
-                  correct: answers[index] && updateQuestionStatus(index) === 'correct',
-                  wrong: answers[index] && updateQuestionStatus(index) === 'wrong',
-                  pending: answers[index] && updateQuestionStatus(index) === 'pending',
-                },
-              ]"
-              @click="jumpToQuestion(index)"
-            >
+            <view v-for="(question, index) in questions" :key="index" :class="[
+              'question-item',
+              {
+                current: currentQuestion === index,
+                unanswered:
+                  !answers[index] || updateQuestionStatus(index) === 'unanswered',
+                answered:
+                  answers[index] && updateQuestionStatus(index) !== 'unanswered',
+                correct: answers[index] && updateQuestionStatus(index) === 'correct',
+                wrong: answers[index] && updateQuestionStatus(index) === 'wrong',
+                pending: answers[index] && updateQuestionStatus(index) === 'pending',
+              },
+            ]" @click="jumpToQuestion(index)">
               <text class="question-number">{{ index + 1 }}</text>
               <text class="question-type-tag">{{
                 getQuestionTypeLabel(question.type)
               }}</text>
-              <text
-                v-if="answers[index] && updateQuestionStatus(index) !== 'unanswered'"
-                class="status-icon"
-              >
+              <text v-if="answers[index] && updateQuestionStatus(index) !== 'unanswered'" class="status-icon">
                 {{ getStatusIcon(updateQuestionStatus(index)) }}
               </text>
             </view>
@@ -275,6 +194,11 @@
           direction="all"
           :x="handleX"
           :y="handleY"
+          :animation="{ duration: 100 }" 
+          :out-of-bounds="false"
+          :damping="60"
+          :friction="3"
+          :inertia="true"
           @change="onHandleMove"
           @touchend="onHandleTouchEnd"
           @click.stop="toggleAnswerCard"
@@ -283,6 +207,7 @@
         </movable-view>
       </movable-area>
     </view>
+    <wanger-drag></wanger-drag>
   </view>
 </template>
 
@@ -296,11 +221,17 @@ export default {
       remainingTime: 3600,
       currentQuestion: 0,
       showAnswerCard: false,
-      handleX: uni.getSystemInfoSync().windowWidth - 80, // 初始位置靠右
+      handleX: 0,
       handleY: 200,
       screenWidth: 0,
       screenHeight: 0,
+      handleWidth: 0, // 新增：存储实际手柄宽度
+      handleHeight: 0, // 新增：存储实际手柄高度
       showingAnswer: false, // 添加新的数据属性
+      isMoving: false, // 新增：跟踪是否正在移动
+      isOnLeft: false, // 新增：跟踪是否在左侧
+      isDragging: false, // 新增：跟踪是否正在拖动
+      lastX: 0, // 新增：记录上一次的X位置
     };
   },
 
@@ -440,65 +371,94 @@ export default {
     },
 
     onHandleMove(e) {
-      this.handleX = e.detail.x;
-      this.handleY = e.detail.y;
+      if (!this.isDragging) {
+        this.isDragging = true;
+        this.lastX = e.detail.x;
+      }
+      
+      const middlePoint = this.screenWidth / 2;
+      const currentX = e.detail.x;
+      
+      // 只有移动距离超过阈值时才更新位置
+      if (Math.abs(currentX - this.lastX) > 5) {
+        if (currentX < middlePoint && !this.isOnLeft) {
+          this.isOnLeft = true;
+          this.handleX = 0;
+        } else if (currentX >= middlePoint && this.isOnLeft) {
+          this.isOnLeft = false;
+          this.handleX = this.screenWidth - this.handleWidth;
+        }
+        this.lastX = currentX;
+      }
+      
+      // 平滑处理Y轴移动
+      const newY = Math.max(0, Math.min(e.detail.y, this.screenHeight - this.handleHeight));
+      // 只有移动超过一定距离才更新Y值
+      if (Math.abs(this.handleY - newY) > 2) {
+        this.handleY = newY;
+      }
     },
 
     onHandleTouchEnd() {
-      // 将rpx转换为px
-      const handleWidth = uni.upx2px(80);
-      const handleHeight = uni.upx2px(180);
-
-      // 计算距离各边的距离
-      const distanceToLeft = this.handleX;
-      const distanceToRight = this.screenWidth - (this.handleX + handleWidth);
-
-      // 水平吸附（只在左右两侧）
-      if (distanceToLeft < distanceToRight) {
-        this.handleX = 0; // 吸附到左边
-      } else {
-        this.handleX = this.screenWidth - handleWidth; // 吸附到右边
-      }
-
-      // 垂直位置限制
-      if (this.handleY < 0) {
-        this.handleY = 0;
-      } else if (this.handleY > this.screenHeight - handleHeight) {
-        this.handleY = this.screenHeight - handleHeight;
-      }
-
-      // 保位置
-      uni.setStorageSync("drawerHandlePosition", {
-        x: this.handleX,
-        y: this.handleY,
-      });
+      if (!this.isDragging) return;
+      
+      this.isDragging = false;
+      this.handleX = this.isOnLeft ? 0 : (this.screenWidth - this.handleWidth);
+      
+      // 确保Y轴位置在有效范围内
+      this.handleY = Math.max(0, Math.min(this.handleY, this.screenHeight - this.handleHeight));
+      
+      this.saveHandlePosition();
     },
 
-    // 初始化时加载保的位置（可选）
-    initHandlePosition() {
+    // 新增保存位置方法
+    saveHandlePosition() {
       try {
-        const savedPosition = uni.getStorageSync("drawerHandlePosition");
-        if (savedPosition) {
-          // 检查保存的位置是否有效
-          if (this.isValidPosition(savedPosition)) {
-            this.handleX = savedPosition.x;
-            this.handleY = savedPosition.y;
-          }
+        uni.setStorageSync('drawerHandlePosition', {
+          x: this.handleX,
+          y: this.handleY,
+          isOnLeft: this.isOnLeft
+        });
+      } catch (e) {
+        console.error('Failed to save position:', e);
+      }
+    },
+
+    // 修改 initHandlePosition 方法
+    initHandlePosition() {
+      this.initSizes();
+      
+      try {
+        const saved = uni.getStorageSync('drawerHandlePosition');
+        if (saved && this.isValidPosition(saved)) {
+          this.isOnLeft = saved.isOnLeft;
+          this.handleX = this.isOnLeft ? 0 : (this.screenWidth - this.handleWidth);
+          this.handleY = saved.y;
+          this.lastX = this.handleX;
+        } else {
+          this.isOnLeft = false;
+          this.handleX = this.screenWidth - this.handleWidth;
+          this.handleY = 200;
+          this.lastX = this.handleX;
         }
       } catch (e) {
-        console.error("Failed to load handle position:", e);
+        console.error('Failed to load position:', e);
+        this.isOnLeft = false;
+        this.handleX = this.screenWidth - this.handleWidth;
+        this.handleY = 200;
+        this.lastX = this.handleX;
       }
     },
 
-    isValidPosition(position) {
-      const handleWidth = uni.upx2px(80);
-      const handleHeight = uni.upx2px(180);
-
+    isValidPosition(pos) {
       return (
-        position.x >= 0 &&
-        position.x <= this.screenWidth - handleWidth &&
-        position.y >= 0 &&
-        position.y <= this.screenHeight - handleHeight
+        pos &&
+        typeof pos.x === 'number' &&
+        typeof pos.y === 'number' &&
+        pos.x >= 0 &&
+        pos.x <= (this.screenWidth - this.handleWidth) &&
+        pos.y >= 0 &&
+        pos.y <= (this.screenHeight - this.handleHeight)
       );
     },
 
@@ -869,6 +829,24 @@ export default {
     toggleAnswerView() {
       this.showingAnswer = !this.showingAnswer;
     },
+
+    // 新增：初始化尺寸方法
+    initSizes() {
+      const sysInfo = uni.getSystemInfoSync();
+      this.screenWidth = sysInfo.windowWidth;
+      this.screenHeight = sysInfo.windowHeight;
+
+      // 转换手柄尺寸（80rpx 和 180rpx）
+      this.handleWidth = Math.ceil(80 * this.screenWidth / 750);
+      this.handleHeight = Math.ceil(180 * this.screenWidth / 750);
+
+      console.log('Screen size:', {
+        width: this.screenWidth,
+        height: this.screenHeight,
+        handleWidth: this.handleWidth,
+        handleHeight: this.handleHeight
+      });
+    },
   },
 
   mounted() {
@@ -881,21 +859,9 @@ export default {
       }
     }, 1000);
 
-    // 首次执行
+    // 初始化位置
     this.$nextTick(() => {
       this.initHandlePosition();
-
-      // 添加延迟检查
-      setTimeout(() => {
-        // 检查位置是否正确，如果不在边缘则强制吸附
-        const handleWidth = uni.upx2px(80);
-        if (
-          Math.abs(this.handleX) > 1 &&
-          Math.abs(this.handleX - (this.screenWidth - handleWidth)) > 1
-        ) {
-          this.ensureHandlePosition();
-        }
-      }, 300);
     });
   },
 
@@ -916,7 +882,8 @@ export default {
   position: relative;
   height: 100vh;
   width: 100%;
-  padding-top: 60rpx; /* 减顶部间距 */
+  padding-top: 60rpx;
+  /* 减顶部间距 */
   padding-bottom: 100rpx;
   box-sizing: border-box;
 }
@@ -981,7 +948,8 @@ export default {
 .question-card {
   background-color: #fff;
   border-radius: 12rpx;
-  padding: 24rpx; /* 减小内距 */
+  padding: 24rpx;
+  /* 减小内距 */
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
@@ -989,7 +957,8 @@ export default {
   margin-bottom: 20rpx;
   display: flex;
   align-items: center;
-  gap: 16rpx; /* 各元素之间的间距 */
+  gap: 16rpx;
+  /* 各元素之间的间距 */
 }
 
 .question-index {
@@ -1018,17 +987,20 @@ export default {
 }
 
 .question-content {
-  font-size: 30rpx; /* 稍微减小字号 */
+  font-size: 30rpx;
+  /* 稍微减小字号 */
   color: #333;
   line-height: 1.5;
   margin-bottom: 24rpx;
-  font-weight: 500; /* 加粗题目文字 */
+  font-weight: 500;
+  /* 加粗题目文字 */
 }
 
 .options {
   display: flex;
   flex-direction: column;
-  gap: 12rpx; /* 减小选项间距 */
+  gap: 12rpx;
+  /* 减小选项间距 */
 }
 
 .option-item {
@@ -1133,6 +1105,7 @@ export default {
     opacity: 0;
     transform: translateY(-10rpx);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1215,7 +1188,6 @@ export default {
 
 .drawer-header {
   padding: 30rpx;
-  border-bottom: 1rpx solid #eee;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1224,7 +1196,8 @@ export default {
 /* 新增滚动区域样式 */
 .question-grid-scroll {
   flex: 1;
-  height: 0; /* 关键：让scroll-view填充剩余空间 */
+  height: 0;
+  /* 关键：让scroll-view填充剩余空间 */
 }
 
 .question-grid {
@@ -1325,7 +1298,8 @@ export default {
 }
 
 .icon-arrow-left:before {
-  content: "\e6db"; /* 里的编码需要根据实际使用的图标库来修改 */
+  content: "\e6db";
+  /* 里的编码需要根据实际使用的图标库来修改 */
 }
 
 /* 添加新的样式 */
@@ -1380,7 +1354,8 @@ export default {
 }
 
 .blank-input {
-  width: 200rpx; /* 固定度 */
+  width: 200rpx;
+  /* 固定度 */
   height: 60rpx;
   line-height: 60rpx;
   padding: 0 20rpx;
@@ -1500,7 +1475,8 @@ export default {
   font-size: 28rpx;
   pointer-events: auto;
   box-shadow: -2rpx 0 10rpx rgba(0, 0, 0, 0.1);
-  border-radius: v-bind('handleX === 0 ? "0 16rpx 16rpx 0" : "16rpx 0 0 16rpx"');
+  border-radius: v-bind('isOnLeft ? "0 16rpx 16rpx 0" : "16rpx 0 0 16rpx"');
+  will-change: transform; /* 优化性能 */
 }
 
 .handle-text {
@@ -1508,7 +1484,7 @@ export default {
   text-orientation: upright;
   letter-spacing: 8rpx;
   font-weight: 500;
-  transform: v-bind('handleX === 0 ? "rotate(180deg)" : "none"');
+  user-select: none; /* 防止文字被选中 */
 }
 
 /* 添加待批改状态的样式 */
