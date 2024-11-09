@@ -24,6 +24,10 @@
       </view>
       <!-- #endif -->
       <view class="timer"> 剩余时间: {{ formatTime }} </view>
+      <!-- 添加提交按钮 -->
+      <view class="submit-btn" @click="submitExam">
+        <text>提交</text>
+      </view>
     </view>
 
     <!-- 题目区域 -->
@@ -34,16 +38,23 @@
           :key="index"
           class="swiper-item"
         >
-          <view class="question-card">
+          <view class="question-card" v-if="question">
             <view class="question-title">
               <text class="question-index">{{ index + 1 }}/{{ questions.length }}</text>
               <text class="question-type">{{ getQuestionTypeLabel(question.type) }}</text>
               <text class="question-score">{{ question.score }}分</text>
             </view>
-            <view class="question-content">{{ question.content }}</view>
-            <view class="options" :class="question.type">
+            <view class="question-content">
+              <rich-text
+                :nodes="formatContent(question.content)"
+                user-select
+                @tap="onRichTextTap"
+                @node-tap="onNodeTap"
+              ></rich-text>
+            </view>
+            <view class="options" v-if="question" :class="question.type">
               <!-- 单选题 -->
-              <template v-if="question.type === 'single'">
+              <template v-if="question && question.type === 'single'">
                 <view
                   v-for="(option, optIndex) in question.options"
                   :key="option.value"
@@ -59,12 +70,14 @@
                   @click="selectAnswer(index, option.value)"
                 >
                   <view class="option-prefix">{{ optionLabels[optIndex] }}</view>
-                  <view class="option-text">{{ option.text }}</view>
+                  <view class="option-text">
+                    <rich-text :nodes="formatContent(option.text)"></rich-text>
+                  </view>
                 </view>
               </template>
 
               <!-- 多选题 -->
-              <template v-else-if="question.type === 'multiple'">
+              <template v-else-if="question && question.type === 'multiple'">
                 <view
                   v-for="(option, optIndex) in question.options"
                   :key="option.value"
@@ -81,12 +94,14 @@
                   @click="toggleMultipleChoice(index, option.value)"
                 >
                   <view class="option-prefix checkbox">{{ optionLabels[optIndex] }}</view>
-                  <view class="option-text">{{ option.text }}</view>
+                  <view class="option-text">
+                    <rich-text :nodes="formatContent(option.text)"></rich-text>
+                  </view>
                 </view>
               </template>
 
               <!-- 填空题 -->
-              <template v-else-if="question.type === 'blank'">
+              <template v-else-if="question && question.type === 'blank'">
                 <view class="blank-content">
                   <template
                     v-for="(part, partIndex) in parseBlankContent(question.content)"
@@ -111,12 +126,12 @@
               </template>
 
               <!-- 论述题 -->
-              <template v-else-if="question.type === 'essay'">
+              <template v-else-if="question && question.type === 'essay'">
                 <view class="essay-container">
                   <textarea
                     class="essay-input"
                     v-model="answers[index]"
-                    :placeholder="question.placeholder || '请输入你的答案...'"
+                    :placeholder="question.placeholder || '请输入你答案...'"
                     :maxlength="question.maxLength || 1000"
                     auto-height
                     @input="updateEssayAnswer(index, $event)"
@@ -136,34 +151,11 @@
               </template>
             </view>
             <!-- 答案解析部分 -->
-            <template v-if="isBlankQuestion(question.type) || question.type === 'essay'">
+            <template v-if="question">
               <view
                 v-if="showingAnswer && currentQuestion === index"
                 class="explanation-section"
               >
-                <view class="explanation-header">
-                  <text class="answer-title">参考答案</text>
-                </view>
-                <!-- 只在有内容时显示 -->
-                <view
-                  v-if="question.correct && question.correct.trim()"
-                  class="explanation-content"
-                >
-                  {{ question.correct.trim() }}
-                </view>
-                <view
-                  v-if="question.explanation && question.explanation.trim()"
-                  class="explanation-text"
-                >
-                  <text class="explanation-label">解析：</text>
-                  {{ question.explanation.trim() }}
-                </view>
-              </view>
-            </template>
-
-            <!-- 其他题型的显示逻辑 -->
-            <template v-else>
-              <view v-if="shouldShowExplanation(index)" class="explanation-section">
                 <view class="explanation-header">
                   <text
                     :class="[
@@ -180,8 +172,12 @@
                     正确答案: {{ question.correct }}
                   </text>
                 </view>
-                <view v-if="question.explanation" class="explanation-content">
-                  {{ question.explanation }}
+                <view
+                  v-if="question.explanation && question.explanation.trim()"
+                  class="explanation-content"
+                >
+                  <text class="explanation-label">解析：</text>
+                  <rich-text :nodes="formatContent(question.explanation)"></rich-text>
                 </view>
               </view>
             </template>
@@ -198,21 +194,42 @@
           <text>上一题</text>
         </view>
 
-        <!-- 添加查看答案按钮 -->
-        <view
-          v-if="shouldShowViewAnswerButton"
-          class="view-answer-btn"
-          :class="{ active: showingAnswer }"
-          @click="toggleAnswerView"
-        >
-          <text class="btn-icon" :class="{ active: showingAnswer }">{{
-            showingAnswer ? "✕" : "?"
-          }}</text>
-          <text class="btn-text">{{ showingAnswer ? "隐藏答案" : "查看答案" }}</text>
-        </view>
-
-        <view class="submit-btn" @click="submitExam">
-          <text>提交</text>
+        <!-- 填空题和简答题的操作按钮 -->
+        <view class="center-btns">
+          <template
+            v-if="
+              isBlankQuestion(questions[currentQuestion].type) ||
+              questions[currentQuestion].type === 'essay'
+            "
+          >
+            <template v-if="!showingAnswer">
+              <view class="submit-answer-btn" @click="submitCurrentAnswer">
+                <text>完成作答</text>
+              </view>
+            </template>
+            <view
+              class="view-answer-btn"
+              :class="{ active: showingAnswer }"
+              @click="toggleAnswerView"
+            >
+              <text class="btn-icon" :class="{ active: showingAnswer }">{{
+                showingAnswer ? "✕" : "?"
+              }}</text>
+              <text class="btn-text">{{ showingAnswer ? "隐藏答案" : "查看答案" }}</text>
+            </view>
+          </template>
+          <template v-else>
+            <view
+              class="view-answer-btn"
+              :class="{ active: showingAnswer }"
+              @click="toggleAnswerView"
+            >
+              <text class="btn-icon" :class="{ active: showingAnswer }">{{
+                showingAnswer ? "✕" : "?"
+              }}</text>
+              <text class="btn-text">{{ showingAnswer ? "隐藏答案" : "查看答案" }}</text>
+            </view>
+          </template>
         </view>
 
         <view
@@ -275,6 +292,10 @@
           direction="all"
           :x="handleX"
           :y="handleY"
+          :out-of-bounds="false"
+          :damping="60"
+          :friction="3"
+          :inertia="true"
           @change="onHandleMove"
           @touchend="onHandleTouchEnd"
           @click.stop="toggleAnswerCard"
@@ -283,10 +304,38 @@
         </movable-view>
       </movable-area>
     </view>
+
+    <!-- 自定义图片预览弹窗 -->
+    <!-- #ifdef H5 || MP || APP-PLUS -->
+    <view v-if="previewImage" class="image-preview" @click="closePreview">
+      <!-- APP端使用image组件 -->
+      <!-- #ifdef APP-PLUS -->
+      <image
+        :src="previewImage"
+        mode="aspectFit"
+        class="preview-image"
+        @click.stop
+        :style="{
+          width: '100%',
+          height: '100%',
+        }"
+      />
+      <!-- #endif -->
+
+      <!-- 其他平台使用普通image -->
+      <!-- #ifdef H5 || MP -->
+      <image :src="previewImage" mode="aspectFit" class="preview-image" @click.stop />
+      <!-- #endif -->
+
+      <view class="close-btn" @click.stop="closePreview">×</view>
+    </view>
+    <!-- #endif -->
   </view>
 </template>
 
 <script>
+import * as AiApi from "@/api/ai";
+
 export default {
   data() {
     return {
@@ -296,11 +345,19 @@ export default {
       remainingTime: 3600,
       currentQuestion: 0,
       showAnswerCard: false,
-      handleX: uni.getSystemInfoSync().windowWidth - 80, // 初始位置靠右
+      handleX: 0,
       handleY: 200,
       screenWidth: 0,
       screenHeight: 0,
+      handleWidth: 0, // 新增：存储实际手柄宽度
+      handleHeight: 0, // 新增：存储实际手柄高度
       showingAnswer: false, // 添加新的数据属性
+      isMoving: false, // 新增踪是否正在移动
+      isOnLeft: false, // 新增：跟踪是否在左侧
+      isDragging: false, // 新增：跟踪是否正在拖动
+      lastX: 0, // 新增：记一次的X位置
+      previewImage: "", // 添加预览图片的URL
+      statusBarHeight: 0, // 添加状态栏高度
     };
   },
 
@@ -335,16 +392,23 @@ export default {
       return this.answers.filter((answer) => answer).length;
     },
     shouldShowViewAnswerButton() {
+      return true;
+    },
+    shouldShowSubmitButton() {
       const currentQuestion = this.questions[this.currentQuestion];
       return (
         currentQuestion &&
         (this.isBlankQuestion(currentQuestion.type) || currentQuestion.type === "essay")
       );
     },
+    currentQuestionData() {
+      return this.questions[this.currentQuestion] || null;
+    },
   },
 
   methods: {
     getQuestionTypeLabel(type) {
+      if (!type) return "";
       const types = {
         single: "单选",
         multiple: "多选",
@@ -354,17 +418,30 @@ export default {
       return types[type] || "未知";
     },
 
-    selectAnswer(questionIndex, value) {
-      const question = this.questions[questionIndex];
-      if (question.type === "single") {
-        this.$set(this.answers, questionIndex, value);
+    selectAnswer(index, value) {
+      // 如果已经选择了答案，不允许再次选择
+      if (this.answers[index]) return;
 
-        // 检查是否答对，如果答对且不是最后一题则自动跳转下一题
-        if (value === question.correct && questionIndex < this.questions.length - 1) {
-          // 延迟跳转，让用户看到正确答案的反馈
+      // 设置答案
+      this.$set(this.answers, index, value);
+
+      // 对于单选题
+      if (this.questions[index].type === "single") {
+        // 显示答案解析
+        this.showingAnswer = true;
+
+        // 检查答案是否正确
+        const isCorrect = this.checkAnswer(this.questions[index], value);
+
+        if (isCorrect) {
+          // 如果正，延迟一下再进入下
           setTimeout(() => {
-            this.currentQuestion++;
-          }, 500); // 500ms 后跳转
+            // 检查是否还有下一题
+            if (index < this.questions.length - 1) {
+              this.currentQuestion = index + 1;
+              this.showingAnswer = false;
+            }
+          }, 800); // 800ms 后自动进入下一题
         }
       }
     },
@@ -440,65 +517,100 @@ export default {
     },
 
     onHandleMove(e) {
-      this.handleX = e.detail.x;
-      this.handleY = e.detail.y;
+      if (!this.isDragging) {
+        this.isDragging = true;
+        this.lastX = e.detail.x;
+      }
+
+      const middlePoint = this.screenWidth / 2;
+      const currentX = e.detail.x;
+
+      // 只有移动距离超过阈值时才更新位置
+      if (Math.abs(currentX - this.lastX) > 5) {
+        if (currentX < middlePoint && !this.isOnLeft) {
+          this.isOnLeft = true;
+          this.handleX = 0;
+        } else if (currentX >= middlePoint && this.isOnLeft) {
+          this.isOnLeft = false;
+          this.handleX = this.screenWidth - this.handleWidth;
+        }
+        this.lastX = currentX;
+      }
+
+      // 滑处理Y轴移动
+      const newY = Math.max(
+        0,
+        Math.min(e.detail.y, this.screenHeight - this.handleHeight)
+      );
+      // 只有移动超过一定距离才更新Y值
+      if (Math.abs(this.handleY - newY) > 2) {
+        this.handleY = newY;
+      }
     },
 
     onHandleTouchEnd() {
-      // 将rpx转换为px
-      const handleWidth = uni.upx2px(80);
-      const handleHeight = uni.upx2px(180);
+      if (!this.isDragging) return;
 
-      // 计算距离各边的距离
-      const distanceToLeft = this.handleX;
-      const distanceToRight = this.screenWidth - (this.handleX + handleWidth);
+      this.isDragging = false;
+      this.handleX = this.isOnLeft ? 0 : this.screenWidth - this.handleWidth;
 
-      // 水平吸附（只在左右两侧）
-      if (distanceToLeft < distanceToRight) {
-        this.handleX = 0; // 吸附到左边
-      } else {
-        this.handleX = this.screenWidth - handleWidth; // 吸附到右边
-      }
+      // 确保Y轴位置在有效范围内
+      this.handleY = Math.max(
+        0,
+        Math.min(this.handleY, this.screenHeight - this.handleHeight)
+      );
 
-      // 垂直位置限制
-      if (this.handleY < 0) {
-        this.handleY = 0;
-      } else if (this.handleY > this.screenHeight - handleHeight) {
-        this.handleY = this.screenHeight - handleHeight;
-      }
-
-      // 保位置
-      uni.setStorageSync("drawerHandlePosition", {
-        x: this.handleX,
-        y: this.handleY,
-      });
+      this.saveHandlePosition();
     },
 
-    // 初始化时加载保的位置（可选）
-    initHandlePosition() {
+    // 新增保存位置方法
+    saveHandlePosition() {
       try {
-        const savedPosition = uni.getStorageSync("drawerHandlePosition");
-        if (savedPosition) {
-          // 检查保存的位置是否有效
-          if (this.isValidPosition(savedPosition)) {
-            this.handleX = savedPosition.x;
-            this.handleY = savedPosition.y;
-          }
+        uni.setStorageSync("drawerHandlePosition", {
+          x: this.handleX,
+          y: this.handleY,
+          isOnLeft: this.isOnLeft,
+        });
+      } catch (e) {
+        console.error("Failed to save position:", e);
+      }
+    },
+
+    // 修 initHandlePosition 方法
+    initHandlePosition() {
+      this.initSizes();
+
+      try {
+        const saved = uni.getStorageSync("drawerHandlePosition");
+        if (saved && this.isValidPosition(saved)) {
+          this.isOnLeft = saved.isOnLeft;
+          this.handleX = this.isOnLeft ? 0 : this.screenWidth - this.handleWidth;
+          this.handleY = saved.y;
+          this.lastX = this.handleX;
+        } else {
+          this.isOnLeft = false;
+          this.handleX = this.screenWidth - this.handleWidth;
+          this.handleY = 200;
+          this.lastX = this.handleX;
         }
       } catch (e) {
-        console.error("Failed to load handle position:", e);
+        console.error("Failed to load position:", e);
+        this.isOnLeft = false;
+        this.handleX = this.screenWidth - this.handleWidth;
+        this.handleY = 200;
+        this.lastX = this.handleX;
       }
     },
 
-    isValidPosition(position) {
-      const handleWidth = uni.upx2px(80);
-      const handleHeight = uni.upx2px(180);
-
+    isValidPosition(pos) {
       return (
-        position.x >= 0 &&
-        position.x <= this.screenWidth - handleWidth &&
-        position.y >= 0 &&
-        position.y <= this.screenHeight - handleHeight
+        pos &&
+        typeof pos.x === "number" &&
+        typeof pos.y === "number" &&
+        pos.x >= 0 &&
+        pos.x <= this.screenWidth - this.handleWidth &&
+        pos.y >= 0 &&
+        pos.y <= this.screenHeight - this.handleHeight
       );
     },
 
@@ -512,7 +624,7 @@ export default {
       uni.navigateBack({
         delta: 1,
         fail: () => {
-          // 如果返回失败（没有上一页），则跳转首页
+          // 果返回失败（没有上一页），则跳转首页
           uni.reLaunch({
             url: "/pages/index/index",
           });
@@ -520,18 +632,18 @@ export default {
       });
     },
 
-    // 解析填空题内容，将文本和填空位置分开
+    // 解析填空题内容，将文本和空位置分开
     parseBlankContent(content) {
       const parts = [];
       let lastIndex = 0;
       let blankIndex = 0;
 
-      // 匹配连的下划线（6个或）
+      // 匹配连下划线（6个或）
       const blankRegex = /_{6,}/g;
       let match;
 
       while ((match = blankRegex.exec(content)) !== null) {
-        // 添加填空的文本
+        // 添加空的文本
         if (match.index > lastIndex) {
           parts.push({
             type: "text",
@@ -565,7 +677,7 @@ export default {
       return answers[blankIndex] || "";
     },
 
-    // 检查填空题答案是否正确
+    // 检查空题答案是否正确
     checkBlankAnswer(questionIndex) {
       const question = this.questions[questionIndex];
       const answers = this.answers[questionIndex] || [];
@@ -594,6 +706,7 @@ export default {
     // 转换题目数据格式
     transformQuestions(rawQuestions) {
       return rawQuestions.map((q) => ({
+        id: q.id,
         type: this.getQuestionType(q.type),
         content: q.title,
         score: q.score,
@@ -617,18 +730,18 @@ export default {
       return Array(totalBlanks).fill("");
     },
 
-    // 解析填空题内容将下划线等转换为输入框
+    // 解析填空题内容将下划线等转换为输入
     parseBlankContent(content) {
       const parts = [];
       let lastIndex = 0;
       let blankIndex = 0;
 
-      // 处理多种可能的填空格式
+      // 处理多种可能填空格式
       const blankRegex = /_{2,}|\[.*?\]|（\s*）/g;
       let match;
 
       while ((match = blankRegex.exec(content)) !== null) {
-        // 添加填空前的文本
+        // 添加填空的文本
         if (match.index > lastIndex) {
           parts.push({
             type: "text",
@@ -672,7 +785,7 @@ export default {
       this.$set(this.answers[questionIndex], blankIndex, event.detail.value);
     },
 
-    // 转换选项格式
+    // 转换选项式
     transformOptions(optionsStr) {
       try {
         const options = JSON.parse(optionsStr);
@@ -699,7 +812,7 @@ export default {
       return typeMap[type] || "single";
     },
 
-    // 检查答案是否正确
+    // 检查答案是正确
     checkAnswer(question, userAnswer) {
       // 如果没有答案，直接返回 null
       if (!userAnswer) return null;
@@ -712,7 +825,7 @@ export default {
           }
           // TODO: 实际的填空题答案比对逻辑
           // console.log("填空题答案比对逻辑");
-          return null; // 暂时返回 null，不显示对错
+          return null; // 暂时返 null，不显示对错
 
         case "essay":
           return "pending";
@@ -736,7 +849,7 @@ export default {
         const answer = this.answers[i];
 
         if (question.type === "essay") {
-          // TODO: 调用后端接口提交简答题/论述题答案
+          // TODO: 调用后接口提交简答题/论述题答案
           try {
             // const response = await uni.request({
             //   url: '/api/submit-essay',
@@ -756,12 +869,12 @@ export default {
       }
     },
 
-    // 更新答题卡显示状态
+    // 更答题卡显示状态
     updateQuestionStatus(index) {
       const question = this.questions[index];
       const answer = this.answers[index];
 
-      // 没有答案时显示未
+      // 没答案时显示未
       if (!answer) return "unanswered";
 
       // 填空题特殊处理
@@ -782,7 +895,7 @@ export default {
       return result ? "correct" : "wrong";
     },
 
-    // 获取状态图标
+    // 获状态图标
     getStatusIcon(status) {
       switch (status) {
         case "correct":
@@ -824,25 +937,25 @@ export default {
 
     // 判断是为填空题
     isBlankQuestion(type) {
-      return type === "blank";
+      return type && type === "blank";
     },
 
     // 修改方法：检查填空题答案是否有效（需要处理答案数组不存在的情况）
     hasValidBlankAnswer(answer) {
-      // 检查 answer 是否存在且是数组
+      // 检查 answer 是否存在，是数组
       if (!answer || !Array.isArray(answer)) return false;
 
       // 检查是否所有空都已填写且不是空字符串
       return (
         answer.length > 0 &&
         answer.every((item) => {
-          // 检查每个答案是否存在且不是纯空格
+          // 检查每个答案是否存在且不是纯格
           return item !== undefined && item !== null && item.trim().length > 0;
         })
       );
     },
 
-    // 新增：检查多选题答案是否完全正确
+    // 新增：查多选题答案是否完全正确
     checkMultipleAnswer(userAnswer, correctAnswer) {
       if (!Array.isArray(userAnswer) || !Array.isArray(correctAnswer)) return false;
       if (userAnswer.length !== correctAnswer.length) return false;
@@ -853,7 +966,7 @@ export default {
       return sortedUser.every((value, index) => value === sortedCorrect[index]);
     },
 
-    // 添加新方法
+    // 加新方法
     ensureHandlePosition() {
       const systemInfo = uni.getSystemInfoSync();
       this.screenWidth = systemInfo.windowWidth;
@@ -865,9 +978,178 @@ export default {
       this.onHandleTouchEnd();
     },
 
-    // 添加新方法
+    // 修改切换答案显示方法
     toggleAnswerView() {
+      const currentQuestion = this.questions[this.currentQuestion];
+      const isEssayOrBlank =
+        this.isBlankQuestion(currentQuestion.type) || currentQuestion.type === "essay";
+
+      // 如果是填空或简答题，且已经提交答，才允许查看答案
+      if (isEssayOrBlank && !this.answers[this.currentQuestion]) {
+        uni.showToast({
+          title: "请先完成作答",
+          icon: "none",
+        });
+        return;
+      }
+
       this.showingAnswer = !this.showingAnswer;
+    },
+
+    // 修改提交答案方法
+    async submitCurrentAnswer() {
+      const currentQuestion = this.questions[this.currentQuestion];
+      const answer = this.answers[this.currentQuestion];
+
+      if (!answer || (Array.isArray(answer) && answer.some((a) => !a))) {
+        uni.showToast({
+          title: "请完成所有答案",
+          icon: "none",
+        });
+        return;
+      }
+
+      try {
+        const questionId = currentQuestion.id;
+
+        AiApi.judge(questionId, answer).then((res) => {
+          if (res.code === 200) {
+            uni.showModal({
+              title: "评分结果",
+              content: `得分：<span style="color: #52c41a; font-weight: bold;">${res.data.score}分</span>\n评语：<span style="color: #666666;">${res.data.analysis}</span>`.replace(
+                /<[^>]+>/g,
+                ""
+              ),
+              showCancel: true,
+              cancelText: "查看答案",
+              confirmText: "确定",
+              success: (result) => {
+                if (result.cancel) {
+                  this.showingAnswer = true;
+                }
+              },
+            });
+          }
+        });
+      } catch (error) {
+        console.error("提交答案失败:", error);
+        uni.showToast({
+          title: "提交失败，请重试",
+          icon: "none",
+        });
+      }
+    },
+
+    // 新增：初始化尺寸方法
+    initSizes() {
+      const sysInfo = uni.getSystemInfoSync();
+      this.screenWidth = sysInfo.windowWidth;
+      this.screenHeight = sysInfo.windowHeight;
+
+      // 转换手柄尺寸（80rpx 和 180rpx）
+      this.handleWidth = Math.ceil((80 * this.screenWidth) / 750);
+      this.handleHeight = Math.ceil((180 * this.screenWidth) / 750);
+
+      console.log("Screen size:", {
+        width: this.screenWidth,
+        height: this.screenHeight,
+        handleWidth: this.handleWidth,
+        handleHeight: this.handleHeight,
+      });
+    },
+
+    formatContent(content) {
+      if (!content) return "";
+
+      content = content.replace(/&lt;br&gt;/g, "<br>");
+
+      // 修改图片标签，添加自定义类名和点击事件处理
+      content = content
+        .replace(/&lt;img\s+src="([^"]+)".*?&gt;/g, (match, url) => {
+          return `<img 
+            src="${url}" 
+            class="preview-image" 
+            style="max-width: 100%; height: auto; display: block; margin: 10rpx 0;" 
+            data-src="${url}"
+            onclick="document.dispatchEvent(new CustomEvent('previewImage', {detail: '${url}'}));"
+          />`;
+        })
+        .replace(/<img\s+src="([^"]+)".*?>/g, (match, url) => {
+          return `<img 
+            src="${url}" 
+            class="preview-image" 
+            style="max-width: 100%; height: auto; display: block; margin: 10rpx 0;" 
+            data-src="${url}"
+            onclick="document.dispatchEvent(new CustomEvent('previewImage', {detail: '${url}'}));"
+          />`;
+        });
+
+      return content;
+    },
+
+    onRichTextTap(e) {
+      console.log("rich-text tap event:", e);
+
+      // 获取当前题目中的所有图片
+      const imgUrls = this.extractImageUrls(this.questions[this.currentQuestion].content);
+      console.log("可预览的图片列表:", imgUrls);
+
+      if (imgUrls.length > 0) {
+        // 使用 uniapp 原生预览组件
+        uni.previewImage({
+          current: 0, // 默认显示第一张
+          urls: imgUrls,
+          indicator: "number",
+          loop: true,
+          success: () => {
+            console.log("图片预览成功");
+          },
+          fail: (err) => {
+            console.error("图片预览失败:", err);
+            // 预览失败时的处理
+            uni.showToast({
+              title: "图片预览失败",
+              icon: "none",
+            });
+          },
+        });
+      }
+    },
+
+    onNodeTap(e) {
+      console.log("rich-text node-tap event:", e);
+      if (e.detail?.node?.name === "img") {
+        const url = e.detail?.node?.attrs?.src;
+        console.log("Tapped image URL:", url);
+        if (url) {
+          uni.previewImage({
+            urls: [url],
+            current: 0,
+            success: () => {
+              console.log("预览成功");
+            },
+            fail: (err) => {
+              console.error("预览失败:", err);
+            },
+          });
+        }
+      }
+    },
+
+    extractImageUrls(content) {
+      const urls = [];
+      const regex1 = /&lt;img\s+src="([^"]+)"/g;
+      const regex2 = /<img\s+src="([^"]+)"/g;
+
+      let match;
+      while ((match = regex1.exec(content)) !== null) {
+        urls.push(match[1]);
+      }
+      while ((match = regex2.exec(content)) !== null) {
+        urls.push(match[1]);
+      }
+
+      return [...new Set(urls)]; // 去重
     },
   },
 
@@ -881,21 +1163,9 @@ export default {
       }
     }, 1000);
 
-    // 首次执行
+    // 初始化位置
     this.$nextTick(() => {
       this.initHandlePosition();
-
-      // 添加延迟检查
-      setTimeout(() => {
-        // 检查位置是否正确，如果不在边缘则强制吸附
-        const handleWidth = uni.upx2px(80);
-        if (
-          Math.abs(this.handleX) > 1 &&
-          Math.abs(this.handleX - (this.screenWidth - handleWidth)) > 1
-        ) {
-          this.ensureHandlePosition();
-        }
-      }, 300);
     });
   },
 
@@ -916,7 +1186,8 @@ export default {
   position: relative;
   height: 100vh;
   width: 100%;
-  padding-top: 60rpx; /* 减顶部间距 */
+  padding-top: 60rpx;
+  /* 减顶部间距 */
   padding-bottom: 100rpx;
   box-sizing: border-box;
 }
@@ -933,6 +1204,7 @@ export default {
   z-index: 1000;
   display: flex;
   align-items: center;
+  justify-content: space-between;
 }
 
 .back-btn {
@@ -965,6 +1237,8 @@ export default {
   font-size: 28rpx;
   color: #ff4d4f;
   font-weight: bold;
+  flex: 1;
+  text-align: center;
 }
 
 .swiper {
@@ -981,7 +1255,8 @@ export default {
 .question-card {
   background-color: #fff;
   border-radius: 12rpx;
-  padding: 24rpx; /* 减小内距 */
+  padding: 24rpx;
+  /* 减小内距 */
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
@@ -989,7 +1264,8 @@ export default {
   margin-bottom: 20rpx;
   display: flex;
   align-items: center;
-  gap: 16rpx; /* 各元素之间的间距 */
+  gap: 16rpx;
+  /* 各元素之间的间距 */
 }
 
 .question-index {
@@ -1018,17 +1294,26 @@ export default {
 }
 
 .question-content {
-  font-size: 30rpx; /* 稍微减小字号 */
+  font-size: 30rpx;
   color: #333;
   line-height: 1.5;
   margin-bottom: 24rpx;
-  font-weight: 500; /* 加粗题目文字 */
+  font-weight: 500;
+}
+
+.question-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 20rpx auto;
+  border-radius: 8rpx;
 }
 
 .options {
   display: flex;
   flex-direction: column;
-  gap: 12rpx; /* 减小选项间距 */
+  gap: 12rpx;
+  /* 减小选项间距 */
 }
 
 .option-item {
@@ -1062,18 +1347,34 @@ export default {
   line-height: 1.4;
 }
 
+.option-text img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 10rpx auto;
+  border-radius: 8rpx;
+}
+
 .exam-footer {
-  padding: 16rpx 24rpx;
-  background-color: #fff;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 -2rpx 8rpx rgba(0, 0, 0, 0.05);
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
+  padding: 16rpx 24rpx;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 -2rpx 8rpx rgba(0, 0, 0, 0.05);
   z-index: 100;
+  /* 适配底部安全区域 */
+  padding-bottom: calc(16rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+}
+
+.center-btns {
+  display: flex;
+  gap: 12rpx;
 }
 
 .nav-btn {
@@ -1087,7 +1388,7 @@ export default {
 }
 
 .submit-btn {
-  padding: 16rpx 48rpx;
+  padding: 12rpx 32rpx;
   background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
   border-radius: 32rpx;
   box-shadow: 0 4rpx 12rpx rgba(24, 144, 255, 0.3);
@@ -1101,22 +1402,10 @@ export default {
   letter-spacing: 2rpx;
 }
 
-/* 点击效果 */
 .submit-btn:active {
   transform: translateY(2rpx);
   box-shadow: 0 2rpx 8rpx rgba(24, 144, 255, 0.2);
   background: linear-gradient(135deg, #096dd9 0%, #0050b3 100%);
-}
-
-/* 禁用状态 */
-.submit-btn.disabled {
-  background: #d9d9d9;
-  box-shadow: none;
-  cursor: not-allowed;
-}
-
-.submit-btn.disabled text {
-  color: #999;
 }
 
 .explanation-section {
@@ -1133,6 +1422,7 @@ export default {
     opacity: 0;
     transform: translateY(-10rpx);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1215,16 +1505,16 @@ export default {
 
 .drawer-header {
   padding: 30rpx;
-  border-bottom: 1rpx solid #eee;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-/* 新增滚动区域样式 */
+/* 新增滚动域样式 */
 .question-grid-scroll {
   flex: 1;
-  height: 0; /* 关键：让scroll-view填充剩余空间 */
+  height: 0;
+  /* 关键：让scroll-view填充余空间 */
 }
 
 .question-grid {
@@ -1325,7 +1615,8 @@ export default {
 }
 
 .icon-arrow-left:before {
-  content: "\e6db"; /* 里的编码需要根据实际使用的图标库来修改 */
+  content: "\e6db";
+  /* 里的编需要根据实际使用的图标库来修改 */
 }
 
 /* 添加新的样式 */
@@ -1380,7 +1671,8 @@ export default {
 }
 
 .blank-input {
-  width: 200rpx; /* 固定度 */
+  width: 200rpx;
+  /* 固定度 */
   height: 60rpx;
   line-height: 60rpx;
   padding: 0 20rpx;
@@ -1450,7 +1742,7 @@ export default {
   color: #f56c6c;
 }
 
-/* 当字数超出限时的样式 */
+/* 当字数超限时的样式 */
 .essay-container.overflow .word-count {
   color: #f56c6c;
 }
@@ -1473,7 +1765,7 @@ export default {
   }
 }
 
-/* 适配底部安全区域 */
+/* 配底部安全区域 */
 .question-grid {
   padding-bottom: calc(20rpx + constant(safe-area-inset-bottom));
   padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
@@ -1500,7 +1792,8 @@ export default {
   font-size: 28rpx;
   pointer-events: auto;
   box-shadow: -2rpx 0 10rpx rgba(0, 0, 0, 0.1);
-  border-radius: v-bind('handleX === 0 ? "0 16rpx 16rpx 0" : "16rpx 0 0 16rpx"');
+  border-radius: v-bind('isOnLeft ? "0 16rpx 16rpx 0" : "16rpx 0 0 16rpx"');
+  will-change: transform; /* 优化性能 */
 }
 
 .handle-text {
@@ -1508,7 +1801,7 @@ export default {
   text-orientation: upright;
   letter-spacing: 8rpx;
   font-weight: 500;
-  transform: v-bind('handleX === 0 ? "rotate(180deg)" : "none"');
+  user-select: none; /* 防止文字选中 */
 }
 
 /* 添加待批改状态的样式 */
@@ -1574,7 +1867,6 @@ export default {
   border-radius: 32rpx;
   color: #1890ff;
   font-size: 26rpx;
-  margin: 0 16rpx;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -1623,5 +1915,370 @@ export default {
 .btn-text {
   font-weight: 500;
   letter-spacing: 1rpx;
+}
+
+/* 添新按钮样式 */
+.submit-answer-btn {
+  padding: 16rpx 32rpx;
+  background: #52c41a;
+  border-radius: 32rpx;
+  box-shadow: 0 4rpx 12rpx rgba(82, 196, 26, 0.3);
+  transition: all 0.3s ease;
+}
+
+.submit-answer-btn text {
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+}
+
+.submit-answer-btn:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 2rpx 8rpx rgba(82, 196, 26, 0.2);
+  background: #389e0d;
+}
+
+/* 答题显示区域样式 */
+.answer-section {
+  margin-top: 32rpx;
+  padding: 24rpx;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  border-left: 8rpx solid #1890ff;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.result-section {
+  margin-bottom: 20rpx;
+}
+
+.result-text {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.blank-answer {
+  margin-top: 12rpx;
+  padding: 12rpx 20rpx;
+  background: #fff;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #1890ff;
+}
+
+.essay-answer {
+  margin-top: 12rpx;
+  padding: 20rpx;
+  background: #fff;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: #333;
+}
+
+.explanation-section {
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 2rpx solid #eee;
+}
+
+.explanation-title {
+  font-size: 28rpx;
+  color: #1890ff;
+  font-weight: 500;
+  margin-bottom: 12rpx;
+  display: block;
+}
+
+.explanation-content {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* 修改解析部分样式 */
+.explanation-section {
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 2rpx solid #eee;
+}
+
+/* 填空题解析不需要上边框 */
+.explanation-section.no-border {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.explanation-title {
+  font-size: 28rpx;
+  color: #1890ff;
+  font-weight: 500;
+  margin-bottom: 12rpx;
+  display: block;
+}
+
+.explanation-content {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* 优化答案显示区域样式 */
+.explanation-section {
+  margin-top: 32rpx;
+  padding: 24rpx;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  border-left: 8rpx solid #1890ff;
+}
+
+.explanation-header {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.result-text {
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.result-text.correct {
+  color: #52c41a;
+}
+
+.result-text.wrong {
+  color: #ff4d4f;
+}
+
+.correct-answer {
+  font-size: 28rpx;
+  color: #1890ff;
+}
+
+/* 优化按钮样式 */
+.center-btns {
+  display: flex;
+  gap: 16rpx;
+}
+
+/* 统答案显示域样式 */
+.explanation-section {
+  margin-top: 32rpx;
+  padding: 24rpx;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  border-left: 8rpx solid #1890ff;
+}
+
+.explanation-header {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.result-text {
+  font-size: 28rpx;
+  font-weight: 500;
+  padding: 4rpx 12rpx;
+  border-radius: 4rpx;
+}
+
+.result-text.correct {
+  color: #52c41a;
+  background: #f6ffed;
+}
+
+.result-text.wrong {
+  color: #ff4d4f;
+  background: #fff1f0;
+}
+
+.result-text.reference {
+  color: #1890ff;
+  background: #e6f7ff;
+}
+
+.correct-answer {
+  font-size: 28rpx;
+  color: #1890ff;
+  background: #e6f7ff;
+  padding: 4rpx 12rpx;
+  border-radius: 4rpx;
+}
+
+.answer-content {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+  padding: 16rpx;
+  background: #fff;
+  border-radius: 8rpx;
+  margin-bottom: 16rpx;
+}
+
+.explanation-divider {
+  height: 2rpx;
+  background: #eee;
+  margin: 16rpx 0;
+}
+
+.explanation-content {
+  margin-top: 16rpx;
+}
+
+.explanation-label {
+  display: inline-block;
+  font-size: 28rpx;
+  color: #1890ff;
+  font-weight: 500;
+  margin-bottom: 8rpx;
+}
+
+.explanation-text {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+  padding: 16rpx;
+  background: #fff;
+  border-radius: 8rpx;
+}
+
+/* 添加图片hover效果 */
+.preview-image {
+  cursor: zoom-in !important;
+  transition: opacity 0.3s ease;
+}
+
+.preview-image:hover {
+  opacity: 0.8;
+}
+
+/* 确保图片在移动端有触摸反馈 */
+@media (hover: none) {
+  .preview-image:active {
+    opacity: 0.8;
+  }
+}
+
+/* 确保图片样式正确应用 */
+.question-content img,
+.option-text img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  margin: 10rpx 0 !important;
+  border-radius: 8rpx !important;
+}
+
+/* 保图片可点击的样式 */
+.preview-image {
+  cursor: pointer !important;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* APP端特殊处理 */
+/* #ifdef APP-PLUS */
+.preview-image {
+  pointer-events: auto !important;
+}
+/* #endif */
+
+/* 确保rich-text内的图片样式正确 */
+:deep(.rich-text-content img) {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  margin: 10rpx 0 !important;
+  cursor: pointer !important;
+}
+
+/* 添加触摸反馈效果 */
+:deep(.rich-text-content img:active) {
+  opacity: 0.8;
+}
+
+/* 添加图片预览相关样式 */
+.image-preview {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn {
+  position: fixed;
+  top: 30rpx;
+  right: 30rpx;
+  width: 80rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.3);
+  color: #fff;
+  font-size: 60rpx;
+  border-radius: 50%;
+  z-index: 100000;
+}
+
+.preview-image {
+  flex: 1;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 添加点击效果 */
+.close-btn:active {
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.nav-btn-back {
+  position: fixed;
+  top: 30rpx;
+  right: 30rpx;
+  width: 60rpx;
+  height: 60rpx;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100000;
+  cursor: pointer;
+}
+
+.nav-btn-back .uni-btn-icon {
+  color: #fff;
+  font-size: 48rpx;
+  font-weight: bold;
+}
+
+.nav-btn-back:active {
+  opacity: 0.8;
+  transform: scale(0.95);
 }
 </style>

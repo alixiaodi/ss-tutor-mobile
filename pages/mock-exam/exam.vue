@@ -1,26 +1,30 @@
-<template> 
-  <view>  
-    <Answer :rawQuestions="questions" />
+<template>
+  <view>
+    <Answer
+      v-if="questions && questions.length > 0"
+      :rawQuestions="questions"
+      :animation="true"
+    />
   </view>
 </template>
 
 <script>
-import Answer from '@/components/Answer';
-import * as TestPaperInfoApi from '@/api/testpaperInfo';
+import Answer from "@/components/Answer";
+import * as TestPaperInfoApi from "@/api/testpaperInfo";
 export default {
   components: {
-    Answer
+    Answer,
   },
   data() {
     return {
       examCode: null,
       examInfo: {
-        name: '模拟考试',
+        name: "模拟考试",
       },
       currentIndex: 0,
       selectedAnswer: null,
-      questions: []
-    }
+      questions: [],
+    };
   },
   computed: {
     currentQuestion() {
@@ -28,17 +32,17 @@ export default {
     },
     isLastQuestion() {
       return this.currentIndex === this.questions.length - 1;
-    }
+    },
   },
   async onLoad(options) {
     this.examCode = options.id;
     await this.fetchExamData();
   },
   methods: {
-    async fetchExamData() { 
-      TestPaperInfoApi.getQuestionsByPaperId(this.examCode).then(res => {
-        this.questions = res.data; 
-      })
+    async fetchExamData() {
+      TestPaperInfoApi.getQuestionsByPaperId(this.examCode).then((res) => {
+        this.questions = res.data;
+      });
     },
     selectAnswer(index) {
       this.selectedAnswer = index;
@@ -57,17 +61,17 @@ export default {
     },
     submitExam() {
       uni.showModal({
-        title: '提示',
-        content: '确认提交试卷？',
+        title: "提示",
+        content: "确认提交试卷？",
         success: (res) => {
           if (res.confirm) {
             uni.navigateBack();
           }
-        }
+        },
       });
-    }
-  }
-}
+    },
+  },
+};
 </script>
 
 <style scoped>
@@ -142,4 +146,4 @@ export default {
   background-color: #fff;
   box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
 }
-</style> 
+</style>
