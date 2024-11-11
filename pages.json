@@ -103,15 +103,19 @@
 			}
 		},
 		{
-			"path": "pages/mock-exam/exam",
-			"style": {
-				"navigationBarTitleText": "AI模拟考试"
-			}
+			"path": "pages/past-papers/exam",
+			"style": {}
 		},
 		{
 			"path": "pages/past-papers/index",
 			"style": {
 				"navigationBarTitleText": "历年真题"
+			}
+		},
+		{
+			"path": "pages/past-papers/history",
+			"style": {
+				"navigationBarTitleText": "答题历史"
 			}
 		}
 	],

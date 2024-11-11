@@ -1,4 +1,4 @@
 import request from '@/config/request.js';
 
 // 获取验证码
-export const judge = (id, userAnswer) => request.post(`/ai/judge/${id}?userAnswer=${userAnswer}`, null)
+export const judge = (id, userAnswer, answerId) => request.post(`/ai/judge/${id}?userAnswer=${userAnswer}&answerId=${answerId}`, null)

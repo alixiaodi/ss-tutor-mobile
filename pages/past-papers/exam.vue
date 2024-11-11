@@ -20,6 +20,7 @@ export default {
       currentIndex: 0,
       selectedAnswer: null,
       questions: [],
+      mode: null,
     };
   },
   computed: {
@@ -32,6 +33,7 @@ export default {
   },
   async onLoad(options) {
     this.examCode = options.id;
+    this.mode = options.mode;
     await this.fetchExamData();
   },
   methods: {

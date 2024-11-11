@@ -53,8 +53,8 @@ export default {
   methods: {
     goToExam(examId) {
       uni.navigateTo({
-        url: `/pages/mock-exam/exam?id=${examId}`,
-      });
+        url: `/pages/past-papers/history?id=${examId}`
+      })
     },
     async fetchExamData() {
       await TestPaperApi.getYearPaper(this.subjectCode).then((res) => {

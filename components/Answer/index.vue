@@ -30,7 +30,7 @@
       </view>
     </view>
 
-    <!-- 题目区域 -->
+    <!-- 目区域 -->
     <view class="exam-content">
       <swiper class="swiper" :current="currentQuestion" @change="handlePageChange">
         <swiper-item
@@ -130,13 +130,12 @@
                 <view class="essay-container">
                   <textarea
                     class="essay-input"
-                    v-model="answers[index]"
-                    :placeholder="question.placeholder || '请输入你答案...'"
+                    :value="answers[index]"
+                    :placeholder="question.placeholder || '请输入你的答案...'"
                     :maxlength="question.maxLength || 1000"
+                    @input="(e) => updateEssayAnswer(index, e)"
                     auto-height
-                    @input="updateEssayAnswer(index, $event)"
-                  >
-                  </textarea>
+                  />
                   <view class="essay-footer">
                     <text class="word-count"
                       >{{ getWordCount(answers[index]) }}/{{
@@ -198,8 +197,9 @@
         <view class="center-btns">
           <template
             v-if="
-              isBlankQuestion(questions[currentQuestion].type) ||
-              questions[currentQuestion].type === 'essay'
+              currentQuestionData &&
+              (isBlankQuestion(currentQuestionData.type) ||
+                currentQuestionData.type === 'essay')
             "
           >
             <template v-if="!showingAnswer">
@@ -218,7 +218,7 @@
               <text class="btn-text">{{ showingAnswer ? "隐藏答案" : "查看答案" }}</text>
             </view>
           </template>
-          <template v-else>
+          <template v-else-if="currentQuestionData">
             <view
               class="view-answer-btn"
               :class="{ active: showingAnswer }"
@@ -335,6 +335,7 @@
 
 <script>
 import * as AiApi from "@/api/ai";
+import * as AnswerQuestionsApi from "@/api/answerQuestions";
 
 export default {
   data() {
@@ -350,14 +351,17 @@ export default {
       screenWidth: 0,
       screenHeight: 0,
       handleWidth: 0, // 新增：存储实际手柄宽度
-      handleHeight: 0, // 新增：存储实际手柄高度
+      handleHeight: 0, // 新增存储实际手柄高度
       showingAnswer: false, // 添加新的数据属性
-      isMoving: false, // 新增踪是否正在移动
+      isMoving: false, // 新增踪是正在移动
       isOnLeft: false, // 新增：跟踪是否在左侧
       isDragging: false, // 新增：跟踪是否正在拖动
       lastX: 0, // 新增：记一次的X位置
-      previewImage: "", // 添加预览图片的URL
+      previewImage: "", // 添加预览片的URL
       statusBarHeight: 0, // 添加状态栏高度
+      id: null, // 题目ID
+      mode: null, // 模式
+      answerId: null, // 答案ID
     };
   },
 
@@ -367,7 +371,6 @@ export default {
       default: () => [],
     },
   },
-
   watch: {
     rawQuestions: {
       immediate: true,
@@ -425,6 +428,27 @@ export default {
       // 设置答案
       this.$set(this.answers, index, value);
 
+      console.log("我是选择题");
+      console.log("this.answerId", this.answerId);
+
+      console.log({
+        answerQuestionsId: this.answerId,
+        answer: value,
+        questionNumber: this.questions[index].id,
+      });
+      AnswerQuestionsApi.uploadAnswer({
+        answerQuestionsId: this.answerId,
+        answer: value,
+        questionNumber: this.questions[index].id,
+      });
+
+      // TODO: 调用题记录接口
+      // AnswerQuestionsApi.record({
+      //   answerId: this.answerId,
+      //   questionId: this.questions[index].id,
+      //   answer: value
+      // });
+
       // 对于单选题
       if (this.questions[index].type === "single") {
         // 显示答案解析
@@ -434,14 +458,12 @@ export default {
         const isCorrect = this.checkAnswer(this.questions[index], value);
 
         if (isCorrect) {
-          // 如果正，延迟一下再进入下
           setTimeout(() => {
-            // 检查是否还有下一题
             if (index < this.questions.length - 1) {
               this.currentQuestion = index + 1;
               this.showingAnswer = false;
             }
-          }, 800); // 800ms 后自动进入下一题
+          }, 800);
         }
       }
     },
@@ -452,6 +474,13 @@ export default {
         ? currentAnswers.filter((v) => v !== value)
         : [...currentAnswers, value];
       this.$set(this.answers, questionIndex, newAnswers);
+
+      // TODO: 调用答题记录接口
+      // AnswerQuestionsApi.record({
+      //   answerId: this.answerId,
+      //   questionId: this.questions[questionIndex].id,
+      //   answer: newAnswers
+      // });
 
       // 检查多选题是否答对
       const question = this.questions[questionIndex];
@@ -480,18 +509,83 @@ export default {
       this.$set(this.answers, questionIndex, currentAnswers);
     },
 
-    updateEssayAnswer(index, event) {
-      const value = event.detail.value || event.target.value;
+    updateEssayAnswer(index, e) {
+      // uniapp 的事件对象中，值在 e.detail.value 中
+      const value = e.detail.value;
+      console.log("简答题输入:", {
+        index,
+        value,
+        event: e,
+      });
+
+      // 使用 $set 更新数组
       this.$set(this.answers, index, value);
+
+      // 上传答案
+      AnswerQuestionsApi.uploadAnswer({
+        answerQuestionsId: this.answerId,
+        answer: value,
+        questionNumber: this.questions[index].id,
+      });
     },
 
     submitExam() {
       // 这里添加提交逻辑
-      console.log("提交的答案：", this.answers);
+      console.log("提交的答案：", this.answerId);
+      AnswerQuestionsApi.submit({
+        id: this.answerId,
+      }).then((res) => {
+        uni.showToast({
+          title: "提交成功",
+          icon: "success",
+          duration: 2000,
+        });
+        // 返回上一页
+        uni.navigateBack();
+      });
     },
     handlePageChange(e) {
-      this.currentQuestion = e.detail.current;
-      this.showingAnswer = false; // 切换题目时重置答案显示状态
+      const oldQuestion = this.currentQuestion;
+      const newQuestion = e.detail.current;
+
+      // 获取离开的题目信息
+      if (oldQuestion !== newQuestion) {
+        const currentQuestion = this.questions[oldQuestion];
+        const answer = this.answers[oldQuestion];
+
+        console.log("页面切换信息:", {
+          oldQuestion,
+          newQuestion,
+          currentQuestionType: currentQuestion?.type,
+          answer,
+          answers: this.answers,
+        });
+
+        // 添加条件判断的详细日志
+        console.log("条件判断详情:", {
+          isEssayType: currentQuestion?.type === "essay",
+          hasAnswer: !!answer,
+          rawAnswer: answer,
+        });
+
+        if (currentQuestion?.type === "blank" || currentQuestion?.type === "essay") {
+          console.log("提交答案:", {
+            questionId: currentQuestion.id,
+            answer: answer,
+            answerId: this.answerId,
+          });
+          AnswerQuestionsApi.uploadAnswer({
+            answerQuestionsId: this.answerId,
+            answer: answer.join(","),
+            questionNumber: currentQuestion.id,
+          }).then((res) => {
+            console.log("上传答案结果:", res);
+          });
+        }
+      }
+
+      this.currentQuestion = newQuestion;
+      this.showingAnswer = false;
     },
 
     prevQuestion() {
@@ -502,6 +596,18 @@ export default {
 
     nextQuestion() {
       if (this.currentQuestion < this.questions.length - 1) {
+        // TODO: 如果是填空题或论述题，且已作答，调用评判接口
+        const currentQuestion = this.questions[this.currentQuestion];
+        const answer = this.answers[this.currentQuestion];
+        if (
+          (this.isBlankQuestion(currentQuestion?.type) ||
+            currentQuestion?.type === "essay") &&
+          answer
+        ) {
+          // TODO: 实现 judge 接口调用
+          // await AiApi.judge(currentQuestion.id, answer, this.answerId);
+        }
+
         this.currentQuestion++;
       }
     },
@@ -512,6 +618,17 @@ export default {
     },
 
     jumpToQuestion(index) {
+      // 手动构造事件对象
+      const event = {
+        detail: {
+          current: index,
+        },
+      };
+
+      // 先调用 handlePageChange
+      this.handlePageChange(event);
+
+      // 然后更新当前题目索引并关闭答题卡
       this.currentQuestion = index;
       this.showAnswerCard = false;
     },
@@ -525,7 +642,7 @@ export default {
       const middlePoint = this.screenWidth / 2;
       const currentX = e.detail.x;
 
-      // 只有移动距离超过阈值时才更新位置
+      // 只有移动距离超过阈时才更新位
       if (Math.abs(currentX - this.lastX) > 5) {
         if (currentX < middlePoint && !this.isOnLeft) {
           this.isOnLeft = true;
@@ -785,7 +902,7 @@ export default {
       this.$set(this.answers[questionIndex], blankIndex, event.detail.value);
     },
 
-    // 转换选项式
+    // 转换选项
     transformOptions(optionsStr) {
       try {
         const options = JSON.parse(optionsStr);
@@ -823,7 +940,7 @@ export default {
           if (!this.isBlankAnswerComplete(userAnswer)) {
             return null;
           }
-          // TODO: 实际的填空题答案比对逻辑
+          // TODO: 实际的填空题答比对逻辑
           // console.log("填空题答案比对逻辑");
           return null; // 暂时返 null，不显示对错
 
@@ -843,7 +960,7 @@ export default {
     async submitAnswer() {
       // ... 他代码 ...
 
-      // 遍历所有答案进行判断
+      // 历所有答案进行判断
       for (let i = 0; i < this.questions.length; i++) {
         const question = this.questions[i];
         const answer = this.answers[i];
@@ -924,12 +1041,12 @@ export default {
       // 没有答案不显示解析
       if (!answer) return false;
 
-      // 填空题特殊处理：必须完全填写才显示解析
+      // 填空题特殊处理必须完全填写才显示解析
       if (this.isBlankQuestion(question.type)) {
         return this.isBlankAnswerComplete(answer);
       }
 
-      // 简答题不显示解析
+      // 简答不显示解析
       if (question.type === "essay") return false;
 
       return true;
@@ -945,11 +1062,11 @@ export default {
       // 检查 answer 是否存在，是数组
       if (!answer || !Array.isArray(answer)) return false;
 
-      // 检查是否所有空都已填写且不是空字符串
+      // 查是否所有空都已写且不是空字符串
       return (
         answer.length > 0 &&
         answer.every((item) => {
-          // 检查每个答案是否存在且不是纯格
+          // 检查每个答案是否存在且不纯格
           return item !== undefined && item !== null && item.trim().length > 0;
         })
       );
@@ -1009,28 +1126,41 @@ export default {
         return;
       }
 
-      try {
-        const questionId = currentQuestion.id;
+      // TODO: 调用答题记录接口
+      // try {
+      //   await AnswerQuestionsApi.record({
+      //     answerId: this.answerId,
+      //     questionId: currentQuestion.id,
+      //     answer: answer
+      //   });
+      // } catch (error) {
+      //   console.error('提交答案失败:', error);
+      //   uni.showToast({
+      //     title: '提交败，请重试',
+      //     icon: 'none'
+      //   });
+      //   return;
+      // }
 
-        AiApi.judge(questionId, answer).then((res) => {
-          if (res.code === 200) {
-            uni.showModal({
-              title: "评分结果",
-              content: `得分：<span style="color: #52c41a; font-weight: bold;">${res.data.score}分</span>\n评语：<span style="color: #666666;">${res.data.analysis}</span>`.replace(
-                /<[^>]+>/g,
-                ""
-              ),
-              showCancel: true,
-              cancelText: "查看答案",
-              confirmText: "确定",
-              success: (result) => {
-                if (result.cancel) {
-                  this.showingAnswer = true;
-                }
-              },
-            });
-          }
-        });
+      try {
+        const res = await AiApi.judge(currentQuestion.id, answer, this.answerId);
+        if (res.code === 200) {
+          uni.showModal({
+            title: "评分结果",
+            content: `得分：<span style="color: #52c41a; font-weight: bold;">${res.data.score}分</span>\n评语：<span style="color: #666666;">${res.data.analysis}</span>`.replace(
+              /<[^>]+>/g,
+              ""
+            ),
+            showCancel: true,
+            cancelText: "查看答案",
+            confirmText: "确定",
+            success: (result) => {
+              if (result.cancel) {
+                this.showingAnswer = true;
+              }
+            },
+          });
+        }
       } catch (error) {
         console.error("提交答案失败:", error);
         uni.showToast({
@@ -1040,7 +1170,7 @@ export default {
       }
     },
 
-    // 新增：初始化尺寸方法
+    // 新增：初化尺寸方法
     initSizes() {
       const sysInfo = uni.getSystemInfoSync();
       this.screenWidth = sysInfo.windowWidth;
@@ -1152,8 +1282,15 @@ export default {
       return [...new Set(urls)]; // 去重
     },
   },
-
   mounted() {
+    const pages = getCurrentPages();
+    const currentPage = pages[pages.length - 1]; // 当前页面实例
+    const options = currentPage.options; // 当前页面的路径参数
+    console.log("路径参数:", options);
+    this.id = options.id;
+    this.mode = options.mode;
+    this.answerId = options.answerId;
+
     this.timer = setInterval(() => {
       if (this.remainingTime > 0) {
         this.remainingTime--;
@@ -1801,7 +1938,7 @@ export default {
   text-orientation: upright;
   letter-spacing: 8rpx;
   font-weight: 500;
-  user-select: none; /* 防止文字选中 */
+  user-select: none; /* 止文字选中 */
 }
 
 /* 添加待批改状态的样式 */
@@ -2009,7 +2146,7 @@ export default {
   line-height: 1.6;
 }
 
-/* 修改解析部分样式 */
+/* 修改解析部分式 */
 .explanation-section {
   margin-top: 20rpx;
   padding-top: 20rpx;
