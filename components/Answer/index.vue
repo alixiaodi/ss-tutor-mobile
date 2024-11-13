@@ -242,7 +242,7 @@
       </view>
     </view>
 
-    <!-- 答题卡抽屉 -->
+    <!-- 答题卡��屉 -->
     <view class="answer-card-drawer" :class="{ 'drawer-open': showAnswerCard }">
       <view class="drawer-content" @click.stop>
         <view class="drawer-header">
@@ -530,17 +530,24 @@ export default {
     },
 
     submitExam() {
-      // 这里添加提交逻辑
+      // TODO 打印所有答案信息
+      console.log("提交的所有答案：");
+      const data = this.answers.map((answer, index) => ({
+        answerQuestionsId: this.answerId,
+        answer: Array.isArray(answer) ? answer.join(",") : answer,
+        questionNumber: this.questions[index].id,
+        questionType: this.questions[index].type, // 额外添加题目类型便于调试
+      }));
+      // 原有的提交逻辑
       console.log("提交的答案：", this.answerId);
-      AnswerQuestionsApi.submit({
-        id: this.answerId,
-      }).then((res) => {
+      AnswerQuestionsApi.submit(this.answerId, data).then((res) => {
         uni.showToast({
           title: "提交成功",
           icon: "success",
           duration: 2000,
         });
         // 返回上一页
+        console.log("返回上一页");
         uni.navigateBack();
       });
     },

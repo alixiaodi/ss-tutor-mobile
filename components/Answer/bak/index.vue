@@ -574,6 +574,13 @@ export default {
             answer: answer,
             answerId: this.answerId,
           });
+          AnswerQuestionsApi.uploadAnswer({
+            answerQuestionsId: this.answerId,
+            answer: answer.join(","),
+            questionNumber: currentQuestion.id,
+          }).then((res) => {
+            console.log("上传答案结果:", res);
+          });
         }
       }
 

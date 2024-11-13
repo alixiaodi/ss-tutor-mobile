@@ -5,7 +5,7 @@ const environment = {
 		// baseURL: 'http://localhost:8080',
 		
 		// 直接使用线上后端
-		baseURL: 'http://192.168.1.103:6633'
+		baseURL: 'http://127.0.0.1:6633'
 	},
 	// 生产环境配置
 	production: {
