@@ -2,9 +2,24 @@
   <view class="history-container">
     <!-- 顶部信息 -->
     <view class="paper-info">
-      <view class="paper-title">{{ paperInfo.name || "试卷标题" }}</view>
+      <view class="paper-title">{{ paperInfo.name }}</view>
       <view class="paper-meta">
-        <text class="count">题目数量：{{ paperInfo.totalQuestions || 0 }}</text>
+        <view class="basic-info">
+          <text class="info-item">总题数：{{ paperInfo.totalQuestions }}题</text>
+          <text class="info-item">总分：{{ paperInfo.totalScore }}分</text>
+        </view>
+        <view
+          class="paper-types"
+          v-if="paperInfo.paperTypes && paperInfo.paperTypes.length"
+        >
+          <text
+            v-for="(type, index) in paperInfo.paperTypes"
+            :key="index"
+            class="type-item"
+          >
+            {{ type.type }}({{ type.num }}题/{{ type.score }}分)
+          </text>
+        </view>
       </view>
     </view>
 
@@ -44,7 +59,15 @@
         ></u-empty>
       </view>
 
-      <scroll-view v-else scroll-y class="history-list" @scrolltolower="loadMoreHistory">
+      <scroll-view
+        v-else
+        scroll-y
+        class="history-list"
+        @scrolltolower="loadMoreHistory"
+        :refresher-enabled="true"
+        :refresher-triggered="isRefreshing"
+        @refresherrefresh="onRefresh"
+      >
         <view
           v-for="(item, index) in historyList"
           :key="index"
@@ -60,18 +83,16 @@
           </view>
           <view class="history-stats">
             <text class="stat-item">
-              <text class="label">正确</text>
-              <text class="value correct">{{ item.correct }}</text>
-            </text>
-            <text class="stat-item">
-              <text class="label">错误</text>
-              <text class="value wrong">{{ item.wrong }}</text>
-            </text>
-            <text class="stat-item">
               <text class="label">用时</text>
               <text class="value">{{ item.duration }}</text>
             </text>
           </view>
+        </view>
+
+        <!-- 添加底部加载更多提示 -->
+        <view class="load-more" v-if="historyList.length > 0">
+          <text v-if="hasMore">加载中...</text>
+          <text v-else>没有更多数据了</text>
         </view>
       </scroll-view>
     </view>
@@ -80,58 +101,56 @@
 
 <script>
 import * as AnswerQuestionsApi from "@/api/answerQuestions";
+import * as TestPaperApi from "@/api/testPaper";
 export default {
   data() {
     return {
       paperId: "",
       paperInfo: {
-        // TODO: 从API获取试卷信息
         name: "模拟试卷",
         totalQuestions: 100,
         createTime: "2024-03-20",
       },
-      historyList: [
-        // TODO: 从API获取历史记录
-        {
-          id: 1,
-          mode: "practice",
-          score: 90,
-          date: "2024-03-20 14:30",
-          correct: 45,
-          wrong: 5,
-          duration: "45分钟",
-        },
-        {
-          id: 2,
-          mode: "exam",
-          score: 85,
-          date: "2024-03-19 10:20",
-          correct: 42,
-          wrong: 8,
-          duration: "60分钟",
-        },
-      ],
+      historyList: [],
       page: 1,
       hasMore: true,
+      isRefreshing: false,
+      pageSize: 10, // 每页数量
     };
   },
 
   onLoad(options) {
     if (options.id) {
       this.paperId = options.id;
-      // TODO: 获取试卷信息和历史记录
+      this.loadPaperDetail();
     } else {
       uni.navigateBack();
     }
   },
 
+  onShow() {
+    if (this.paperId) {
+      this.loadHistory();
+    }
+  },
+
   methods: {
     loadMoreHistory() {
-      // TODO: 实现加载更多历史记录
-      console.log("加载更多历史记录");
+      if (!this.hasMore) return;
+      this.page += 1;
+      this.loadHistory();
     },
 
     startExam(mode) {
+      if (mode === "1") {
+        uni.showToast({
+          title: "考试模式开发中",
+          icon: "none",
+          duration: 2000,
+        });
+        return;
+      }
+
       AnswerQuestionsApi.add({
         paperId: this.paperId,
         type: mode,
@@ -149,6 +168,101 @@ export default {
       uni.navigateTo({
         url: `/pages/past-papers/review?id=${history.id}`,
       });
+    },
+
+    loadHistory(isRefresh = false) {
+      if (isRefresh) {
+        this.page = 1;
+        this.hasMore = true;
+      }
+
+      AnswerQuestionsApi.getHistory(this.paperId, {
+        page: this.page,
+        pageSize: this.pageSize,
+      })
+        .then((res) => {
+          const formattedData = res.data.map((item) => ({
+            id: item.id,
+            mode: item.type === "0" ? "practice" : "exam",
+            score: item.totalScore || 0,
+            date: this.formatDateTime(item.startTime),
+            duration: this.calculateDuration(item.startTime, item.endTime),
+            correct: "-",
+            wrong: "-",
+          }));
+
+          if (isRefresh) {
+            this.historyList = formattedData;
+          } else {
+            this.historyList = [...this.historyList, ...formattedData];
+          }
+
+          this.hasMore = formattedData.length === this.pageSize;
+        })
+        .catch((err) => {
+          console.error("获取历史记录失败:", err);
+          uni.showToast({
+            title: "获取历史记录失败",
+            icon: "none",
+          });
+        })
+        .finally(() => {
+          if (isRefresh) {
+            this.isRefreshing = false;
+          }
+        });
+    },
+
+    formatDateTime(dateStr) {
+      if (!dateStr) return "";
+      const date = new Date(dateStr);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const hour = String(date.getHours()).padStart(2, "0");
+      const minute = String(date.getMinutes()).padStart(2, "0");
+      return `${year}-${month}-${day} ${hour}:${minute}`;
+    },
+
+    calculateDuration(startTime, endTime) {
+      if (!startTime || !endTime) return "-";
+      const start = new Date(startTime);
+      const end = new Date(endTime);
+      const diff = Math.floor((end - start) / 1000);
+
+      if (diff < 60) {
+        return diff + "秒";
+      } else if (diff < 3600) {
+        return Math.floor(diff / 60) + "分钟";
+      } else {
+        const hours = Math.floor(diff / 3600);
+        const minutes = Math.floor((diff % 3600) / 60);
+        return `${hours}小时${minutes}分钟`;
+      }
+    },
+
+    loadPaperDetail() {
+      TestPaperApi.getPaperDetail(this.paperId)
+        .then((res) => {
+          this.paperInfo = {
+            name: res.data.paperName,
+            totalQuestions: res.data.totalNum,
+            totalScore: res.data.totalScore,
+            paperTypes: res.data.paperTypes,
+          };
+        })
+        .catch((err) => {
+          console.error("获取试卷详情失败:", err);
+          uni.showToast({
+            title: "获取试卷详情失败",
+            icon: "none",
+          });
+        });
+    },
+
+    onRefresh() {
+      this.isRefreshing = true;
+      this.loadHistory(true);
     },
   },
 };
@@ -178,10 +292,34 @@ export default {
 
 .paper-meta {
   display: flex;
-  align-items: center;
-  gap: 24rpx;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.basic-info {
+  display: flex;
+  gap: 20rpx;
+}
+
+.info-item {
   font-size: 28rpx;
   color: #666;
+}
+
+.paper-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 10rpx;
+}
+
+.type-item {
+  font-size: 24rpx;
+  color: #666;
+  background: #f5f7fa;
+  padding: 8rpx 20rpx;
+  border-radius: 6rpx;
+  border: 1px solid #e8eaec;
 }
 
 .section-title {
@@ -330,5 +468,12 @@ export default {
 
 .empty-state {
   padding: 60rpx 0;
+}
+
+.load-more {
+  text-align: center;
+  padding: 20rpx 0;
+  color: #999;
+  font-size: 24rpx;
 }
 </style>

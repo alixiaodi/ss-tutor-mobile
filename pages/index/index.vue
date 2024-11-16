@@ -43,7 +43,7 @@
     <!-- 添加内容模块 -->
     <view class="content-modules">
       <view class="grid-container">
-        <view class="module-card" @click="navigateTo(`/pages/mock-exam/index`)">
+        <!--        <view class="module-card" @click="navigateTo(`/pages/mock-exam/index`)">
           <image src="/static/icons/exam.png" class="module-icon"></image>
           <text class="module-title">AI模拟考试</text>
         </view>
@@ -51,7 +51,7 @@
         <view class="module-card" @click="navigateTo('/pages/ai-predict/index')">
           <image src="/static/icons/predict.png" class="module-icon"></image>
           <text class="module-title">AI押题</text>
-        </view>
+        </view> -->
         <view class="module-card" @click="navigateTo('/pages/past-papers/index')">
           <image
             src="/static/icons/papers.png"
@@ -61,10 +61,10 @@
           <text class="module-title">历年真题</text>
         </view>
 
-        <view class="module-card" @click="navigateTo('/pages/ai-tutor/index')">
+        <!--         <view class="module-card" @click="navigateTo('/pages/ai-tutor/index')">
           <image src="/static/icons/tutor.png" class="module-icon"></image>
           <text class="module-title">AI导师</text>
-        </view>
+        </view> -->
       </view>
     </view>
   </view>
