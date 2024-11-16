@@ -23,14 +23,14 @@
         <text class="back-text">首页</text>
       </view>
       <!-- #endif -->
-      <view class="timer"> 剩余时间: {{ formatTime }} </view>
+      <view class="timer"> 答题用时: {{ formatTime }} </view>
       <!-- 添加提交按钮 -->
       <view class="submit-btn" @click="submitExam">
         <text>提交</text>
       </view>
     </view>
 
-    <!-- 目区域 -->
+    <!-- ���区域 -->
     <view class="exam-content">
       <swiper class="swiper" :current="currentQuestion" @change="handlePageChange">
         <swiper-item
@@ -149,7 +149,7 @@
                 </view>
               </template>
             </view>
-            <!-- 答案解析部分 -->
+            <!-- 答案解析部�� -->
             <template v-if="question">
               <view
                 v-if="showingAnswer && currentQuestion === index"
@@ -242,7 +242,7 @@
       </view>
     </view>
 
-    <!-- 答题卡抽屉 -->
+    <!-- 答题卡屉 -->
     <view class="answer-card-drawer" :class="{ 'drawer-open': showAnswerCard }">
       <view class="drawer-content" @click.stop>
         <view class="drawer-header">
@@ -362,6 +362,9 @@ export default {
       id: null, // 题目ID
       mode: null, // 模式
       answerId: null, // 答案ID
+      startTime: null, // 添加开始时间
+      usedTime: 0, // 添加已用时间
+      timer: null, // 添加计时器引用
     };
   },
 
@@ -385,8 +388,8 @@ export default {
 
   computed: {
     formatTime() {
-      const minutes = Math.floor(this.remainingTime / 60);
-      const seconds = this.remainingTime % 60;
+      const minutes = Math.floor(this.usedTime / 60);
+      const seconds = this.usedTime % 60;
       return `${minutes.toString().padStart(2, "0")}:${seconds
         .toString()
         .padStart(2, "0")}`;
@@ -530,17 +533,25 @@ export default {
     },
 
     submitExam() {
-      // 这里添加提交逻辑
+      // TODO 打印所有答案信息
+      console.log("提交的所有答案：");
+      const data = this.answers.map((answer, index) => ({
+        answerQuestionsId: this.answerId,
+        answer: Array.isArray(answer) ? answer.join(",") : answer,
+        questionNumber: this.questions[index].id,
+        questionType: this.questions[index].type,
+        usedTime: this.usedTime, // 添加用时
+      }));
+      // 原有的提交逻辑
       console.log("提交的答案：", this.answerId);
-      AnswerQuestionsApi.submit({
-        id: this.answerId,
-      }).then((res) => {
+      AnswerQuestionsApi.submit(this.answerId, data).then((res) => {
         uni.showToast({
           title: "提交成功",
           icon: "success",
           duration: 2000,
         });
         // 返回上一页
+        console.log("返回上一页");
         uni.navigateBack();
       });
     },
@@ -738,10 +749,11 @@ export default {
     },
 
     handleBack() {
+      // 直接返回上一页或首页,不调用提交
       uni.navigateBack({
         delta: 1,
         fail: () => {
-          // 果返回失败（没有上一页），则跳转首页
+          // 如果返回失败(没有上一页),则跳转首页
           uni.reLaunch({
             url: "/pages/index/index",
           });
@@ -1170,7 +1182,7 @@ export default {
       }
     },
 
-    // 新增：初化尺寸方法
+    // 新增：初化���寸方法
     initSizes() {
       const sysInfo = uni.getSystemInfoSync();
       this.screenWidth = sysInfo.windowWidth;
@@ -1291,13 +1303,12 @@ export default {
     this.mode = options.mode;
     this.answerId = options.answerId;
 
+    // 设置开始时间
+    this.startTime = Date.now();
+
+    // 启动计时器
     this.timer = setInterval(() => {
-      if (this.remainingTime > 0) {
-        this.remainingTime--;
-      } else {
-        clearInterval(this.timer);
-        this.submitExam();
-      }
+      this.usedTime = Math.floor((Date.now() - this.startTime) / 1000);
     }, 1000);
 
     // 初始化位置
@@ -1307,7 +1318,10 @@ export default {
   },
 
   beforeDestroy() {
-    clearInterval(this.timer);
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
   },
 };
 </script>

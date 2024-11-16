@@ -6,7 +6,7 @@
       >
         <u-col span="6">
           <span @click="selectSubject" class="subject-selector" style="cursor: pointer">
-            <text class="subject-text">{{ examName }}</text>
+            <text class="subject-text">{{ examName ? examName : "请选择" }}</text>
             <image src="/static/svg/exchange.svg" class="selector-icon"></image>
           </span>
         </u-col>
@@ -72,7 +72,7 @@
 
 <script>
 import Navbar from "@/components/navbar/Navbar";
-import * as SubjectApi from "@/api/subject";
+import * as SubjectApi from "@/api/subjectUser";
 
 let _now = new Date();
 let now_time = {};
@@ -112,7 +112,10 @@ export default {
       uni.showActionSheet({
         itemList: this.operationList.map((item) => item.subjectName),
         success: (res) => {
-          this.handleSelect(res.tapIndex);
+          this.handleSelect({
+            index: res.tapIndex,
+            subjectCode: this.operationList[res.tapIndex].subjectCode,
+          });
         },
       });
     },

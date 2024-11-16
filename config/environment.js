@@ -9,7 +9,7 @@ const environment = {
 	},
 	// 生产环境配置
 	production: {
-		baseURL: 'http://localhost:9994' // 发布时需要修改为后端实际地址
+		baseURL: '/api' // 发布时需要修改为后端实际地址
 	}
 }
 
