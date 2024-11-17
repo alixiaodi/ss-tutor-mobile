@@ -16,6 +16,7 @@
     },
     "dependencies": {
         "@dcloudio/uni-ui": "^1.5.7",
+        "js-cookie": "^3.0.5",
         "sortablejs": "^1.15.3",
         "vuedraggable": "^2.24.3"
     }
