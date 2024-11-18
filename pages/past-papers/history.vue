@@ -116,6 +116,7 @@ export default {
       hasMore: true,
       isRefreshing: false,
       pageSize: 10, // 每页数量
+      isFirstLoad: true,
     };
   },
 
@@ -123,15 +124,17 @@ export default {
     if (options.id) {
       this.paperId = options.id;
       this.loadPaperDetail();
+      this.refreshHistoryList();
     } else {
       uni.navigateBack();
     }
   },
 
   onShow() {
-    if (this.paperId) {
-      this.loadHistory();
+    if (this.paperId && !this.isFirstLoad) {
+      this.refreshHistoryList();
     }
+    this.isFirstLoad = false;
   },
 
   methods: {
@@ -262,6 +265,13 @@ export default {
 
     onRefresh() {
       this.isRefreshing = true;
+      this.loadHistory(true);
+    },
+
+    refreshHistoryList() {
+      this.page = 1;
+      this.hasMore = true;
+      this.historyList = [];
       this.loadHistory(true);
     },
   },
