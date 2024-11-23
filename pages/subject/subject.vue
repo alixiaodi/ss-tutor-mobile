@@ -1,5 +1,6 @@
 <template>
   <view class="subject-container">
+    <Navbar title="选择科目" bgColor="#fff" :hideBtn="false" :h5Show="true"></Navbar>
     <!-- 我的科目区域 -->
     <view class="my-subjects">
       <view class="section-title"> 我的科目 </view>
@@ -59,7 +60,11 @@
 <script>
 import * as SubjectApi from "@/api/subject";
 import * as SubjectUserApi from "@/api/subjectUser";
+import Navbar from "@/components/navbar/Navbar";
 export default {
+  components: {
+    Navbar,
+  },
   name: "subject",
   data() {
     return {

@@ -1,5 +1,6 @@
 <template>
   <view class="mock-exam">
+    <Navbar title="历年真题" bgColor="#fff" :hideBtn="false" :h5Show="true"></Navbar>
     <view class="header">
       <text class="title">试卷列表</text>
     </view>
@@ -31,8 +32,10 @@
 </template>
 
 <script>
+import Navbar from "@/components/navbar/Navbar";
 import * as TestPaperApi from "@/api/testPaper";
 export default {
+  components: { Navbar },
   name: "MockExam",
   data() {
     return {
@@ -53,8 +56,8 @@ export default {
   methods: {
     goToExam(examId) {
       uni.navigateTo({
-        url: `/pages/past-papers/history?id=${examId}`
-      })
+        url: `/pages/past-papers/history?id=${examId}`,
+      });
     },
     async fetchExamData() {
       await TestPaperApi.getYearPaper(this.subjectCode).then((res) => {

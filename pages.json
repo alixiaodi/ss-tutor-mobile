@@ -151,9 +151,9 @@
 		]
 	},
 	"globalStyle": {
-		// "navigationStyle": "custom", 
+		"navigationStyle": "custom", 
 		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "uni-app",
+		"navigationBarTitleText": "智考导师",
 		"navigationBarBackgroundColor": "#F8F8F8",
 		"backgroundColor": "#F8F8F8",
 		"app-plus": {

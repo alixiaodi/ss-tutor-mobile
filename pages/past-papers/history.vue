@@ -1,5 +1,7 @@
 <template>
   <view class="history-container">
+    <Navbar title="答题历史" bgColor="#fff" :hideBtn="false" :h5Show="true"></Navbar>
+
     <!-- 顶部信息 -->
     <view class="paper-info">
       <view class="paper-title">{{ paperInfo.name }}</view>
@@ -100,6 +102,7 @@
 </template>
 
 <script>
+import Navbar from "@/components/navbar/Navbar";
 import * as AnswerQuestionsApi from "@/api/answerQuestions";
 import * as TestPaperApi from "@/api/testPaper";
 export default {
@@ -119,7 +122,9 @@ export default {
       isFirstLoad: true,
     };
   },
-
+  components: {
+    Navbar,
+  },
   onLoad(options) {
     if (options.id) {
       this.paperId = options.id;

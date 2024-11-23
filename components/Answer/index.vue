@@ -156,21 +156,67 @@
                 class="explanation-section"
               >
                 <view class="explanation-header">
-                  <text
-                    :class="[
-                      'result-text',
-                      checkAnswer(question, answers[index]) ? 'correct' : 'wrong',
-                    ]"
-                  >
-                    {{ checkAnswer(question, answers[index]) ? "回答正确" : "回答错误" }}
-                  </text>
-                  <text
-                    v-if="!checkAnswer(question, answers[index])"
-                    class="correct-answer"
-                  >
-                    正确答案: {{ question.correct }}
-                  </text>
+                  <!-- 单选和多选题显示对错 -->
+                  <template v-if="['single', 'multiple'].includes(question.type)">
+                    <text
+                      :class="[
+                        'result-text',
+                        checkAnswer(question, answers[index]) ? 'correct' : 'wrong',
+                      ]"
+                    >
+                      {{
+                        checkAnswer(question, answers[index]) ? "回答正确" : "回答错误"
+                      }}
+                    </text>
+                    <text
+                      v-if="!checkAnswer(question, answers[index])"
+                      class="correct-answer"
+                    >
+                      正确答案: {{ question.correct }}
+                    </text>
+                  </template>
+
+                  <!-- 填空题显示正确答案 -->
+                  <template v-else-if="question.type === 'blank'">
+                    <text class="correct-answer"> 正确答案: {{ question.correct }} </text>
+                  </template>
+
+                  <!-- 简答题显示参考答案 -->
+                  <template v-else-if="question.type === 'essay'">
+                    <text class="result-text reference">参考答案</text>
+                  </template>
                 </view>
+
+                <!-- 记忆方法按钮 - 所有题型都显示 -->
+                <view
+                  class="memory-tip-btn"
+                  @click="showMemoryTip(question.id)"
+                  v-if="!showingMemoryTip[question.id]"
+                >
+                  <image
+                    class="crown-icon"
+                    src="/static/img/crown.png"
+                    mode="aspectFit"
+                  ></image>
+                  <text>查看记忆方法</text>
+                </view>
+
+                <!-- 记忆方法内容 -->
+                <view class="memory-tip-content" v-if="showingMemoryTip[question.id]">
+                  <view class="memory-tip-header">
+                    <image
+                      class="crown-icon"
+                      src="/static/img/crown.png"
+                      mode="aspectFit"
+                    ></image>
+                    <text class="memory-tip-title">记忆方法</text>
+                  </view>
+                  <view class="memory-tip-text">
+                    <rich-text :nodes="memoryTipContent[question.id]"></rich-text>
+                  </view>
+                </view>
+
+                <!-- 题目解析 -->
                 <view
                   v-if="question.explanation && question.explanation.trim()"
                   class="explanation-content"
@@ -356,7 +402,7 @@ export default {
       isMoving: false, // 新增踪是正在移动
       isOnLeft: false, // 新增：跟踪是否在左侧
       isDragging: false, // 新增：跟踪是否正在拖动
-      lastX: 0, // 新增：记一次的X位置
+      lastX: 0, // 新增�������������������记���次���X位置
       previewImage: "", // 添加预览片的URL
       statusBarHeight: 0, // 添加状态栏高度
       id: null, // 题目ID
@@ -365,6 +411,8 @@ export default {
       startTime: null, // 添加开始时间
       usedTime: 0, // 添加已用时间
       timer: null, // 添加计时器引用
+      showingMemoryTip: {}, // 修改为对象，用于存储每个题目的记忆方法显示状态
+      memoryTipContent: {}, // 修改为对象，用于存储每个题目的记忆方法内容
     };
   },
 
@@ -615,7 +663,7 @@ export default {
             currentQuestion?.type === "essay") &&
           answer
         ) {
-          // TODO: 实现 judge 接口调用
+          // TODO: 实�� judge 接口调用
           // await AiApi.judge(currentQuestion.id, answer, this.answerId);
         }
 
@@ -749,14 +797,42 @@ export default {
     },
 
     handleBack() {
-      // 直接返回上一页或首页,不调用提交
-      uni.navigateBack({
-        delta: 1,
-        fail: () => {
-          // 如果返回失败(没有上一页),则跳转首页
-          uni.reLaunch({
-            url: "/pages/index/index",
-          });
+      uni.showModal({
+        title: "提示",
+        content: "返回首页将不保存答题记录，是否确认返回？",
+        success: (res) => {
+          if (res.confirm) {
+            // 打印需要清除的记录
+            console.log("需要清除的答题记录:", {
+              answerId: this.answerId,
+              questions: this.questions,
+              answers: this.answers,
+              usedTime: this.usedTime,
+            });
+
+            // 调用清除接口，成功后再返回
+            AnswerQuestionsApi.clearAnswer(this.answerId)
+              .then((res) => {
+                console.log("清除答题记录结果:", res);
+                if (res.code === 200) {
+                  uni.navigateBack({
+                    delta: 1,
+                  });
+                } else {
+                  uni.showToast({
+                    title: "清除答题记录失败",
+                    icon: "none",
+                  });
+                }
+              })
+              .catch((err) => {
+                console.error("清除答题记录失败:", err);
+                uni.showToast({
+                  title: "清除答题记录失败",
+                  icon: "none",
+                });
+              });
+          }
         },
       });
     },
@@ -865,7 +941,7 @@ export default {
       let lastIndex = 0;
       let blankIndex = 0;
 
-      // 处理多种可能填空格式
+      // 处理��种可能填空格式
       const blankRegex = /_{2,}|\[.*?\]|（\s*）/g;
       let match;
 
@@ -1125,7 +1201,7 @@ export default {
       this.showingAnswer = !this.showingAnswer;
     },
 
-    // 修改提交答案方法
+    // 修改提交答��方法
     async submitCurrentAnswer() {
       const currentQuestion = this.questions[this.currentQuestion];
       const answer = this.answers[this.currentQuestion];
@@ -1292,6 +1368,120 @@ export default {
       }
 
       return [...new Set(urls)]; // 去重
+    },
+
+    // 显示记忆方法
+    showMemoryTip(questionId) {
+      // 如果已经显示,则不重复请求
+      if (this.showingMemoryTip[questionId]) return;
+
+      AiApi.getMemory(questionId)
+        .then((res) => {
+          if (res.code === 200 && Array.isArray(res.data)) {
+            // 构建显示内容
+            let content = "";
+
+            // 处理关键词部分
+            const keywordData = res.data.find((item) => item.type === "keyword");
+            if (
+              keywordData &&
+              Array.isArray(keywordData.keyword) &&
+              Array.isArray(keywordData.memory)
+            ) {
+              content += '<div style="margin-bottom: 16rpx;">';
+              content +=
+                '<div style="font-weight: bold; color: #333; margin-bottom: 8rpx;">关键词记忆：</div>';
+              keywordData.keyword.forEach((word, index) => {
+                // 确保 word 和对应的 memory 都存在
+                if (word && keywordData.memory[index]) {
+                  content += `<div style="color: #666; margin-bottom: 4rpx;">${word}：${keywordData.memory[index]}</div>`;
+                }
+              });
+              content += "</div>";
+            }
+
+            // 处理联想部分
+            const associateData = res.data.find((item) => item.type === "associate");
+            if (associateData && Array.isArray(associateData.memory)) {
+              content += '<div style="margin-bottom: 16rpx;">';
+              content +=
+                '<div style="font-weight: bold; color: #333; margin-bottom: 8rpx;">联想记忆：</div>';
+              associateData.memory.forEach((item) => {
+                if (item) {
+                  // 确保记忆内容存在
+                  content += `<div style="color: #666; margin-bottom: 4rpx;">${item}</div>`;
+                }
+              });
+              content += "</div>";
+            }
+
+            // 处理口诀部分
+            const pithyData = res.data.find((item) => item.type === "pithyFormula");
+            if (pithyData && Array.isArray(pithyData.memory)) {
+              content += '<div style="margin-bottom: 16rpx;">';
+              content +=
+                '<div style="font-weight: bold; color: #333; margin-bottom: 8rpx;">记忆口诀：</div>';
+              pithyData.memory.forEach((item) => {
+                if (item) {
+                  // 确保记忆内容存在
+                  content += `<div style="color: #666; margin-bottom: 4rpx;">${item}</div>`;
+                }
+              });
+              content += "</div>";
+            }
+
+            // 处理逻辑推理部分
+            const logicData = res.data.find((item) => item.type === "logicalReasoning");
+            if (logicData && Array.isArray(logicData.memory)) {
+              content += '<div style="margin-bottom: 16rpx;">';
+              content +=
+                '<div style="font-weight: bold; color: #333; margin-bottom: 8rpx;">逻辑推理：</div>';
+              logicData.memory.forEach((item) => {
+                if (item) {
+                  // 确保记忆内容存在
+                  content += `<div style="color: #666; margin-bottom: 4rpx;">${item}</div>`;
+                }
+              });
+              content += "</div>";
+            }
+
+            // 只有当内容不为空时才更新显示状态
+            if (content) {
+              this.$set(this.showingMemoryTip, questionId, true);
+              this.$set(this.memoryTipContent, questionId, content);
+            } else {
+              // 如果没有有效内容，显示提示信息
+              this.$set(this.showingMemoryTip, questionId, true);
+              this.$set(
+                this.memoryTipContent,
+                questionId,
+                '<div style="color: #999; text-align: center; padding: 20rpx;">暂无记忆方法</div>'
+              );
+            }
+          } else {
+            // 处理响应异常情况
+            this.$set(this.showingMemoryTip, questionId, true);
+            this.$set(
+              this.memoryTipContent,
+              questionId,
+              '<div style="color: #999; text-align: center; padding: 20rpx;">获取记忆方法失败</div>'
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("获取记忆方法失败:", error);
+          this.$set(this.showingMemoryTip, questionId, true);
+          this.$set(
+            this.memoryTipContent,
+            questionId,
+            '<div style="color: #999; text-align: center; padding: 20rpx;">获取记忆方法失败</div>'
+          );
+        });
+    },
+
+    // 处理记忆方法点击
+    handleMemoryTip(questionId) {
+      this.showMemoryTip(questionId);
     },
   },
   mounted() {
@@ -2188,7 +2378,7 @@ export default {
   line-height: 1.6;
 }
 
-/* 优化答案显示区域样式 */
+/* 优化答案显示区域���式 */
 .explanation-section {
   margin-top: 32rpx;
   padding: 24rpx;
@@ -2264,6 +2454,8 @@ export default {
 .result-text.reference {
   color: #1890ff;
   background: #e6f7ff;
+  padding: 4rpx 12rpx;
+  border-radius: 4rpx;
 }
 
 .correct-answer {
@@ -2338,7 +2530,7 @@ export default {
   border-radius: 8rpx !important;
 }
 
-/* 保图片可点击的样式 */
+/* 保图��可点击的样式 */
 .preview-image {
   cursor: pointer !important;
   -webkit-tap-highlight-color: transparent;
@@ -2431,5 +2623,84 @@ export default {
 .nav-btn-back:active {
   opacity: 0.8;
   transform: scale(0.95);
+}
+
+/* 修改记忆方法按钮样式 */
+.memory-tip-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  margin: 24rpx 0;
+  padding: 16rpx 32rpx;
+  /* 使用更明显的黄金色渐变 */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 215, 0, 0.25) 0%,
+    rgba(218, 165, 32, 0.3) 100%
+  );
+  border-radius: 32rpx;
+  /* 加重阴影并带有金色 */
+  box-shadow: 0 4rpx 12rpx rgba(218, 165, 32, 0.25);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  /* 使用金色边框 */
+  border: 2rpx solid rgba(218, 165, 32, 0.5);
+}
+
+.memory-tip-btn:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 2rpx 8rpx rgba(218, 165, 32, 0.2);
+  /* 点击时加深金色 */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 215, 0, 0.3) 0%,
+    rgba(218, 165, 32, 0.35) 100%
+  );
+}
+
+/* 调整文字为更深的金色 */
+.memory-tip-btn text {
+  color: #8b6914; /* 深金色 */
+  font-size: 28rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+}
+
+.crown-icon {
+  width: 36rpx;
+  height: 36rpx;
+}
+
+/* 记忆方法内容区域样式 */
+.memory-tip-content {
+  margin: 24rpx 0;
+  padding: 24rpx;
+  background: #fffaf0;
+  border-radius: 12rpx;
+  border: 2rpx solid #ffd700;
+}
+
+.memory-tip-header {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.memory-tip-title {
+  color: #8b4513;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.memory-tip-text {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+  padding: 16rpx;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 8rpx;
 }
 </style>

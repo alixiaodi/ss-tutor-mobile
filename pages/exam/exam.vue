@@ -1,5 +1,6 @@
 <template>
   <view>
+    <Navbar title="选择考试" bgColor="#fff" :hideBtn="false" :h5Show="true"></Navbar>
     <u-row>
       <u-col span="4" style="background-color: #f5f5f5">
         <u-list>
