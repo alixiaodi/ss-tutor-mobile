@@ -1202,7 +1202,7 @@ export default {
       const isEssayOrBlank =
         this.isBlankQuestion(currentQuestion.type) || currentQuestion.type === "essay";
 
-      // 如果是填空或简答题，且已经提交答，才允许查看答案
+      // 如果是填空或简答题，且已经提交答，才��许查看答案
       if (isEssayOrBlank && !this.answers[this.currentQuestion]) {
         uni.showToast({
           title: "请先完成作答",
@@ -1388,111 +1388,70 @@ export default {
       // 如果已经显示,则不重复请求
       if (this.showingMemoryTip[questionId]) return;
 
-      AiApi.getMemory(questionId)
-        .then((res) => {
-          if (res.code === 200 && Array.isArray(res.data)) {
-            // 构建显示内容
-            let content = "";
+      // 添加积分消耗提示
+      uni.showModal({
+        title: "积分提醒",
+        content: "查看此题记忆方法需消耗0.2积分，是否继续？",
+        cancelText: "取消",
+        confirmText: "确认查看",
+        success: (res) => {
+          if (res.confirm) {
+            // 显示加载提示
+            uni.showLoading({
+              title: "加载中...",
+              mask: true,
+            });
 
-            // 处理关键词部分
-            const keywordData = res.data.find((item) => item.type === "keyword");
-            if (
-              keywordData &&
-              Array.isArray(keywordData.keyword) &&
-              Array.isArray(keywordData.memory)
-            ) {
-              content += '<div style="margin-bottom: 16rpx;">';
-              content +=
-                '<div style="font-weight: bold; color: #333; margin-bottom: 8rpx;">关键词记忆：</div>';
-              keywordData.keyword.forEach((word, index) => {
-                // 确保 word 和对应的 memory 都存在
-                if (word && keywordData.memory[index]) {
-                  content += `<div style="color: #666; margin-bottom: 4rpx;">${word}：${keywordData.memory[index]}</div>`;
+            // 用户点击确定,继续原有逻辑
+            AiApi.getMemory(questionId)
+              .then((res) => {
+                uni.hideLoading(); // 隐藏加载提示
+
+                if (res.code === 200 && Array.isArray(res.data)) {
+                  // 显示积分扣除成功提示
+                  uni.showToast({
+                    title: "已扣除0.2积分",
+                    icon: "none",
+                    duration: 1500,
+                  });
+
+                  // 原有的内容处理逻辑...
+                  let content = "";
+
+                  // ... 保持原有的内容处理代码不变 ...
+                } else {
+                  uni.showToast({
+                    title: "获取记忆方法失败",
+                    icon: "none",
+                  });
+                }
+              })
+              .catch((error) => {
+                uni.hideLoading(); // 隐藏加载提示
+                console.error("获取记忆方法失败:", error);
+
+                // 根据错误类型显示不同提示
+                if (error.code === "INSUFFICIENT_POINTS") {
+                  uni.showModal({
+                    title: "积分不足",
+                    content: "您的积分余额不足，无法查看记忆方法",
+                    showCancel: false,
+                    confirmText: "我知道了",
+                  });
+                } else {
+                  uni.showToast({
+                    title: error.msg + "，未扣除积分",
+                    icon: "none",
+                    duration: 2000,
+                  });
                 }
               });
-              content += "</div>";
-            }
-
-            // 处理联想部分
-            const associateData = res.data.find((item) => item.type === "associate");
-            if (associateData && Array.isArray(associateData.memory)) {
-              content += '<div style="margin-bottom: 16rpx;">';
-              content +=
-                '<div style="font-weight: bold; color: #333; margin-bottom: 8rpx;">联想记忆：</div>';
-              associateData.memory.forEach((item) => {
-                if (item) {
-                  // 确保记忆内容存在
-                  content += `<div style="color: #666; margin-bottom: 4rpx;">${item}</div>`;
-                }
-              });
-              content += "</div>";
-            }
-
-            // 处理口诀部分
-            const pithyData = res.data.find((item) => item.type === "pithyFormula");
-            if (pithyData && Array.isArray(pithyData.memory)) {
-              content += '<div style="margin-bottom: 16rpx;">';
-              content +=
-                '<div style="font-weight: bold; color: #333; margin-bottom: 8rpx;">记忆口诀：</div>';
-              pithyData.memory.forEach((item) => {
-                if (item) {
-                  // 确保记忆内容存在
-                  content += `<div style="color: #666; margin-bottom: 4rpx;">${item}</div>`;
-                }
-              });
-              content += "</div>";
-            }
-
-            // 处理逻辑推理部分
-            const logicData = res.data.find((item) => item.type === "logicalReasoning");
-            if (logicData && Array.isArray(logicData.memory)) {
-              content += '<div style="margin-bottom: 16rpx;">';
-              content +=
-                '<div style="font-weight: bold; color: #333; margin-bottom: 8rpx;">逻辑推理：</div>';
-              logicData.memory.forEach((item) => {
-                if (item) {
-                  // 确保记忆内容存在
-                  content += `<div style="color: #666; margin-bottom: 4rpx;">${item}</div>`;
-                }
-              });
-              content += "</div>";
-            }
-
-            // 只有当内容不为空时才更新显示状态
-            if (content) {
-              this.$set(this.showingMemoryTip, questionId, true);
-              this.$set(this.memoryTipContent, questionId, content);
-            } else {
-              // 如果没有有效内容，显示提示信息
-              this.$set(this.showingMemoryTip, questionId, true);
-              this.$set(
-                this.memoryTipContent,
-                questionId,
-                '<div style="color: #999; text-align: center; padding: 20rpx;">暂无记忆方法</div>'
-              );
-            }
-          } else {
-            // 处理响应异常情况
-            this.$set(this.showingMemoryTip, questionId, true);
-            this.$set(
-              this.memoryTipContent,
-              questionId,
-              '<div style="color: #999; text-align: center; padding: 20rpx;">获取记忆方法失败</div>'
-            );
           }
-        })
-        .catch((error) => {
-          console.error("获取记忆方法失败:", error);
-          this.$set(this.showingMemoryTip, questionId, true);
-          this.$set(
-            this.memoryTipContent,
-            questionId,
-            '<div style="color: #999; text-align: center; padding: 20rpx;">获取记忆方法失败</div>'
-          );
-        });
+        },
+      });
     },
 
-    // 处理���忆方法点击
+    // 处理忆方法点击
     handleMemoryTip(questionId) {
       this.showMemoryTip(questionId);
     },

@@ -16,10 +16,9 @@
             border: 'none',
           }"
         >
-          <text style="color: #2979ff; font-weight: 600"
-            >生成模拟题 (剩余{{ remainCount }}次)</text
-          >
+          <text style="color: #2979ff; font-weight: 600">生成模拟题</text>
         </u-button>
+        <text class="points-tip">每次消耗0.5积分</text>
       </view>
     </view>
 
@@ -54,7 +53,7 @@
                 item.status === "1"
                   ? "生成中"
                   : item.status === "2"
-                  ? "生成失败"
+                  ? "生成失败(未扣除积分)"
                   : "已完成"
               }}
             </text>
@@ -202,8 +201,9 @@ export default {
       } catch (error) {
         this.questionList.shift();
         uni.showToast({
-          title: countRes.msg,
+          title: error.msg + "，未扣除积分",
           icon: "none",
+          duration: 2000,
         });
       } finally {
         uni.hideLoading();
@@ -215,7 +215,6 @@ export default {
         return;
       }
       if (item.status === "2") {
-        // 弹出确认框询问是否重新生成
         uni.showModal({
           title: "提示",
           content: "该试卷生成失败，是否重新生成？",
@@ -241,8 +240,9 @@ export default {
                 });
               } catch (error) {
                 uni.showToast({
-                  title: error.msg || "重新生成失败",
+                  title: (error.msg || "重新生成失败") + "，未扣除积分",
                   icon: "none",
+                  duration: 2000,
                 });
               } finally {
                 uni.hideLoading();
@@ -319,7 +319,15 @@ export default {
 
     .generate-content {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
+      gap: 16rpx;
+
+      .points-tip {
+        font-size: 24rpx;
+        color: #ffffff;
+        opacity: 0.8;
+      }
 
       :deep(.u-button) {
         background-color: #ffffff !important;

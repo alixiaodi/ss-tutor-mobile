@@ -67,7 +67,12 @@
 			"path": "pages/center/index",
 			"style": {
 				"navigationBarTitleText": "我的",
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark",
+				"app-plus": {
+					"bounce": "none"
+				}
 			}
 		},
 		{
@@ -153,9 +158,7 @@
 				"pagePath": "pages/center/index",
 				"iconPath": "static/img/tabbar/user.png",
 				"selectedIconPath": "static/img/tabbar/user_art.png",
-				"text": "我的",
-				"visible": false
-
+				"text": "我的"
 			}
 		]
 	},
