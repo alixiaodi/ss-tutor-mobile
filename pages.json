@@ -99,7 +99,10 @@
 		{
 			"path": "pages/mock-exam/index",
 			"style": {
-				"navigationBarTitleText": "AI模拟考试"
+				"navigationBarTitleText": "AI模拟考试",
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark"
 			}
 		},
 		{
@@ -118,6 +121,12 @@
 			"path": "pages/past-papers/history",
 			"style": {
 				"navigationBarTitleText": "答题历史"
+			}
+		},
+		{
+			"path": "pages/mock-exam/exam",
+			"style": {
+				"navigationBarTitleText": "模拟答题"
 			}
 		}
 	],

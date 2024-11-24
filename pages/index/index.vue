@@ -43,15 +43,13 @@
     <!-- 添加内容模块 -->
     <view class="content-modules">
       <view class="grid-container">
-        <!--        <view class="module-card" @click="navigateTo(`/pages/mock-exam/index`)">
-          <image src="/static/icons/exam.png" class="module-icon"></image>
-          <text class="module-title">AI模拟考试</text>
-        </view>
+        <!--       
 
         <view class="module-card" @click="navigateTo('/pages/ai-predict/index')">
           <image src="/static/icons/predict.png" class="module-icon"></image>
           <text class="module-title">AI押题</text>
         </view> -->
+
         <view class="module-card" @click="navigateTo('/pages/past-papers/index')">
           <image
             src="/static/icons/papers.png"
@@ -60,7 +58,10 @@
           ></image>
           <text class="module-title">历年真题</text>
         </view>
-
+        <view class="module-card" @click="navigateTo(`/pages/mock-exam/index`)">
+          <image src="/static/icons/exam.png" class="module-icon"></image>
+          <text class="module-title">AI模拟考试</text>
+        </view>
         <!--         <view class="module-card" @click="navigateTo('/pages/ai-tutor/index')">
           <image src="/static/icons/tutor.png" class="module-icon"></image>
           <text class="module-title">AI导师</text>
@@ -93,9 +94,31 @@ export default {
         this.operationList = res.data.subjects;
         this.examName = res.data.examName;
         this.examCode = res.data.examCode;
+
+        // 从本地存储获取上次选中的科目
+        const lastSelected = uni.getStorageSync("lastSelectedSubject");
+
         if (this.operationList && this.operationList.length > 0) {
-          this.currentSubjectCode = this.operationList[0].subjectCode;
-          this.currentIndex = 0;
+          if (lastSelected && lastSelected.subjectCode) {
+            // 查找上次选中的科目在当前列表中的索引
+            const foundIndex = this.operationList.findIndex(
+              (item) => item.subjectCode === lastSelected.subjectCode
+            );
+
+            if (foundIndex !== -1) {
+              // 如果找到匹配的科目，选中它
+              this.currentIndex = foundIndex;
+              this.currentSubjectCode = lastSelected.subjectCode;
+            } else {
+              // 如果没有找到匹配的科目，选中第一个
+              this.currentIndex = 0;
+              this.currentSubjectCode = this.operationList[0].subjectCode;
+            }
+          } else {
+            // 如果没有上次选中的记录，选中第一个
+            this.currentIndex = 0;
+            this.currentSubjectCode = this.operationList[0].subjectCode;
+          }
         }
       });
     },
@@ -107,6 +130,11 @@ export default {
     handleSelect(index) {
       this.currentIndex = index.index;
       this.currentSubjectCode = index.subjectCode;
+      // 保存选中的科目代码到本地存储
+      uni.setStorageSync("lastSelectedSubject", {
+        subjectCode: this.currentSubjectCode,
+        index: this.currentIndex,
+      });
     },
     showMenu() {
       uni.showActionSheet({

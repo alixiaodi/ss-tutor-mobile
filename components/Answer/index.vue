@@ -320,7 +320,7 @@
             >
               <text class="question-number">{{ index + 1 }}</text>
               <text class="question-type-tag">{{
-                getQuestionTypeLabel(question.type)
+                getQuestionTypeLabel(question.type, index)
               }}</text>
               <text
                 v-if="answers[index] && updateQuestionStatus(index) !== 'unanswered'"
@@ -402,7 +402,7 @@ export default {
       isMoving: false, // 新增踪是正在移动
       isOnLeft: false, // 新增：跟踪是否在左侧
       isDragging: false, // 新增：跟踪是否正在拖动
-      lastX: 0, // 新增�������������������记���次���X位置
+      lastX: 0, // 新增���������������������������记���次���X位置
       previewImage: "", // 添加预览片的URL
       statusBarHeight: 0, // 添加状态栏高度
       id: null, // 题目ID
@@ -461,13 +461,15 @@ export default {
   },
 
   methods: {
-    getQuestionTypeLabel(type) {
+    getQuestionTypeLabel(type, index = this.currentQuestion) {
       if (!type) return "";
+      const question = this.questions[index]; // 使用传入的索引获取对应题目
+
       const types = {
         single: "单选",
         multiple: "多选",
         blank: "填空",
-        essay: "简答",
+        essay: question?.originalType === "综合应用" ? "综合应用" : "简答",
       };
       return types[type] || "未知";
     },
@@ -633,9 +635,18 @@ export default {
             answer: answer,
             answerId: this.answerId,
           });
+
+          // 根据题目类型处理答案格式
+          let formattedAnswer = answer;
+          if (currentQuestion.type === "blank" && Array.isArray(answer)) {
+            formattedAnswer = answer.join(",");
+          } else if (currentQuestion.type === "essay") {
+            formattedAnswer = answer; // 简答题直接使用答案字符串
+          }
+
           AnswerQuestionsApi.uploadAnswer({
             answerQuestionsId: this.answerId,
-            answer: answer.join(","),
+            answer: formattedAnswer,
             questionNumber: currentQuestion.id,
           }).then((res) => {
             console.log("上传答案结果:", res);
@@ -913,6 +924,7 @@ export default {
       return rawQuestions.map((q) => ({
         id: q.id,
         type: this.getQuestionType(q.type),
+        originalType: q.type, // 保存原始题目类型
         content: q.title,
         score: q.score,
         options: this.transformOptions(q.options),
@@ -1013,6 +1025,7 @@ export default {
         填空题: "blank",
         简答题: "essay",
         论述题: "essay",
+        综合应用: "essay",
       };
       return typeMap[type] || "single";
     },
@@ -1264,7 +1277,7 @@ export default {
       this.screenWidth = sysInfo.windowWidth;
       this.screenHeight = sysInfo.windowHeight;
 
-      // 转换手柄尺寸（80rpx 和 180rpx）
+      // 转换��柄尺寸（80rpx 和 180rpx）
       this.handleWidth = Math.ceil((80 * this.screenWidth) / 750);
       this.handleHeight = Math.ceil((180 * this.screenWidth) / 750);
 
@@ -1479,7 +1492,7 @@ export default {
         });
     },
 
-    // 处理记忆方法点击
+    // 处理���忆方法点击
     handleMemoryTip(questionId) {
       this.showMemoryTip(questionId);
     },

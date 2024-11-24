@@ -1,31 +1,32 @@
 <template>
   <view>
-    <Answer
-      v-if="questions && questions.length > 0"
-      :rawQuestions="questions"
-      :animation="true"
-    />
+    <Answer :rawQuestions="questions" :mode="mode" :answerId="answerId" />
   </view>
 </template>
 
 <script>
 import Answer from "@/components/Answer";
 import * as TestPaperInfoApi from "@/api/testpaperInfo";
+import * as AnswerQuestionsApi from "@/api/answerQuestions";
+
 export default {
   components: {
     Answer,
   },
   data() {
     return {
-      examCode: null,
+      paperId: null,
+      answerId: null, // 答题记录ID
       examInfo: {
         name: "模拟考试",
       },
       currentIndex: 0,
       selectedAnswer: null,
       questions: [],
+      mode: "0", // 默认练习模式
     };
   },
+
   computed: {
     currentQuestion() {
       return this.questions[this.currentIndex] || {};
@@ -34,24 +35,58 @@ export default {
       return this.currentIndex === this.questions.length - 1;
     },
   },
+
   async onLoad(options) {
-    this.examCode = options.id;
-    await this.fetchExamData();
+    if (options.id) {
+      this.paperId = options.id;
+      this.mode = options.mode || "0";
+      this.answerId = options.answerId;
+
+      // 如果没有 answerId,需要先创建答题记录
+      if (!this.answerId) {
+        await this.createAnswerRecord();
+      }
+
+      await this.fetchExamData();
+    }
   },
+
   methods: {
-    async fetchExamData() {
-      TestPaperInfoApi.getQuestionsByPaperId(this.examCode).then((res) => {
-        this.questions = res.data;
-      });
+    // 创建答题记录
+    async createAnswerRecord() {
+      try {
+        const res = await AnswerQuestionsApi.add({
+          paperId: this.paperId,
+          type: this.mode,
+        });
+        this.answerId = res.data;
+      } catch (error) {
+        console.error("创建答题记录失败:", error);
+        uni.$u.toast("创建答题记录失败");
+      }
     },
+
+    // 获取试卷题目数据
+    async fetchExamData() {
+      try {
+        const res = await TestPaperInfoApi.getQuestionsByPaperId(this.paperId);
+        this.questions = res.data;
+      } catch (error) {
+        uni.$u.toast("加载试卷失败");
+        console.error("加载试卷失败:", error);
+      }
+    },
+
     selectAnswer(index) {
       this.selectedAnswer = index;
     },
+
     prevQuestion() {
       if (this.currentIndex > 0) {
         this.currentIndex--;
       }
     },
+
     nextQuestion() {
       if (this.isLastQuestion) {
         this.submitExam();
@@ -59,6 +94,7 @@ export default {
         this.currentIndex++;
       }
     },
+
     submitExam() {
       uni.showModal({
         title: "提示",
@@ -74,76 +110,10 @@ export default {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .exam-container {
   min-height: 100vh;
   background-color: #f5f6fa;
   padding-bottom: 120rpx;
-}
-
-.header {
-  background-color: #fff;
-  padding: 30rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1rpx solid #eee;
-}
-
-.exam-name {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #333;
-}
-
-.exam-progress {
-  font-size: 28rpx;
-  color: #666;
-}
-
-.question-container {
-  background-color: #fff;
-  margin: 30rpx;
-  padding: 30rpx;
-  border-radius: 12rpx;
-}
-
-.question-text {
-  font-size: 32rpx;
-  line-height: 1.6;
-  color: #333;
-}
-
-.options-list {
-  margin-top: 30rpx;
-}
-
-.option-item {
-  padding: 20rpx;
-  margin-bottom: 20rpx;
-  background-color: #f8f9fa;
-  border-radius: 8rpx;
-}
-
-.option-item.selected {
-  background-color: #ecf5ff;
-  border: 2rpx solid #409eff;
-}
-
-.option-text {
-  font-size: 30rpx;
-  line-height: 1.5;
-}
-
-.footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-around;
-  padding: 20rpx 30rpx;
-  background-color: #fff;
-  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
 }
 </style>

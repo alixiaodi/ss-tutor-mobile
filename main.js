@@ -1,6 +1,6 @@
 import App from './App'
 import Vue from 'vue'
-import uView from 'uni_modules/uview-ui'
+import uView from '@/uni_modules/uview-ui'
 import store from '@/store'
 import Cookies from 'js-cookie'
 
