@@ -40,34 +40,32 @@
         </u-tabs>
       </view>
     </view>
-    <!-- 添加内容模块 -->
-    <view class="content-modules">
-      <view class="grid-container">
-        <!--       
 
-        <view class="module-card" @click="navigateTo('/pages/ai-predict/index')">
-          <image src="/static/icons/predict.png" class="module-icon"></image>
-          <text class="module-title">AI押题</text>
-        </view> -->
-
-        <view class="module-card" @click="navigateTo('/pages/past-papers/index')">
-          <image
-            src="/static/icons/papers.png"
-            class="module-icon"
-            style="width: 80px; height: 32px; object-fit: contain"
-          ></image>
-          <text class="module-title">历年真题</text>
+    <!-- 添加swiper组件 -->
+    <swiper
+      :current="currentIndex"
+      @change="handleSwiperChange"
+      :style="{ height: swiperHeight + 'px' }"
+    >
+      <swiper-item v-for="(item, index) in operationList" :key="index">
+        <view class="content-modules">
+          <view class="grid-container">
+            <view class="module-card" @click="navigateTo('/pages/past-papers/index')">
+              <image
+                src="/static/icons/papers.png"
+                class="module-icon"
+                style="width: 80px; height: 32px; object-fit: contain"
+              ></image>
+              <text class="module-title">历年真题</text>
+            </view>
+            <view class="module-card" @click="navigateTo(`/pages/mock-exam/index`)">
+              <image src="/static/icons/exam.png" class="module-icon"></image>
+              <text class="module-title">AI模拟考试</text>
+            </view>
+          </view>
         </view>
-        <view class="module-card" @click="navigateTo(`/pages/mock-exam/index`)">
-          <image src="/static/icons/exam.png" class="module-icon"></image>
-          <text class="module-title">AI模拟考试</text>
-        </view>
-        <!--         <view class="module-card" @click="navigateTo('/pages/ai-tutor/index')">
-          <image src="/static/icons/tutor.png" class="module-icon"></image>
-          <text class="module-title">AI导师</text>
-        </view> -->
-      </view>
-    </view>
+      </swiper-item>
+    </swiper>
   </view>
 </template>
 
@@ -129,7 +127,7 @@ export default {
     },
     handleSelect(index) {
       this.currentIndex = index.index;
-      this.currentSubjectCode = index.subjectCode;
+      this.currentSubjectCode = this.operationList[index.index].subjectCode;
       // 保存选中的科目代码到本地存储
       uni.setStorageSync("lastSelectedSubject", {
         subjectCode: this.currentSubjectCode,
@@ -152,6 +150,14 @@ export default {
         url = `${url}?subjectCode=${this.currentSubjectCode}`;
       }
       uni.navigateTo({ url });
+    },
+    // 添加 swiper 切换事件处理
+    handleSwiperChange(e) {
+      const index = e.detail.current;
+      this.handleSelect({
+        index: index,
+        subjectCode: this.operationList[index].subjectCode,
+      });
     },
   },
   data() {
@@ -267,7 +273,13 @@ export default {
       examName: "",
       examCode: "",
       currentSubjectCode: "",
+      swiperHeight: 300, // 添加 swiper 高度控制
     };
+  },
+  mounted() {
+    // 设置 swiper 高度
+    const systemInfo = uni.getSystemInfoSync();
+    this.swiperHeight = systemInfo.windowHeight - 220; // 根据实际内容调整减去的高度
   },
 };
 </script>
@@ -351,8 +363,9 @@ export default {
 }
 
 .content-modules {
-  margin-top: 30px;
+  margin-top: 20px; // 调整上边距
   padding: 0 15px;
+  height: 100%;
 }
 
 .grid-container {

@@ -41,9 +41,22 @@
           <view class="exam-title">
             {{ item.name }}
             <text
-              :class="['status-tag', item.status === '1' ? 'generating' : 'completed']"
+              :class="[
+                'status-tag',
+                item.status === '1'
+                  ? 'generating'
+                  : item.status === '2'
+                  ? 'failed'
+                  : 'completed',
+              ]"
             >
-              {{ item.status === "1" ? "生成中" : "已完成" }}
+              {{
+                item.status === "1"
+                  ? "生成中"
+                  : item.status === "2"
+                  ? "生成失败"
+                  : "已完成"
+              }}
             </text>
           </view>
           <view class="exam-time">{{ item.createTime }}</view>
@@ -93,9 +106,13 @@ export default {
     this.initData();
   },
 
+  onShow() {
+    this.refreshData();
+  },
+
   // 添加下拉刷新相关配置
   onPullDownRefresh() {
-    this.refreshData();
+    this.refreshData(true);
   },
 
   methods: {
@@ -110,7 +127,7 @@ export default {
           this.remainCount = res.data;
         }
       } catch (error) {
-        console.error("获取剩余次数失败:", error);
+        console.error("获取余次数失败:", error);
       }
     },
 
@@ -197,6 +214,44 @@ export default {
       if (item.status === "1") {
         return;
       }
+      if (item.status === "2") {
+        // 弹出确认框询问是否重新生成
+        uni.showModal({
+          title: "提示",
+          content: "该试卷生成失败，是否重新生成？",
+          success: async (res) => {
+            if (res.confirm) {
+              if (this.remainCount <= 0) {
+                uni.showToast({
+                  title: "剩余次数不足",
+                  icon: "none",
+                });
+                return;
+              }
+              try {
+                uni.showLoading({
+                  title: "正在重新生成...",
+                  mask: true,
+                });
+                await AiApi.generatePaper(this.subjectCode);
+                await this.refreshData();
+                uni.showToast({
+                  title: "已开始重新生成",
+                  icon: "success",
+                });
+              } catch (error) {
+                uni.showToast({
+                  title: error.msg || "重新生成失败",
+                  icon: "none",
+                });
+              } finally {
+                uni.hideLoading();
+              }
+            }
+          },
+        });
+        return;
+      }
       this.handleStartExam(item);
     },
 
@@ -217,37 +272,29 @@ export default {
     },
 
     // 刷新数据方法
-    async refreshData() {
+    async refreshData(showToast = false) {
       try {
         await Promise.all([this.getGenerateCount(), this.getQuestionList()]);
-        uni.showToast({
-          title: "刷新成功",
-          icon: "success",
-        });
-      } catch (error) {
-        console.error("刷新失败:", error);
-        uni.showToast({
-          title: "刷新失败",
-          icon: "none",
-        });
-      } finally {
-        uni.stopPullDownRefresh();
-      }
-    },
-
-    // 注释掉获取试卷列表方法
-    /*
-    async getTestPaperList() {
-      try {
-        const res = await getTestPaperList(this.subjectCode);
-        if (res.code === 200) {
-          this.historyList = res.data;
+        if (showToast) {
+          uni.showToast({
+            title: "刷新成功",
+            icon: "success",
+          });
         }
       } catch (error) {
-        console.error("获取试卷列表失败:", error);
+        console.error("刷新失败:", error);
+        if (showToast) {
+          uni.showToast({
+            title: "刷新失败",
+            icon: "none",
+          });
+        }
+      } finally {
+        if (showToast) {
+          uni.stopPullDownRefresh();
+        }
       }
     },
-    */
 
     formatDate() {
       const date = new Date();
@@ -350,6 +397,11 @@ export default {
         &.completed {
           background-color: rgba(43, 107, 255, 0.1);
           color: #2b6bff;
+        }
+
+        &.failed {
+          background-color: rgba(255, 69, 58, 0.1);
+          color: #ff4538;
         }
       }
 
