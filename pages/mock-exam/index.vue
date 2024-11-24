@@ -6,7 +6,6 @@
       <view class="generate-content">
         <u-button
           type="primary"
-          :disabled="remainCount <= 0"
           @click="handleGenerate"
           shape="circle"
           :customStyle="{
@@ -94,7 +93,6 @@ export default {
   },
   data() {
     return {
-      remainCount: 0,
       questionList: [],
       subjectCode: "",
     };
@@ -116,18 +114,7 @@ export default {
 
   methods: {
     async initData() {
-      await Promise.all([this.getGenerateCount(), this.getQuestionList()]);
-    },
-
-    async getGenerateCount() {
-      try {
-        const res = await AiApi.getGenerateCount();
-        if (res.code === 200) {
-          this.remainCount = res.data;
-        }
-      } catch (error) {
-        console.error("获取余次数失败:", error);
-      }
+      await this.getQuestionList();
     },
 
     async getQuestionList() {
@@ -162,14 +149,6 @@ export default {
         return;
       }
 
-      if (this.remainCount <= 0) {
-        uni.showToast({
-          title: "剩余次数不足",
-          icon: "none",
-        });
-        return;
-      }
-
       try {
         uni.showLoading({
           title: "正在生成试卷...",
@@ -188,11 +167,6 @@ export default {
 
         await AiApi.generatePaper(this.subjectCode);
         await this.getQuestionList();
-
-        const countRes = await AiApi.getGenerateCount();
-        if (countRes.code === 200) {
-          this.remainCount = countRes.data;
-        }
 
         uni.showToast({
           title: "操作成功",
@@ -220,13 +194,6 @@ export default {
           content: "该试卷生成失败，是否重新生成？",
           success: async (res) => {
             if (res.confirm) {
-              if (this.remainCount <= 0) {
-                uni.showToast({
-                  title: "剩余次数不足",
-                  icon: "none",
-                });
-                return;
-              }
               try {
                 uni.showLoading({
                   title: "正在重新生成...",
@@ -274,7 +241,7 @@ export default {
     // 刷新数据方法
     async refreshData(showToast = false) {
       try {
-        await Promise.all([this.getGenerateCount(), this.getQuestionList()]);
+        await this.getQuestionList();
         if (showToast) {
           uni.showToast({
             title: "刷新成功",
