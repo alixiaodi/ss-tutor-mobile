@@ -66,6 +66,14 @@
         </view>
       </swiper-item>
     </swiper>
+
+    <!-- 引导提示 -->
+    <u-popup :show="!examName && !isLoading" mode="top" :mask="false" :closeable="false">
+      <view class="guide-tip" @click="selectSubject">
+        <u-icon name="arrow-up" color="#4ECDB6" size="20"></u-icon>
+        <text>请选择考试类型</text>
+      </view>
+    </u-popup>
   </view>
 </template>
 
@@ -88,37 +96,43 @@ export default {
   },
   methods: {
     loadSubjectData() {
-      SubjectApi.getSubject().then((res) => {
-        this.operationList = res.data.subjects;
-        this.examName = res.data.examName;
-        this.examCode = res.data.examCode;
+      this.isLoading = true;
+      SubjectApi.getSubject()
+        .then((res) => {
+          this.operationList = res.data.subjects;
+          this.examName = res.data.examName;
+          this.examCode = res.data.examCode;
 
-        // 从本地存储获取上次选中的科目
-        const lastSelected = uni.getStorageSync("lastSelectedSubject");
+          // 从本地存储获取上次选中的科目
+          const lastSelected = uni.getStorageSync("lastSelectedSubject");
 
-        if (this.operationList && this.operationList.length > 0) {
-          if (lastSelected && lastSelected.subjectCode) {
-            // 查找上次选中的科目在当前列表中的索引
-            const foundIndex = this.operationList.findIndex(
-              (item) => item.subjectCode === lastSelected.subjectCode
-            );
+          if (this.operationList && this.operationList.length > 0) {
+            if (lastSelected && lastSelected.subjectCode) {
+              // 查找上次选中的科目在当前列表中的索引
+              const foundIndex = this.operationList.findIndex(
+                (item) => item.subjectCode === lastSelected.subjectCode
+              );
 
-            if (foundIndex !== -1) {
-              // 如果找到匹配的科目，选中它
-              this.currentIndex = foundIndex;
-              this.currentSubjectCode = lastSelected.subjectCode;
+              if (foundIndex !== -1) {
+                // 如果找到匹配的科目，选中它
+                this.currentIndex = foundIndex;
+                this.currentSubjectCode = lastSelected.subjectCode;
+              } else {
+                // 如果没有找到匹配的科目，选中第一个
+                this.currentIndex = 0;
+                this.currentSubjectCode = this.operationList[0].subjectCode;
+              }
             } else {
-              // 如果没有找到匹配的科目，选中第一个
+              // 如果没有上次选中的记录，选中第一个
               this.currentIndex = 0;
               this.currentSubjectCode = this.operationList[0].subjectCode;
             }
-          } else {
-            // 如果没有上次选中的记录，选中第一个
-            this.currentIndex = 0;
-            this.currentSubjectCode = this.operationList[0].subjectCode;
           }
-        }
-      });
+          this.isLoading = false;
+        })
+        .catch(() => {
+          this.isLoading = false;
+        });
     },
     selectSubject() {
       uni.navigateTo({
@@ -162,6 +176,7 @@ export default {
   },
   data() {
     return {
+      isLoading: true,
       isCanvas2d: true,
       delayload: false,
       historyData: {
@@ -407,5 +422,30 @@ export default {
   font-weight: 600;
   text-align: center;
   letter-spacing: 0.3px;
+}
+
+.guide-tip {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: fixed;
+  top: calc(var(--status-bar-height) + 70px);
+  left: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #4ecdb6;
+  z-index: 999;
+  cursor: pointer;
+
+  text {
+    color: #4ecdb6;
+    font-size: 14px;
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
 }
 </style>
