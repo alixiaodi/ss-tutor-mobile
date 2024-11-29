@@ -2,10 +2,10 @@ const environment = {
 	// 开发环境配置
 	development: {
 		// 本地部署的后端
-		// baseURL: 'http://localhost:8080',
+		baseURL: 'http://localhost:8080',
 		
 		// 直接使用线上后端
-		baseURL: 'http://192.168.1.104:6633'
+		// baseURL: 'https://tutorapi.lics.asia'
 	},
 	// 生产环境配置
 	production: {

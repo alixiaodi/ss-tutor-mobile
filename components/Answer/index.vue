@@ -469,7 +469,10 @@ export default {
         single: "单选",
         multiple: "多选",
         blank: "填空",
-        essay: question?.originalType === "综合应用" ? "综合应用" : "简答",
+        essay:
+          question?.originalType === "综合应用" || question?.originalType === "综合应用题"
+            ? "综合应用"
+            : "简答",
       };
       return types[type] || "未知";
     },
@@ -1025,7 +1028,8 @@ export default {
         填空题: "blank",
         简答题: "essay",
         论述题: "essay",
-        综合应用: "essay",
+        综合应用题: "essay", // 添加综合应用题的映射
+        综合应用: "essay", // 兼容两种可能的类型名称
       };
       return typeMap[type] || "single";
     },
@@ -1405,7 +1409,7 @@ export default {
             // 用户点击确定,继续原有逻辑
             AiApi.getMemory(questionId)
               .then((res) => {
-                uni.hideLoading(); // 隐藏加载提示
+                uni.hideLoading();
 
                 if (res.code === 200 && Array.isArray(res.data)) {
                   // 显示积分扣除成功提示
@@ -1415,10 +1419,63 @@ export default {
                     duration: 1500,
                   });
 
-                  // 原有的内容处理逻辑...
+                  // 格式化记忆方法内容
                   let content = "";
 
-                  // ... 保持原有的内容处理代码不变 ...
+                  res.data.forEach((item) => {
+                    switch (item.type) {
+                      case "keyword":
+                        content += '<div style="margin-bottom: 16rpx;">';
+                        content +=
+                          '<div style="font-weight: bold; color: #8b4513; margin-bottom: 8rpx;">关键词记忆：</div>';
+                        if (item.keyword && item.keyword.length) {
+                          content += `<div style="margin-bottom: 8rpx;">${item.keyword.join(
+                            "、"
+                          )}</div>`;
+                        }
+                        if (item.memory && item.memory.length) {
+                          content += item.memory
+                            .map((m) => `<div style="margin: 4rpx 0;">• ${m}</div>`)
+                            .join("");
+                        }
+                        content += "</div>";
+                        break;
+
+                      case "associate":
+                        content += '<div style="margin-bottom: 16rpx;">';
+                        content +=
+                          '<div style="font-weight: bold; color: #8b4513; margin-bottom: 8rpx;">联想记忆：</div>';
+                        content += item.memory
+                          .map((m) => `<div style="margin: 4rpx 0;">• ${m}</div>`)
+                          .join("");
+                        content += "</div>";
+                        break;
+
+                      case "pithyFormula":
+                        content += '<div style="margin-bottom: 16rpx;">';
+                        content +=
+                          '<div style="font-weight: bold; color: #8b4513; margin-bottom: 8rpx;">口诀记忆：</div>';
+                        content += item.memory
+                          .map((m) => `<div style="margin: 4rpx 0;">• ${m}</div>`)
+                          .join("");
+                        content += "</div>";
+                        break;
+
+                      case "logicalReasoning":
+                        content += '<div style="margin-bottom: 16rpx;">';
+                        content +=
+                          '<div style="font-weight: bold; color: #8b4513; margin-bottom: 8rpx;">逻辑推理：</div>';
+                        content += item.memory
+                          .map((m) => `<div style="margin: 4rpx 0;">• ${m}</div>`)
+                          .join("");
+                        content += "</div>";
+                        break;
+                    }
+                  });
+
+                  // 更新记忆方法内容和显示状态
+                  this.$set(this.memoryTipContent, questionId, content);
+                  this.$set(this.showingMemoryTip, questionId, true);
                 } else {
                   uni.showToast({
                     title: "获取记忆方法失败",
@@ -1427,7 +1484,7 @@ export default {
                 }
               })
               .catch((error) => {
-                uni.hideLoading(); // 隐藏加载提示
+                uni.hideLoading();
                 console.error("获取记忆方法失败:", error);
 
                 // 根据错误类型显示不同提示
