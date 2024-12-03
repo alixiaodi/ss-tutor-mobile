@@ -133,6 +133,26 @@
 			"style": {
 				"navigationBarTitleText": "模拟答题"
 			}
+		},
+		{
+			"path": "pages/ai-tutor/index",
+			"style": {
+				"navigationBarTitleText": "AI导师",
+				"navigationStyle": "custom",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/payment/index",
+			"style": {
+				"navigationBarTitleText": "支付"
+			}
+		},
+		{
+			"path": "pages/vip/purchase/index",
+			"style": {
+				"navigationBarTitleText": "购买详情"
+			}
 		}
 	],
 	"tabBar": {

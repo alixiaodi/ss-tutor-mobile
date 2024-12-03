@@ -4,7 +4,10 @@
     <view class="profile-top">
       <view class="user-info">
         <view class="info-content">
-          <view class="user-info--name">{{ getUserName }}</view>
+          <view class="user-info--name">
+            {{ getUserName }}
+            <text class="vip-tag" @click="openVipPopup">开通VIP</text>
+          </view>
           <text class="user-info--account">{{ getAccount }}</text>
         </view>
         <view class="avatar-wrapper">
@@ -89,6 +92,7 @@
     </view>
 
     <Password :show="resetPassword" @close="resetPassword = false"></Password>
+    <VipPopup :show.sync="showVipPopup"></VipPopup>
   </view>
 </template>
 
@@ -97,11 +101,13 @@ import Navbar from "@/components/navbar/Navbar";
 import Password from "./password.vue";
 import * as UserApi from "@/api/user";
 import { logout, sign } from "@/api/user.js";
+import VipPopup from "@/components/vip-popup/index.vue";
 
 export default {
   components: {
     Navbar,
     Password,
+    VipPopup,
   },
   data() {
     return {
@@ -118,6 +124,7 @@ export default {
       correctRate: "--",
       hasSignedToday: false,
       resetPassword: false,
+      showVipPopup: false,
     };
   },
   computed: {
@@ -303,6 +310,9 @@ export default {
       this.getInfo();
       this.getStudyStats();
     },
+    openVipPopup() {
+      this.showVipPopup = true;
+    },
   },
 };
 </script>
@@ -407,10 +417,13 @@ export default {
   &--name {
     font-size: 48rpx;
     font-weight: 600;
-    width: 100%;
     margin-bottom: 12rpx;
     color: #2c2c2c;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16rpx;
   }
 
   &--account {
@@ -564,5 +577,16 @@ export default {
 .logout-btn {
   margin: 30rpx;
   padding: 0 20rpx;
+}
+
+.vip-tag {
+  background: linear-gradient(45deg, #ffd700, #ffa500);
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  height: 36rpx;
 }
 </style>

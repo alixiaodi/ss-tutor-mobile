@@ -62,6 +62,16 @@
               <image src="/static/icons/exam.png" class="module-icon"></image>
               <text class="module-title">AI模拟考试</text>
             </view>
+
+            <view class="module-card" @click="navigateTo('/pages/ai-tutor/index')">
+              <image src="/static/icons/tutor.png" class="module-icon"></image>
+              <text class="module-title">AI导师</text>
+            </view>
+
+            <view class="module-card" @click="navigateTo('/pages/ai-predict/index')">
+              <image src="/static/icons/predict.png" class="module-icon"></image>
+              <text class="module-title">AI押题</text>
+            </view>
           </view>
         </view>
       </swiper-item>
@@ -160,6 +170,17 @@ export default {
       });
     },
     navigateTo(url) {
+      if (url === "/pages/ai-predict/index") {
+        // 显示开发中提示
+        uni.showToast({
+          title: "功能开发中...",
+          icon: "none",
+          duration: 2000,
+        });
+        return;
+      }
+
+      // 其他页面跳转逻辑保持不变
       if (url === "/pages/mock-exam/index" || url === "/pages/past-papers/index") {
         url = `${url}?subjectCode=${this.currentSubjectCode}`;
       }
