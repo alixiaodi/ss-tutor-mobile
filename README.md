@@ -1,121 +1,144 @@
-# 移动端后台管理系统 RuoYi-Mobile
-主页：<a href="http://fastbuild.run" target="_blank">http://fastbuild.run</a> 
+<div align="center">
+  <div style="display: flex; align-items: center; justify-content: center;">
+    <img src="static/preview/logo.png" width="80" height="80" alt="logo" style="margin-right: 20px"/>
+    <h1>智考导师系统</h1>
+  </div>
+</div>
 
-[![gitee star](https://gitee.com/yinm/RuoYi-Mobile/badge/star.svg?theme=dark)]('https://gitee.com/yinm/RuoYi-Mobile/stargazers')
-[![gitee fork](https://gitee.com/yinm/RuoYi-Mobile/badge/fork.svg?theme=dark)]('https://gitee.com/yinm/RuoYi-Mobile/members')
-[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
+### 🚀 在线体验
+- 官网地址：https://www.lics.asia
 
-### :peach: 项目简介
-企事业单位信息化加速，移动端办工逐渐成为趋势，H5或小程序比起APP来说更简单方便。因此一款好的移动端基础平台十分有必要。<br>
-项目采用当下流行的UniApp + uView2 框架开发，完成常见的日常工作功能与移动端特有功能组件。
-<br><br>
+### 📱 项目简介
+专注于为考生提供智能刷题服务
+- 支持多端：H5、小程序、APP
+- AI智能评分：自动判断答题正确性
+- AI智能出题：根据知识点智能生成题目
+- AI押题预测：基于大数据分析预测考点
+- AI记题助手：智能生成个性化记忆方法
 
-### :pear: 后端下载
-下载地址：<a href="http://fastbuild.run" target="_blank">传送门</a><br>
-***注：目前移动端支持若依管理平台全系列（单应用、微服务、MySQL版、Oracle版、SqlServer版、Antd版等），需要适配其他版本的请到上面地址下载移动端源码。***
-<br><br>
-
-
-###  :watermelon:  技术栈
-| 组件       | 版本     |
-|----------|--------|
-| uview-ui | 2.0.31 |
-| qiun-data-charts | 2.4.3-20220505 |
-
-<br><br>
-
-###   :tw-1f348:   系统配置
-1. 后端请求地址配置：
-
+### 🎯 核心亮点
 ```
-# 配置文件路径：/config/environment.js
-# 修改baseURL属性
+🤖 AI智能评分
+- 自动判断答案正确性
+- 快速反馈评分结果
+- 智能分析答题要点
+- 提供改进建议
 
+📚 AI智能出题
+- 知识点关联出题
+- 难度智能调节
+- 题型多样化
+- 实时更新题库
+
+🎯 AI押题预测
+- 考点规律分析
+- 重点题型预测
+- 考试趋势分析
+- 备考方向指导
+
+📝 AI记题助手
+- 智能生成记忆口诀
+- 个性化记忆方法
+- 知识点关联记忆
+- 易错点强化记忆
+```
+
+### ⚡功能特色
+1. **智能刷题系统**
+   - AI自动评分
+   - 实时答题反馈
+   - 错题智能归类
+   - 个性化练习推荐
+
+2. **AI辅助备考**
+   - 智能题目生成
+   - 考点重点分析
+   - 记忆方法生成
+   - 针对性练习推荐
+
+3. **学习追踪**
+   - 做题进度跟踪
+   - 正确率统计
+   - 知识点掌握度
+   - 学习时长记录
+
+### 🔨 技术栈
+| 技术 | 版本 | 说明 |
+|------|------|------|
+| uniapp | - | 跨平台开发框架 |
+| vue2 | 2.x | 前端框架 |
+| uview-ui | 2.0.31 | UI组件库 |
+| qiun-data-charts | 2.4.3-20220505 | 图表组件 |
+| @dcloudio/uni-ui | 1.5.7 | uni-app官方组件库 |
+| sortablejs | 1.15.3 | 拖拽排序组件 |
+
+### 📁 项目结构
+```
+├── api                        // 所有请求
+├── components                 // 全局公用组件
+├── pages                      // 页面文件
+├── plugins                    // 通用方法
+├── store                      // 全局store管理
+├── utils                      // 公用方法
+├── static                     // 公共文件
+│   ├── favicon.ico            // favicon图标
+│   └── index.html             // html模板
+│   └── logo.png               // logo图片
+├── uni_modules                // uniui组件
+│   ├── uni-badge              // 数字角标
+│   └── ...                    // 其他组件
+├── App.vue                    // 应用配置
+├── config.js                  // 环境配置
+├── main.js                    // Vue初始化入口文件
+├── manifest.json              // 配置打包
+├── pages.json                 // 配置页面路由
+├── permission.js              // 权限拦截
+└── uni.scss                   // 全局样式变量
+```
+
+### ⚙️ 环境配置
+
+1. 后端接口配置 (config/environment.js):
+```js
 const environment = {
-	// 开发环境配置
-	development: {
-		// 本地部署的后端
-		baseURL: 'http://localhost:8080',
-		
-		// 直接使用线上后端
-		// baseURL: 'http://vue.ruoyi.vip/prod-api'
-	},
-	// 生产环境配置
-	production: {
-		baseURL: 'http://vue.ruoyi.vip/prod-api' // 发布时需要修改为后端实际地址
-	}
-}
-
-module.exports = {
-  environment: environment[process.env.NODE_ENV]
+  development: {
+    baseURL: 'http://localhost:8080'  // 开发环境
+  },
+  production: {
+    baseURL: 'https://api.lics.asia'  // 生产环境
+  }
 }
 ```
-2. H5启动端口配置：
 
-***注意：不要在manifest.json中配置h5启动信息，可能会引发后端接口访问异常***
-
-```
-# 配置文件路径：/vue.config.js
-# 修改port属性
-
-const { environment } = require('./config/environment.js')
-
+2. H5开发配置:
+```js
+// vue.config.js
 module.exports = {
   devServer: {
     port: 9001,
     proxy: {
       '/': {
         target: environment.baseURL,
-        ws: true,
         changeOrigin: true,
+        ws: true,
         pathRewrite: {
           '^/': ''
         }
       }
-    },
+    }
   }
 }
-
 ```
 
+### 📱 功能预览
+待添加
 
+### 🤝 开发规范
+- 遵循阿里巴巴前端开发规范
+- 支持H5端适配
+- 采用统一的命名规范和目录结构
+- 兼容H5端开发
 
+### 🙏 特别鸣谢
 
-###    :lemon:   系统截图
-<table>
-    <tr>
-        <td valign="top"><img src="https://gitee.com/yinm/RuoYi-Mobile/raw/master/static/preview/login.jpg"/></td>
-        <td valign="top"><img src="https://gitee.com/yinm/RuoYi-Mobile/raw/master/static/preview/index.jpg"/></td>
-        <td valign="top"><img src="https://gitee.com/yinm/RuoYi-Mobile/raw/master/static/preview/work.jpg"/></td>
-        <td valign="top"><img src="https://gitee.com/yinm/RuoYi-Mobile/raw/master/static/preview/my.jpg"/></td>
-    </tr>
-    <tr>
-        <td valign="top"><img src="https://gitee.com/yinm/RuoYi-Mobile/raw/master/static/preview/notice-m.jpg"/></td>
-        <td valign="top"><img src="https://gitee.com/yinm/RuoYi-Mobile/raw/master/static/preview/notice-e.jpg"/></td>
-        <td valign="top"><img src="https://gitee.com/yinm/RuoYi-Mobile/raw/master/static/preview/prefile.jpg"/></td>
-        <td valign="top"><img src="https://gitee.com/yinm/RuoYi-Mobile/raw/master/static/preview/pwd-reset.jpg"/></td>
-    </tr>
-</table>
-<br><br>
-
-###  :lollipop: 技术交流
-QQ群：860974500
-
-<br><br>
-#### 如果觉得项目还不错，一定记得 :star: 一下
-#### 如果觉得项目还不错，一定记得 :star: 一下
-#### 如果觉得项目还不错，一定记得 :star: 一下
-<br><br>
-
-###  :poultry_leg:  给作者加个鸡腿
-如果对您的工作或学习产生些许帮助，可以给作者的午餐加一个鸡腿 :poultry_leg:  :poultry_leg:  :poultry_leg: ！~~
-<table>
-    <tr>
-        <td valign="top" width="180"><img src="https://gitee.com/yinm/RuoYi-Mobile/raw/master/static/preview/wechat_pay.jpg"/></td>
-        <td valign="top" width="180"><img src="https://gitee.com/yinm/RuoYi-Mobile/raw/master/static/preview/ali_pay.jpg"/></td>
-    </tr>
-    <tr>
-        <td valign="top" align="center">微信捐助</td>
-        <td valign="top" align="center">支付宝捐助</td>
-    </tr>
-</table>
+本项目基于 [RuoYi-App](https://gitee.com/y_project/RuoYi-App) 开发，感谢 RuoYi 开源社区的贡献。
