@@ -12,3 +12,6 @@ export const getGenerateCount = () => request.get(`/ai/getGeneratePaperCount`, n
 
 // 生成模拟试卷
 export const generatePaper = (sCode) => request.post(`/ai/generatePaper/${sCode}`, null)
+
+// AI chat
+export const chat = (message) => request.post(`/ai/chat?message=${message}`, null , { timeout: 180000 })

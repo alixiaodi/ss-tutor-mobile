@@ -36,22 +36,31 @@
       </scroll-view>
 
       <view class="input-area">
-        <u-input
-          v-model="message"
-          placeholder="请输入您想问的问题"
-          border="surround"
-          :clearable="true"
-        >
-          <template slot="suffix">
-            <u-button
-              @click="sendMessage"
-              type="primary"
-              size="mini"
-              :disabled="!message.trim()"
-              >发送</u-button
-            >
-          </template>
-        </u-input>
+        <view v-if="!isVip" class="chat-info">
+          <text class="free-chat-count">
+            今日剩余{{ freeChatNum }}次
+            <text class="reset-time">({{ resetTimeText }})</text>
+          </text>
+        </view>
+
+        <view class="input-wrapper">
+          <u-input
+            v-model="message"
+            placeholder="请输入您的问题"
+            border="surround"
+            :clearable="true"
+          >
+            <template slot="suffix">
+              <u-button
+                @click="sendMessage"
+                type="primary"
+                size="mini"
+                :disabled="!message.trim()"
+                >发送</u-button
+              >
+            </template>
+          </u-input>
+        </view>
       </view>
     </view>
 
@@ -67,6 +76,8 @@
 <script>
 import { mapState } from "vuex";
 import VipPopup from "@/components/vip-popup/index.vue";
+import * as userApi from "@/api/user.js";
+import * as aiApi from "@/api/ai.js";
 
 export default {
   components: {
@@ -81,44 +92,54 @@ export default {
     return {
       message: "",
       chatHistory: [
-        // 添加一些初始对话记录
         {
           type: "ai",
-          content: "你好！我是你的AI导师，有什么我可以帮你的吗？",
-        },
-        {
-          type: "user",
-          content: "你好，我想请教一个问题",
-        },
-        {
-          type: "ai",
-          content: "当然可以，请问你想了解什么？我会尽力为你解答。",
+          content: "你好，我是你的AI导师，有什么我可以帮你的吗？",
         },
       ],
       scrollTop: 0,
       isVip: false,
-      // 模拟VIP用户数据
-      demoUserInfo: {
-        isVip: false, // 设置为非VIP用户
-        vipExpireDate: "2024-12-31",
-        nickname: "测试用户",
-      },
-      showVipPopup: false, // 控制VIP弹窗显示
+      showVipPopup: false,
+      freeChatNum: 0,
+      resetTimeText: "",
     };
   },
-  onShow() {
-    this.checkVipStatus();
+  async onShow() {
+    await this.getUserInfo();
+    this.updateResetTime();
+    this.resetTimeInterval = setInterval(() => {
+      this.updateResetTime();
+    }, 60000);
   },
   methods: {
+    async getUserInfo() {
+      try {
+        const res = await userApi.getInfo();
+        if (res.code === 200) {
+          this.$store.commit("user/SET_USER_INFO", res.data);
+          this.freeChatNum = res.data.freeChatNum || 0;
+          const now = new Date().getTime();
+          this.isVip = res.data.vipValid
+            ? new Date(res.data.vipValid).getTime() > now
+            : false;
+        } else {
+          throw new Error(res.message || "获取用户信息失败");
+        }
+      } catch (error) {
+        console.error("获取用户信息失败:", error);
+        uni.showToast({
+          title: error.message || "获取用户信息失败",
+          icon: "none",
+        });
+      }
+    },
     async checkVipStatus() {
       try {
-        this.isVip = this.demoUserInfo.isVip;
-
-        setTimeout(() => {
-          if (!this.isVip) {
+        if (!this.isVip) {
+          setTimeout(() => {
             this.showVipPopup = true;
-          }
-        }, 100);
+          }, 100);
+        }
       } catch (error) {
         console.error("VIP状态检查失败:", error);
         uni.showToast({
@@ -134,8 +155,8 @@ export default {
       });
       this.showVipPopup = false;
     },
-    sendMessage() {
-      if (!this.isVip) {
+    async sendMessage() {
+      if (!this.isVip && this.freeChatNum <= 0) {
         setTimeout(() => {
           this.showVipPopup = true;
         }, 100);
@@ -152,27 +173,38 @@ export default {
 
       this.scrollToBottom();
 
-      // 模拟AI回复，使用一些预设的回答
-      setTimeout(() => {
-        const aiResponses = [
-          "这是一个很好的问题！让我来为你解答...",
-          "根据我的理解，这个问题的关键在于...",
-          "我建议你可以从以下几个方面来思考这个问题：\n1. 首先...\n2. 其次...\n3. 最后...",
-          "这个问题比较复杂，我们可以一步步分析...",
-          "让我用一个简单的例子来说明这个问题...",
-        ];
+      try {
+        // 保存用户消息，以便发送失败时清除
+        const userMessage = this.message.trim();
+        this.message = "";
 
-        const randomResponse =
-          aiResponses[Math.floor(Math.random() * aiResponses.length)];
+        // 调用AI接口，确保传入字符串类型
+        const res = await aiApi.chat(userMessage);
 
-        this.chatHistory.push({
-          type: "ai",
-          content: randomResponse,
+        if (res.code === 200) {
+          // 添加AI回复
+          this.chatHistory.push({
+            type: "ai",
+            content: res.data || "抱歉，我现在无法回答这个问题",
+          });
+          if (!this.isVip && this.freeChatNum > 0) {
+            this.freeChatNum--;
+          }
+        } else {
+          throw new Error(res.message || "获取回复失败");
+        }
+      } catch (error) {
+        console.error("AI回复失败:", error);
+        uni.showToast({
+          title: error.msg || "获取回复失败，请重试",
+          icon: "none",
         });
-        this.scrollToBottom();
-      }, 500);
 
-      this.message = "";
+        // 发送失败时，移除最后一条用户消息
+        this.chatHistory.pop();
+      } finally {
+        this.scrollToBottom();
+      }
     },
     scrollToBottom() {
       this.$nextTick(() => {
@@ -187,6 +219,27 @@ export default {
     onPopupClose() {
       console.log("弹窗关闭");
     },
+    updateResetTime() {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+
+      const hours = Math.floor((tomorrow - now) / (1000 * 60 * 60));
+      const minutes = Math.floor(((tomorrow - now) % (1000 * 60 * 60)) / (1000 * 60));
+
+      this.resetTimeText = `${hours}小时${minutes}分钟后重置`;
+    },
+  },
+  onHide() {
+    if (this.resetTimeInterval) {
+      clearInterval(this.resetTimeInterval);
+    }
+  },
+  onUnload() {
+    if (this.resetTimeInterval) {
+      clearInterval(this.resetTimeInterval);
+    }
   },
 };
 </script>
@@ -268,6 +321,45 @@ export default {
       background-color: #ffffff;
       padding: 20rpx;
       box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+
+      .chat-info {
+        padding-bottom: 10rpx;
+
+        .free-chat-count {
+          font-size: 24rpx;
+          color: #666;
+
+          .reset-time {
+            color: #999;
+            margin-left: 4rpx;
+          }
+        }
+      }
+
+      .input-wrapper {
+        :deep(.u-input) {
+          min-height: 80rpx;
+
+          &__content {
+            min-height: 80rpx;
+            padding: 0 20rpx;
+          }
+
+          &__input {
+            height: 80rpx;
+            font-size: 28rpx;
+          }
+        }
+
+        :deep(.u-button) {
+          margin-left: 20rpx;
+          margin-right: 10rpx;
+          height: 64rpx;
+          padding: 0 30rpx;
+          display: flex;
+          align-items: center;
+        }
+      }
     }
   }
 }

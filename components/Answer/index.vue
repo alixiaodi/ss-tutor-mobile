@@ -961,7 +961,7 @@ export default {
       let match;
 
       while ((match = blankRegex.exec(content)) !== null) {
-        // 添加填空的文本
+        // 添加填空的��本
         if (match.index > lastIndex) {
           parts.push({
             type: "text",
@@ -1423,54 +1423,24 @@ export default {
                   let content = "";
 
                   res.data.forEach((item) => {
-                    switch (item.type) {
-                      case "keyword":
-                        content += '<div style="margin-bottom: 16rpx;">';
-                        content +=
-                          '<div style="font-weight: bold; color: #8b4513; margin-bottom: 8rpx;">关键词记忆：</div>';
-                        if (item.keyword && item.keyword.length) {
-                          content += `<div style="margin-bottom: 8rpx;">${item.keyword.join(
-                            "、"
-                          )}</div>`;
-                        }
-                        if (item.memory && item.memory.length) {
-                          content += item.memory
-                            .map((m) => `<div style="margin: 4rpx 0;">• ${m}</div>`)
-                            .join("");
-                        }
-                        content += "</div>";
-                        break;
+                    content += '<div style="margin-bottom: 16rpx;">';
+                    content += `<div style="font-weight: bold; color: #8b4513; margin-bottom: 8rpx;">${item.type}：</div>`;
 
-                      case "associate":
-                        content += '<div style="margin-bottom: 16rpx;">';
-                        content +=
-                          '<div style="font-weight: bold; color: #8b4513; margin-bottom: 8rpx;">联想记忆：</div>';
-                        content += item.memory
-                          .map((m) => `<div style="margin: 4rpx 0;">• ${m}</div>`)
-                          .join("");
-                        content += "</div>";
-                        break;
-
-                      case "pithyFormula":
-                        content += '<div style="margin-bottom: 16rpx;">';
-                        content +=
-                          '<div style="font-weight: bold; color: #8b4513; margin-bottom: 8rpx;">口诀记忆：</div>';
-                        content += item.memory
-                          .map((m) => `<div style="margin: 4rpx 0;">• ${m}</div>`)
-                          .join("");
-                        content += "</div>";
-                        break;
-
-                      case "logicalReasoning":
-                        content += '<div style="margin-bottom: 16rpx;">';
-                        content +=
-                          '<div style="font-weight: bold; color: #8b4513; margin-bottom: 8rpx;">逻辑推理：</div>';
-                        content += item.memory
-                          .map((m) => `<div style="margin: 4rpx 0;">• ${m}</div>`)
-                          .join("");
-                        content += "</div>";
-                        break;
+                    // 如果有关键词数组，先显示关键词
+                    if (item.keyword && item.keyword.length) {
+                      content += `<div style="margin-bottom: 8rpx;">${item.keyword.join(
+                        "、"
+                      )}</div>`;
                     }
+
+                    // 显示记忆内容
+                    if (item.memory && item.memory.length) {
+                      content += item.memory
+                        .map((m) => `<div style="margin: 4rpx 0;">• ${m}</div>`)
+                        .join("");
+                    }
+
+                    content += "</div>";
                   });
 
                   // 更新记忆方法内容和显示状态

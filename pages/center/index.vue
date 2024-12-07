@@ -6,7 +6,13 @@
         <view class="info-content">
           <view class="user-info--name">
             {{ getUserName }}
-            <text class="vip-tag" @click="openVipPopup">开通VIP</text>
+            <text
+              class="vip-tag"
+              :class="{ 'vip-expired': !vipStatus.isVip }"
+              @click="openVipPopup"
+            >
+              {{ vipStatus.text }}
+            </text>
           </view>
           <text class="user-info--account">{{ getAccount }}</text>
         </view>
@@ -118,6 +124,7 @@ export default {
         userName: "",
         dept: null,
         points: 0,
+        vipValid: null,
       },
       studyDays: "--",
       examCount: "--",
@@ -139,6 +146,35 @@ export default {
         ? this.user.dept.deptName
         : "未知部门";
     },
+    vipStatus() {
+      if (!this.user.vipValid) {
+        return {
+          isVip: false,
+          text: "开通VIP",
+          days: 0,
+        };
+      }
+
+      const now = new Date();
+      const vipEndDate = new Date(this.user.vipValid);
+
+      if (vipEndDate < now) {
+        return {
+          isVip: false,
+          text: "VIP已过期",
+          days: 0,
+        };
+      }
+
+      const diffTime = vipEndDate.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      return {
+        isVip: true,
+        text: `VIP剩余${diffDays}天`,
+        days: diffDays,
+      };
+    },
   },
   created() {
     this.getInfo();
@@ -150,7 +186,11 @@ export default {
         const res = await UserApi.getInfo();
         console.log("获取用户信息返回数据:", res);
         if (res.code === 200 && res.data) {
-          this.user.points = res.data.points || 0;
+          this.user = {
+            ...this.user,
+            points: res.data.points || 0,
+            vipValid: res.data.vipValid || null,
+          };
           this.hasSignedToday = res.data.hasSigned === "1";
         }
       } catch (error) {
@@ -220,7 +260,7 @@ export default {
       } catch (error) {
         console.error("签到失败:", error);
         uni.showToast({
-          title: "签到失败，请稍后重试",
+          title: "签到失���，请稍后重试",
           icon: "none",
         });
       }
@@ -588,5 +628,15 @@ export default {
   display: inline-flex;
   align-items: center;
   height: 36rpx;
+  transition: all 0.3s ease;
+
+  &.vip-expired {
+    background: linear-gradient(45deg, #909399, #606266);
+  }
+
+  &:active {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
 }
 </style>
