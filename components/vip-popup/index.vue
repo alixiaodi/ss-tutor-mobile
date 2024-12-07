@@ -89,10 +89,12 @@ export default {
 
       // 关闭弹窗
       this.handleClose();
-      
+
       // 跳转到购买描述页面，并传递套餐信息
       uni.navigateTo({
-        url: `/pages/vip/purchase/index?packageId=${this.currentPackage.id}&amount=${this.currentPackage.amount}&name=${encodeURIComponent(this.currentPackage.name)}`
+        url: `/pages/vip/purchase/index?packageId=${this.currentPackage.id}&amount=${
+          this.currentPackage.amount
+        }&name=${encodeURIComponent(this.currentPackage.name)}`,
       });
     },
     onPopupOpen() {
@@ -149,7 +151,6 @@ export default {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #f5f5f5;
     background: linear-gradient(135deg, #4ecdb6, #39b9a0);
 
     .title {
@@ -266,10 +267,11 @@ export default {
 }
 
 /deep/ .u-popup {
-  z-index: 9999 !important;
+  border-radius: 24rpx;
+  overflow: hidden;
 }
 
 /deep/ .u-popup__content {
-  z-index: 99999 !important;
+  border-radius: 24rpx !important;
 }
 </style>
