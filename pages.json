@@ -1,0 +1,211 @@
+{
+	"pages": [
+		{
+			"path": "pages/login/index",
+			"style": {
+				"navigationBarTitleText": "登录",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "首页",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/work/index",
+			"style": {
+				"navigationBarTitleText": "工作台",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/work/user/list",
+			"style": {
+				"navigationBarTitleText": "用户管理",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/work/user/edit",
+			"style": {
+				"navigationBarTitleText": "用户详情",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/work/notice/list",
+			"style": {
+				"navigationBarTitleText": "通知公告",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/work/notice/manage",
+			"style": {
+				"navigationBarTitleText": "公告管理",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/work/notice/detail",
+			"style": {
+				"navigationBarTitleText": "公告详情",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/work/notice/edit",
+			"style": {
+				"navigationBarTitleText": "公告详情",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/center/index",
+			"style": {
+				"navigationBarTitleText": "我的",
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark",
+				"app-plus": {
+					"bounce": "none"
+				}
+			}
+		},
+		{
+			"path": "pages/center/profile",
+			"style": {
+				"navigationBarTitleText": "个人资料",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/center/log",
+			"style": {
+				"navigationBarTitleText": "操作日志",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/subject/subject",
+			"style": {
+				"navigationBarTitleText": "选择学科"
+			}
+		},
+		{
+			"path": "pages/exam/exam",
+			"style": {
+				"navigationBarTitleText": "选择考试"
+			}
+		},
+		{
+			"path": "pages/mock-exam/index",
+			"style": {
+				"navigationBarTitleText": "AI模拟考试",
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark"
+			}
+		},
+		{
+			"path": "pages/past-papers/exam",
+			"style": {
+				"navigationBarTitleText": "历年真题"
+			}
+		},
+		{
+			"path": "pages/past-papers/index",
+			"style": {
+				"navigationBarTitleText": "历年真题"
+			}
+		},
+		{
+			"path": "pages/past-papers/history",
+			"style": {
+				"navigationBarTitleText": "答题历史"
+			}
+		},
+		{
+			"path": "pages/mock-exam/exam",
+			"style": {
+				"navigationBarTitleText": "模拟答题"
+			}
+		},
+		{
+			"path": "pages/ai-tutor/index",
+			"style": {
+				"navigationBarTitleText": "AI导师",
+				"navigationStyle": "custom",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/payment/index",
+			"style": {
+				"navigationBarTitleText": "支付"
+			}
+		},
+		{
+			"path": "pages/vip/purchase/index",
+			"style": {
+				"navigationBarTitleText": "购买详情"
+			}
+		}
+	],
+	"tabBar": {
+		"color": "#909399",
+		"selectedColor": "#000000",
+		"borderStyle": "black",
+		"backgroundColor": "#ffffff",
+		"list": [
+			{
+				"pagePath": "pages/index/index",
+				"iconPath": "static/img/tabbar/home.png",
+				"selectedIconPath": "static/img/tabbar/home_art.png",
+				"text": "首页"
+			},
+			{
+				"pagePath": "pages/work/index",
+				"iconPath": "static/img/tabbar/center.png",
+				"selectedIconPath": "static/img/tabbar/center_art.png",
+				"text": "工作台",
+				"visible": false
+			},
+			{
+				"pagePath": "pages/center/index",
+				"iconPath": "static/img/tabbar/user.png",
+				"selectedIconPath": "static/img/tabbar/user_art.png",
+				"text": "我的"
+			}
+		]
+	},
+	"globalStyle": {
+		"navigationStyle": "custom", 
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "智考导师",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8",
+		"app-plus": {
+			"softinputMode": "adjustResize"
+		}
+	},
+	"easycom": {
+		"autoscan": true,
+		"custom": {
+			"^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue"
+		}
+	},
+	"condition": {
+		"current": 0,
+		"list": [
+			{
+				"name": "首页",
+				"path": "pages/index/index",
+				"query": ""
+			}
+		]
+	}
+}
