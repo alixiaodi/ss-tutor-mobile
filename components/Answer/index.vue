@@ -352,10 +352,24 @@
     </view>
 
     <!-- 在 answer-card-drawer 后面添加 -->
-    <view class="ai-chat-btn" @click="openAiChat">
-      <image class="ai-icon" src="/static/img/ai-icon.png" mode="aspectFit"></image>
-      <text class="ai-text">AI助手</text>
-    </view>
+    <movable-area class="ai-chat-area">
+      <movable-view
+        class="ai-chat-btn"
+        direction="all"
+        :x="aiButtonX"
+        :y="aiButtonY"
+        :out-of-bounds="false"
+        :damping="50"
+        :friction="2"
+        :inertia="true"
+        @change="onAiButtonMove"
+        @touchend="onAiButtonTouchEnd"
+        @click="openAiChat"
+      >
+        <image class="ai-icon" src="/static/img/ai.png" mode="aspectFit"></image>
+        <text class="ai-text">AI助手</text>
+      </movable-view>
+    </movable-area>
 
     <!-- 自定义图片预览弹窗 -->
     <!-- #ifdef H5 || MP || APP-PLUS -->
@@ -419,6 +433,10 @@ export default {
       timer: null, // 添加计时器引用
       showingMemoryTip: {}, // 修改为对象，用于存储每个题目的记忆方法显示状态
       memoryTipContent: {}, // 修改为对象，用于存储每个题目的记忆方法内容
+      aiButtonX: 0,
+      aiButtonY: 200,
+      buttonWidth: 100, // AI按钮的宽度(rpx)
+      buttonHeight: 100, // AI按钮的高度(rpx)
     };
   },
 
@@ -954,7 +972,7 @@ export default {
       return Array(totalBlanks).fill("");
     },
 
-    // 解析填空题内容将下划线等转换为输入
+    // 解���填空题内容将��划线等转换为输入
     parseBlankContent(content) {
       const parts = [];
       let lastIndex = 0;
@@ -1488,8 +1506,84 @@ export default {
     },
 
     openAiChat() {
-      // 打开AI对话的逻辑
-      console.log("打开AI对话");
+      // 跳转到 AI 导师页面
+      uni.navigateTo({
+        url: "/pages/ai-tutor/index",
+      });
+    },
+
+    onAiButtonMove(e) {
+      const middlePoint = this.screenWidth / 2;
+      const currentX = e.detail.x;
+
+      // 判断是否过中线,决定吸附方向
+      if (currentX < middlePoint && !this.isOnLeft) {
+        this.isOnLeft = true;
+        this.aiButtonX = 0;
+      } else if (currentX >= middlePoint && this.isOnLeft) {
+        this.isOnLeft = false;
+        this.aiButtonX = this.screenWidth - this.buttonWidth;
+      }
+
+      // 限制Y轴移动范围
+      this.aiButtonY = Math.max(
+        0,
+        Math.min(e.detail.y, this.screenHeight - this.buttonHeight)
+      );
+    },
+
+    onAiButtonTouchEnd() {
+      // 吸附到最近的边缘
+      this.aiButtonX = this.isOnLeft ? 0 : this.screenWidth - this.buttonWidth;
+
+      // 保存位置
+      this.saveAiButtonPosition();
+    },
+
+    initAiButtonPosition() {
+      try {
+        const saved = uni.getStorageSync("aiButtonPosition");
+        if (saved && this.isValidPosition(saved)) {
+          this.isOnLeft = saved.isOnLeft;
+          this.aiButtonX = this.isOnLeft ? 0 : this.screenWidth - this.buttonWidth;
+          this.aiButtonY = saved.y;
+        } else {
+          // 默认位置
+          this.isOnLeft = false;
+          this.aiButtonX = this.screenWidth - this.buttonWidth;
+          this.aiButtonY = 200;
+        }
+      } catch (e) {
+        console.error("Failed to load AI button position:", e);
+        // 使用默认位置
+        this.isOnLeft = false;
+        this.aiButtonX = this.screenWidth - this.buttonWidth;
+        this.aiButtonY = 200;
+      }
+    },
+
+    saveAiButtonPosition() {
+      try {
+        uni.setStorageSync("aiButtonPosition", {
+          x: this.aiButtonX,
+          y: this.aiButtonY,
+          isOnLeft: this.isOnLeft,
+        });
+      } catch (e) {
+        console.error("Failed to save AI button position:", e);
+      }
+    },
+
+    isValidPosition(pos) {
+      return (
+        pos &&
+        typeof pos.x === "number" &&
+        typeof pos.y === "number" &&
+        pos.x >= 0 &&
+        pos.x <= this.screenWidth - this.buttonWidth &&
+        pos.y >= 0 &&
+        pos.y <= this.screenHeight - this.buttonHeight
+      );
     },
   },
   mounted() {
@@ -1513,6 +1607,18 @@ export default {
     this.$nextTick(() => {
       this.initHandlePosition();
     });
+
+    // 初始化屏幕尺寸
+    const sysInfo = uni.getSystemInfoSync();
+    this.screenWidth = sysInfo.windowWidth;
+    this.screenHeight = sysInfo.windowHeight;
+
+    // 转换按钮尺寸为px
+    this.buttonWidth = uni.upx2px(100);
+    this.buttonHeight = uni.upx2px(100);
+
+    // 初始化按钮位置
+    this.initAiButtonPosition();
   },
 
   beforeDestroy() {
@@ -2712,11 +2818,18 @@ export default {
   border-radius: 8rpx;
 }
 
-/* 添加AI对话按钮样式 */
-.ai-chat-btn {
+/* 修改样式 */
+.ai-chat-area {
   position: fixed;
-  right: 30rpx;
-  bottom: 240rpx; /* 位于答题卡按钮上方 */
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 997;
+}
+
+.ai-chat-btn {
   width: 100rpx;
   height: 100rpx;
   background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
@@ -2726,17 +2839,18 @@ export default {
   align-items: center;
   justify-content: center;
   box-shadow: 0 4rpx 12rpx rgba(24, 144, 255, 0.3);
-  z-index: 997;
+  pointer-events: auto;
+  will-change: transform;
 }
 
 .ai-icon {
-  width: 40rpx;
-  height: 40rpx;
+  width: 45rpx;
+  height: 45rpx;
   margin-bottom: 4rpx;
 }
 
 .ai-text {
-  font-size: 20rpx;
+  font-size: 24rpx;
   color: #fff;
   font-weight: 500;
 }

@@ -1,15 +1,12 @@
 <template>
   <view class="ai-tutor">
-    <view class="header">
-      <u-navbar
-        title="AI导师"
-        :autoBack="true"
-        bgColor="#4ECDB6"
-        titleStyle="color: #ffffff; font-weight: 500;"
-        fixed
-        placeholder
-      ></u-navbar>
-    </view>
+    <Navbar
+      title="AI导师"
+      bgColor="#4ECDB6"
+      :hideBtn="false"
+      :h5Show="true"
+      titleStyle="color: #ffffff; font-weight: 500;"
+    ></Navbar>
 
     <view class="chat-container">
       <view class="message-list">
@@ -77,7 +74,7 @@
 
 <script>
 import MDParserHighlight from "../../components/cmder-MDParserHighlight/index.vue";
-
+import Navbar from "@/components/navbar/Navbar";
 import { mapState } from "vuex";
 import VipPopup from "@/components/vip-popup/index.vue";
 import * as userApi from "@/api/user.js";
@@ -87,6 +84,7 @@ export default {
   components: {
     VipPopup,
     MDParserHighlight,
+    Navbar,
   },
   computed: {
     ...mapState({
@@ -134,7 +132,7 @@ export default {
       } catch (error) {
         console.error("获取用户信息失败:", error);
         uni.showToast({
-          title: error.message || "获取用户信息失败",
+          title: error.message || "获取��户信息失败",
           icon: "none",
         });
       }

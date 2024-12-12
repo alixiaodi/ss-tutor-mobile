@@ -46,9 +46,13 @@ export default {
   onLoad(options) {
     if (options.subjectCode) {
       this.subjectCode = options.subjectCode;
+    }
+  },
+  onShow() {
+    if (this.subjectCode) {
       this.fetchExamData();
     } else {
-      uni.redirectTo({
+      uni.switchTab({
         url: "/pages/index/index",
       });
     }

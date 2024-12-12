@@ -130,8 +130,6 @@ export default {
       this.paperId = options.id;
       this.loadPaperDetail();
       this.refreshHistoryList();
-    } else {
-      uni.navigateBack();
     }
   },
 
@@ -163,17 +161,14 @@ export default {
         paperId: this.paperId,
         type: mode,
       }).then((res) => {
-        uni.navigateTo({
+        uni.redirectTo({
           url: `/pages/past-papers/exam?id=${this.paperId}&mode=${mode}&answerId=${res.data}`,
         });
       });
     },
 
     viewHistoryDetail(history) {
-      console.log(history);
-      console.log("查看历史记录");
-      debugger;
-      uni.navigateTo({
+      uni.redirectTo({
         url: `/pages/past-papers/review?id=${history.id}`,
       });
     },
