@@ -351,6 +351,12 @@
       </movable-area>
     </view>
 
+    <!-- 在 answer-card-drawer 后面添加 -->
+    <view class="ai-chat-btn" @click="openAiChat">
+      <image class="ai-icon" src="/static/img/ai-icon.png" mode="aspectFit"></image>
+      <text class="ai-text">AI助手</text>
+    </view>
+
     <!-- 自定义图片预览弹窗 -->
     <!-- #ifdef H5 || MP || APP-PLUS -->
     <view v-if="previewImage" class="image-preview" @click="closePreview">
@@ -829,9 +835,7 @@ export default {
               .then((res) => {
                 console.log("清除答题记录结果:", res);
                 if (res.code === 200) {
-                  uni.navigateBack({
-                    delta: 1,
-                  });
+                  history.back();
                 } else {
                   uni.showToast({
                     title: "清除答题记录失败",
@@ -1481,6 +1485,11 @@ export default {
     // 处理忆方法点击
     handleMemoryTip(questionId) {
       this.showMemoryTip(questionId);
+    },
+
+    openAiChat() {
+      // 打开AI对话的逻辑
+      console.log("打开AI对话");
     },
   },
   mounted() {
@@ -2701,5 +2710,39 @@ export default {
   padding: 16rpx;
   background: rgba(255, 255, 255, 0.6);
   border-radius: 8rpx;
+}
+
+/* 添加AI对话按钮样式 */
+.ai-chat-btn {
+  position: fixed;
+  right: 30rpx;
+  bottom: 240rpx; /* 位于答题卡按钮上方 */
+  width: 100rpx;
+  height: 100rpx;
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 12rpx rgba(24, 144, 255, 0.3);
+  z-index: 997;
+}
+
+.ai-icon {
+  width: 40rpx;
+  height: 40rpx;
+  margin-bottom: 4rpx;
+}
+
+.ai-text {
+  font-size: 20rpx;
+  color: #fff;
+  font-weight: 500;
+}
+
+.ai-chat-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 2rpx 8rpx rgba(24, 144, 255, 0.2);
 }
 </style>

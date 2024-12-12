@@ -84,17 +84,47 @@ export default {
     handleBack() {
       // 判断是否可以返回
       const pages = getCurrentPages();
+
+      // H5环境下使用 history.back()
+      if (this.systemInfo.uniPlatform === "web") {
+        history.back();
+        return;
+      }
+
+      // 非H5环境下使用 navigateBack
       if (pages.length > 1) {
         uni.navigateBack({
           delta: 1,
         });
+      } else if (currentRoute === "/pages/index/index") {
+        // 已经在首页时不做任何操作
+        return;
       } else {
-        // 如果没有上一页，跳转到首页
+        // 其他情况跳转到首页
         uni.switchTab({
           url: "/pages/index/index",
         });
       }
     },
+  },
+  created() {
+    // 在组件创建时记录当前页面的上一页
+    const pages = getCurrentPages();
+    if (pages.length > 1) {
+      const previousPage = pages[pages.length - 2];
+      const previousRoute = `/${previousPage.route}`;
+      // 保存包含参数的完整路径
+      const options = previousPage.options;
+      let query = "";
+      if (Object.keys(options).length > 0) {
+        query =
+          "?" +
+          Object.entries(options)
+            .map(([key, value]) => `${key}=${value}`)
+            .join("&");
+      }
+      uni.setStorageSync("previousPage", previousRoute + query);
+    }
   },
 };
 </script>
