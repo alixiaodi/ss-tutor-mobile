@@ -130,6 +130,14 @@ export default {
       this.paperId = options.id;
       this.loadPaperDetail();
       this.refreshHistoryList();
+    } else {
+      const pages = getCurrentPages();
+      const currentPage = pages[pages.length - 1];
+      if (currentPage && currentPage.options && currentPage.options.id) {
+        this.paperId = currentPage.options.id;
+        this.loadPaperDetail();
+        this.refreshHistoryList();
+      }
     }
   },
 
@@ -161,14 +169,14 @@ export default {
         paperId: this.paperId,
         type: mode,
       }).then((res) => {
-        uni.redirectTo({
+        uni.navigateTo({
           url: `/pages/past-papers/exam?id=${this.paperId}&mode=${mode}&answerId=${res.data}`,
         });
       });
     },
 
     viewHistoryDetail(history) {
-      uni.redirectTo({
+      uni.navigateTo({
         url: `/pages/past-papers/review?id=${history.id}`,
       });
     },

@@ -405,6 +405,8 @@ import * as AnswerQuestionsApi from "@/api/answerQuestions";
 
 export default {
   data() {
+    const sysInfo = uni.getSystemInfoSync(); // 在 data 中获取系统信息
+    const buttonWidthPx = uni.upx2px(100); // 转换按钮宽度为 px
     return {
       optionLabels: ["A", "B", "C", "D", "E", "F", "G", "H"],
       questions: [], // 将从外部接收数
@@ -414,8 +416,8 @@ export default {
       showAnswerCard: false,
       handleX: 0,
       handleY: 200,
-      screenWidth: 0,
-      screenHeight: 0,
+      screenWidth: sysInfo.windowWidth, // 初始化屏幕宽度
+      screenHeight: sysInfo.windowHeight, // 初始化屏幕高度
       handleWidth: 0, // 新增：存储实际手柄宽度
       handleHeight: 0, // 新增存储实际手柄高度
       showingAnswer: false, // 添加新的数据属性
@@ -433,10 +435,10 @@ export default {
       timer: null, // 添加计时器引用
       showingMemoryTip: {}, // 修改为对象，用于存储每个题目的记忆方法显示状态
       memoryTipContent: {}, // 修改为对象，用于存储每个题目的记忆方法内容
-      aiButtonX: 0,
-      aiButtonY: 200,
-      buttonWidth: 100, // AI按钮的宽度(rpx)
-      buttonHeight: 100, // AI按钮的高度(rpx)
+      aiButtonX: sysInfo.windowWidth - buttonWidthPx, // 设置初始X位置在右侧
+      aiButtonY: 400,
+      buttonWidth: buttonWidthPx, // 初始化按钮宽度
+      buttonHeight: buttonWidthPx, // 初始化按钮高度
     };
   },
 
@@ -610,26 +612,33 @@ export default {
     },
 
     submitExam() {
-      // TODO 打印所有答案信息
-      console.log("提交的所有答案：");
-      const data = this.answers.map((answer, index) => ({
-        answerQuestionsId: this.answerId,
-        answer: Array.isArray(answer) ? answer.join(",") : answer,
-        questionNumber: this.questions[index].id,
-        questionType: this.questions[index].type,
-        usedTime: this.usedTime, // 添加用时
-      }));
-      // 原有的提交逻辑
-      console.log("提交的答案：", this.answerId);
-      AnswerQuestionsApi.submit(this.answerId, data).then((res) => {
-        uni.showToast({
-          title: "提交成功",
-          icon: "success",
-          duration: 2000,
-        });
-        // 返回上一页
-        console.log("返回上一页");
-        uni.navigateBack();
+      // 添加确认提示
+      uni.showModal({
+        title: "提示",
+        content: "确认提交答卷吗？提交后将无法修改答案",
+        success: (res) => {
+          if (res.confirm) {
+            // 原有的提交逻辑
+            console.log("提交的答案：", this.answerId);
+            const data = this.answers.map((answer, index) => ({
+              answerQuestionsId: this.answerId,
+              answer: Array.isArray(answer) ? answer.join(",") : answer,
+              questionNumber: this.questions[index].id,
+              questionType: this.questions[index].type,
+              usedTime: this.usedTime,
+            }));
+
+            AnswerQuestionsApi.submit(this.answerId, data).then((res) => {
+              uni.showToast({
+                title: "提交成功",
+                icon: "success",
+                duration: 2000,
+              });
+              console.log("返回上一页");
+              uni.navigateBack();
+            });
+          }
+        },
       });
     },
     handlePageChange(e) {
@@ -972,7 +981,7 @@ export default {
       return Array(totalBlanks).fill("");
     },
 
-    // 解���填空题内容将��划线等转换为输入
+    // 解���填空题���容将���划线等转换为输入
     parseBlankContent(content) {
       const parts = [];
       let lastIndex = 0;
@@ -983,7 +992,7 @@ export default {
       let match;
 
       while ((match = blankRegex.exec(content)) !== null) {
-        // 添加填空的��本
+        // ��加填空的��本
         if (match.index > lastIndex) {
           parts.push({
             type: "text",
@@ -1165,7 +1174,7 @@ export default {
       const question = this.questions[index];
       const answer = this.answers[index];
 
-      // 没有答案不显示解析
+      // ��有答案不显示解析
       if (!answer) return false;
 
       // 填空题特殊处理必须完全填写才显示解析
@@ -1224,23 +1233,11 @@ export default {
 
     // 修改切换答案显示方法
     toggleAnswerView() {
-      const currentQuestion = this.questions[this.currentQuestion];
-      const isEssayOrBlank =
-        this.isBlankQuestion(currentQuestion.type) || currentQuestion.type === "essay";
-
-      // 如果是填空或简答题，且已经提交答，才��许查看答案
-      if (isEssayOrBlank && !this.answers[this.currentQuestion]) {
-        uni.showToast({
-          title: "请先完成作答",
-          icon: "none",
-        });
-        return;
-      }
-
+      // 直接切换答案显示状态，不做任何检查
       this.showingAnswer = !this.showingAnswer;
     },
 
-    // 修改提交答��方法
+    // 修改提交答方法
     async submitCurrentAnswer() {
       const currentQuestion = this.questions[this.currentQuestion];
       const answer = this.answers[this.currentQuestion];
@@ -1525,9 +1522,9 @@ export default {
         this.aiButtonX = this.screenWidth - this.buttonWidth;
       }
 
-      // 限制Y轴移动范围
+      // 限制Y轴移动范围，设置最小值为300
       this.aiButtonY = Math.max(
-        0,
+        300, // 设置最小Y轴位置
         Math.min(e.detail.y, this.screenHeight - this.buttonHeight)
       );
     },
@@ -1548,17 +1545,17 @@ export default {
           this.aiButtonX = this.isOnLeft ? 0 : this.screenWidth - this.buttonWidth;
           this.aiButtonY = saved.y;
         } else {
-          // 默认位置
+          // 默认位置设置为右侧
           this.isOnLeft = false;
           this.aiButtonX = this.screenWidth - this.buttonWidth;
-          this.aiButtonY = 200;
+          this.aiButtonY = 400;
         }
       } catch (e) {
         console.error("Failed to load AI button position:", e);
-        // 使用默认位置
+        // 默认位置设置为右侧
         this.isOnLeft = false;
         this.aiButtonX = this.screenWidth - this.buttonWidth;
-        this.aiButtonY = 200;
+        this.aiButtonY = 400;
       }
     },
 
@@ -1588,8 +1585,8 @@ export default {
   },
   mounted() {
     const pages = getCurrentPages();
-    const currentPage = pages[pages.length - 1]; // 当前页面实例
-    const options = currentPage.options; // 当前页面的路径参数
+    const currentPage = pages[pages.length - 1];
+    const options = currentPage.options;
     console.log("路径参数:", options);
     this.id = options.id;
     this.mode = options.mode;
@@ -1607,15 +1604,6 @@ export default {
     this.$nextTick(() => {
       this.initHandlePosition();
     });
-
-    // 初始化屏幕尺寸
-    const sysInfo = uni.getSystemInfoSync();
-    this.screenWidth = sysInfo.windowWidth;
-    this.screenHeight = sysInfo.windowHeight;
-
-    // 转换按钮尺寸为px
-    this.buttonWidth = uni.upx2px(100);
-    this.buttonHeight = uni.upx2px(100);
 
     // 初始化按钮位置
     this.initAiButtonPosition();
@@ -2526,7 +2514,7 @@ export default {
   color: #1890ff;
 }
 
-/* 优化按钮样式 */
+/* 优化按���样式 */
 .center-btns {
   display: flex;
   gap: 16rpx;
