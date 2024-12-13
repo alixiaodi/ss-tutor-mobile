@@ -106,6 +106,7 @@ export default {
       freeChatNum: 0,
       resetTimeText: "",
       scrollAnimationDuration: 100,
+      isScrolling: false,
     };
   },
   async onShow() {
@@ -132,7 +133,7 @@ export default {
       } catch (error) {
         console.error("获取用户信息失败:", error);
         uni.showToast({
-          title: error.message || "获取��户信息失败",
+          title: error.message || "获取用户信息失败",
           icon: "none",
         });
       }
@@ -193,12 +194,15 @@ export default {
             lastMessage.status = 1;
             this.$nextTick(() => {
               setTimeout(() => {
+                this.isScrolling = false;
                 this.scrollToBottom();
-              }, 100);
+              }, 200);
             });
           } else {
             lastMessage.content += newText;
-            this.scrollToBottom();
+            if (!this.isScrolling) {
+              this.scrollToBottom();
+            }
           }
         });
 
@@ -219,14 +223,22 @@ export default {
       }
     },
     scrollToBottom() {
+      if (this.isScrolling) return;
+      this.isScrolling = true;
+
       this.$nextTick(() => {
         const query = uni.createSelectorQuery().in(this);
         query
           .select(".message-list")
           .boundingClientRect((data) => {
             uni.pageScrollTo({
-              scrollTop: data.height + 1000,
-              duration: 300,
+              scrollTop: data.height + 2000,
+              duration: 100,
+              complete: () => {
+                setTimeout(() => {
+                  this.isScrolling = false;
+                }, 150);
+              },
             });
           })
           .exec();
