@@ -1,4 +1,5 @@
 import request from '@/config/request.js';
+const { environment } = require('@/config/environment.js');
 
 // 获取验证码
 export const judge = (id, userAnswer, answerId) => request.post(`/ai/judge/${id}?userAnswer=${userAnswer}&answerId=${answerId}`, null)
@@ -18,7 +19,11 @@ export const chat = (message, onProgress) => {
   return new Promise((resolve, reject) => {
     try {
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `/ai/chat?message=${message}`, true);
+      // 根据环境判断使用的baseURL
+      const baseURL = process.env.NODE_ENV === 'production' 
+        ? environment.baseURL 
+        : '';
+      xhr.open('POST', `${baseURL}/ai/chat?message=${message}`, true);
       xhr.setRequestHeader('Content-Type', 'text/event-stream');
       xhr.send(null);
 
