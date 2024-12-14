@@ -21,6 +21,28 @@
       </view>
     </view>
 
+    <!-- 添加试验说明区域 -->
+    <view class="exam-instruction">
+      <view class="instruction-title">
+        <u-icon name="info-circle" size="32" color="#2b6bff"></u-icon>
+        <text>功能说明</text>
+      </view>
+      <view class="instruction-content">
+        <view class="instruction-item">
+          <text class="dot">•</text>
+          <text>当前功能处于测试阶段，可能存在不稳定情况</text>
+        </view>
+        <view class="instruction-item">
+          <text class="dot">•</text>
+          <text>AI生成的内容可能存在重复或不够精确的情况，我们正在持续优化</text>
+        </view>
+        <view class="instruction-item">
+          <text class="dot">•</text>
+          <text>如遇到问题请刷新页面或稍后重试，感谢您的理解和支持</text>
+        </view>
+      </view>
+    </view>
+
     <!-- 历史记录列表 -->
     <view class="question-list">
       <view class="list-header">
@@ -314,6 +336,43 @@ export default {
         &:active {
           transform: scale(0.98);
           background-color: #f5f7fa !important;
+        }
+      }
+    }
+  }
+
+  .exam-instruction {
+    margin: 20rpx 30rpx;
+    padding: 30rpx;
+    background: #f8f9fe;
+    border-radius: 16rpx;
+
+    .instruction-title {
+      display: flex;
+      align-items: center;
+      gap: 12rpx;
+      margin-bottom: 20rpx;
+      font-size: 30rpx;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .instruction-content {
+      .instruction-item {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 16rpx;
+        font-size: 26rpx;
+        color: #666;
+        line-height: 1.5;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .dot {
+          margin-right: 12rpx;
+          color: #2b6bff;
         }
       }
     }
