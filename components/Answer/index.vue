@@ -38,195 +38,214 @@
           :key="index"
           class="swiper-item"
         >
-          <view class="question-card" v-if="question">
-            <view class="question-title">
-              <text class="question-index">{{ index + 1 }}/{{ questions.length }}</text>
-              <text class="question-type">{{ getQuestionTypeLabel(question.type) }}</text>
-              <text class="question-score">{{ question.score }}分</text>
-            </view>
-            <view class="question-content">
-              <rich-text
-                :nodes="formatContent(question.content)"
-                user-select
-                @tap="onRichTextTap"
-                @node-tap="onNodeTap"
-              ></rich-text>
-            </view>
-            <view class="options" v-if="question" :class="question.type">
-              <!-- 单选题 -->
-              <template v-if="question && question.type === 'single'">
-                <view
-                  v-for="(option, optIndex) in question.options"
-                  :key="option.value"
-                  class="option-item"
-                  :class="{
-                    active: answers[index] === option.value,
-                    'correct-option': answers[index] && option.value === question.correct,
-                    'wrong-option':
-                      answers[index] &&
-                      answers[index] === option.value &&
-                      option.value !== question.correct,
-                  }"
-                  @click="selectAnswer(index, option.value)"
-                >
-                  <view class="option-prefix">{{ optionLabels[optIndex] }}</view>
-                  <view class="option-text">
-                    <rich-text :nodes="formatContent(option.text)"></rich-text>
-                  </view>
-                </view>
-              </template>
-
-              <!-- 多选题 -->
-              <template v-else-if="question && question.type === 'multiple'">
-                <view
-                  v-for="(option, optIndex) in question.options"
-                  :key="option.value"
-                  class="option-item"
-                  :class="{
-                    active: isOptionSelected(index, option.value),
-                    'correct-option':
-                      answers[index] && question.correct.includes(option.value),
-                    'wrong-option':
-                      answers[index] &&
-                      isOptionSelected(index, option.value) &&
-                      !question.correct.includes(option.value),
-                  }"
-                  @click="toggleMultipleChoice(index, option.value)"
-                >
-                  <view class="option-prefix checkbox">{{ optionLabels[optIndex] }}</view>
-                  <view class="option-text">
-                    <rich-text :nodes="formatContent(option.text)"></rich-text>
-                  </view>
-                </view>
-              </template>
-
-              <!-- 填空题 -->
-              <template v-else-if="question && question.type === 'blank'">
-                <view class="blank-content">
-                  <template
-                    v-for="(part, partIndex) in parseBlankContent(question.content)"
+          <!-- 添加scroll-view包裹内容 -->
+          <scroll-view
+            scroll-y
+            class="question-scroll"
+            :scroll-top="scrollTop"
+            @scroll="handleScroll"
+            :enhanced="true"
+            :bounces="true"
+            :show-scrollbar="true"
+            :scroll-with-animation="true"
+          >
+            <view class="question-card" v-if="question">
+              <view class="question-title">
+                <text class="question-index">{{ index + 1 }}/{{ questions.length }}</text>
+                <text class="question-type">{{
+                  getQuestionTypeLabel(question.type)
+                }}</text>
+                <text class="question-score">{{ question.score }}分</text>
+              </view>
+              <view class="question-content">
+                <rich-text
+                  :nodes="formatContent(question.content)"
+                  user-select
+                  @tap="onRichTextTap"
+                  @node-tap="onNodeTap"
+                ></rich-text>
+              </view>
+              <view class="options" v-if="question" :class="question.type">
+                <!-- 单选题 -->
+                <template v-if="question && question.type === 'single'">
+                  <view
+                    v-for="(option, optIndex) in question.options"
+                    :key="option.value"
+                    class="option-item"
+                    :class="{
+                      active: answers[index] === option.value,
+                      'correct-option':
+                        answers[index] && option.value === question.correct,
+                      'wrong-option':
+                        answers[index] &&
+                        answers[index] === option.value &&
+                        option.value !== question.correct,
+                    }"
+                    @click="selectAnswer(index, option.value)"
                   >
-                    <text
-                      v-if="part.type === 'text'"
-                      :key="'text-' + partIndex"
-                      class="blank-text"
-                      >{{ part.content }}</text
-                    >
-                    <view v-else :key="'blank-' + partIndex" class="blank-wrapper">
-                      <input
-                        class="blank-input"
-                        type="text"
-                        :value="getBlankAnswer(index, part.index)"
-                        :placeholder="'填空' + (part.index + 1)"
-                        @input="(e) => updateBlankAnswer(index, part.index, e)"
-                      />
+                    <view class="option-prefix">{{ optionLabels[optIndex] }}</view>
+                    <view class="option-text">
+                      <rich-text :nodes="formatContent(option.text)"></rich-text>
                     </view>
-                  </template>
-                </view>
-              </template>
-
-              <!-- 论述题 -->
-              <template v-else-if="question && question.type === 'essay'">
-                <view class="essay-container">
-                  <textarea
-                    class="essay-input"
-                    :value="answers[index]"
-                    :placeholder="question.placeholder || '请输入你的答案...'"
-                    :maxlength="question.maxLength || 1000"
-                    @input="(e) => updateEssayAnswer(index, e)"
-                    auto-height
-                  />
-                  <view class="essay-footer">
-                    <text class="word-count"
-                      >{{ getWordCount(answers[index]) }}/{{
-                        question.maxLength || 1000
-                      }}</text
-                    >
-                    <text class="tip" v-if="question.minLength"
-                      >至少输入 {{ question.minLength }} 字</text
-                    >
                   </view>
-                </view>
-              </template>
-            </view>
-            <!-- 答案解析部�� -->
-            <template v-if="question">
-              <view
-                v-if="showingAnswer && currentQuestion === index"
-                class="explanation-section"
-              >
-                <view class="explanation-header">
-                  <!-- 单选和多选题显示对错 -->
-                  <template v-if="['single', 'multiple'].includes(question.type)">
-                    <text
-                      :class="[
-                        'result-text',
-                        checkAnswer(question, answers[index]) ? 'correct' : 'wrong',
-                      ]"
+                </template>
+
+                <!-- 多选题 -->
+                <template v-else-if="question && question.type === 'multiple'">
+                  <view
+                    v-for="(option, optIndex) in question.options"
+                    :key="option.value"
+                    class="option-item"
+                    :class="{
+                      active: isOptionSelected(index, option.value),
+                      'correct-option':
+                        answers[index] && question.correct.includes(option.value),
+                      'wrong-option':
+                        answers[index] &&
+                        isOptionSelected(index, option.value) &&
+                        !question.correct.includes(option.value),
+                    }"
+                    @click="toggleMultipleChoice(index, option.value)"
+                  >
+                    <view class="option-prefix checkbox">{{
+                      optionLabels[optIndex]
+                    }}</view>
+                    <view class="option-text">
+                      <rich-text :nodes="formatContent(option.text)"></rich-text>
+                    </view>
+                  </view>
+                </template>
+
+                <!-- 填空题 -->
+                <template v-else-if="question && question.type === 'blank'">
+                  <view class="blank-content">
+                    <template
+                      v-for="(part, partIndex) in parseBlankContent(question.content)"
                     >
-                      {{
-                        checkAnswer(question, answers[index]) ? "回答正确" : "回答错误"
-                      }}
-                    </text>
-                    <text
-                      v-if="!checkAnswer(question, answers[index])"
-                      class="correct-answer"
-                    >
-                      正确答案: {{ question.correct }}
-                    </text>
-                  </template>
+                      <text
+                        v-if="part.type === 'text'"
+                        :key="'text-' + partIndex"
+                        class="blank-text"
+                        >{{ part.content }}</text
+                      >
+                      <view v-else :key="'blank-' + partIndex" class="blank-wrapper">
+                        <input
+                          class="blank-input"
+                          type="text"
+                          :value="getBlankAnswer(index, part.index)"
+                          :placeholder="'填空' + (part.index + 1)"
+                          @input="(e) => updateBlankAnswer(index, part.index, e)"
+                        />
+                      </view>
+                    </template>
+                  </view>
+                </template>
 
-                  <!-- 填空题显示正确答案 -->
-                  <template v-else-if="question.type === 'blank'">
-                    <text class="correct-answer"> 正确答案: {{ question.correct }} </text>
-                  </template>
-
-                  <!-- 简答题显示参考答案 -->
-                  <template v-else-if="question.type === 'essay'">
-                    <text class="result-text reference">参考答案</text>
-                  </template>
-                </view>
-
-                <!-- 记忆方法按钮 - 所有题型都显示 -->
+                <!-- 论述题 -->
+                <template v-else-if="question && question.type === 'essay'">
+                  <view class="essay-container">
+                    <textarea
+                      class="essay-input"
+                      :value="answers[index]"
+                      :placeholder="question.placeholder || '请输入你的答案...'"
+                      :maxlength="question.maxLength || 1000"
+                      @input="(e) => updateEssayAnswer(index, e)"
+                      auto-height
+                    />
+                    <view class="essay-footer">
+                      <text class="word-count"
+                        >{{ getWordCount(answers[index]) }}/{{
+                          question.maxLength || 1000
+                        }}</text
+                      >
+                      <text class="tip" v-if="question.minLength"
+                        >至少输入 {{ question.minLength }} 字</text
+                      >
+                    </view>
+                  </view>
+                </template>
+              </view>
+              <!-- 答案解析部 -->
+              <template v-if="question">
                 <view
-                  class="memory-tip-btn"
-                  @click="showMemoryTip(question.id)"
-                  v-if="!showingMemoryTip[question.id]"
+                  v-if="showingAnswer && currentQuestion === index"
+                  class="explanation-section"
                 >
-                  <image
-                    class="crown-icon"
-                    src="/static/img/crown.png"
-                    mode="aspectFit"
-                  ></image>
-                  <text>查看记忆方法</text>
-                </view>
+                  <view class="explanation-header">
+                    <!-- 单选和多选题显示对错 -->
+                    <template v-if="['single', 'multiple'].includes(question.type)">
+                      <text
+                        :class="[
+                          'result-text',
+                          checkAnswer(question, answers[index]) ? 'correct' : 'wrong',
+                        ]"
+                      >
+                        {{
+                          checkAnswer(question, answers[index]) ? "回答正确" : "回答错误"
+                        }}
+                      </text>
+                      <text
+                        v-if="!checkAnswer(question, answers[index])"
+                        class="correct-answer"
+                      >
+                        正确答案: {{ question.correct }}
+                      </text>
+                    </template>
 
-                <!-- 记忆方法内容 -->
-                <view class="memory-tip-content" v-if="showingMemoryTip[question.id]">
-                  <view class="memory-tip-header">
+                    <!-- 填空题显示正确答案 -->
+                    <template v-else-if="question.type === 'blank'">
+                      <text class="correct-answer">
+                        正确答案: {{ question.correct }}
+                      </text>
+                    </template>
+
+                    <!-- 简答题显示参考答案 -->
+                    <template v-else-if="question.type === 'essay'">
+                      <text class="result-text reference">参考答案</text>
+                    </template>
+                  </view>
+
+                  <!-- 记忆方法按钮 - 所有题型都显示 -->
+                  <view
+                    class="memory-tip-btn"
+                    @click="showMemoryTip(question.id)"
+                    v-if="!showingMemoryTip[question.id]"
+                  >
                     <image
                       class="crown-icon"
                       src="/static/img/crown.png"
                       mode="aspectFit"
                     ></image>
-                    <text class="memory-tip-title">记忆方法</text>
+                    <text>查看记忆方法</text>
                   </view>
-                  <view class="memory-tip-text">
-                    <rich-text :nodes="memoryTipContent[question.id]"></rich-text>
-                  </view>
-                </view>
 
-                <!-- 题目解析 -->
-                <view
-                  v-if="question.explanation && question.explanation.trim()"
-                  class="explanation-content"
-                >
-                  <text class="explanation-label">解析：</text>
-                  <rich-text :nodes="formatContent(question.explanation)"></rich-text>
+                  <!-- 记忆方法内容 -->
+                  <view class="memory-tip-content" v-if="showingMemoryTip[question.id]">
+                    <view class="memory-tip-header">
+                      <image
+                        class="crown-icon"
+                        src="/static/img/crown.png"
+                        mode="aspectFit"
+                      ></image>
+                      <text class="memory-tip-title">记忆方法</text>
+                    </view>
+                    <view class="memory-tip-text">
+                      <rich-text :nodes="memoryTipContent[question.id]"></rich-text>
+                    </view>
+                  </view>
+
+                  <!-- 题目解析 -->
+                  <view
+                    v-if="question.explanation && question.explanation.trim()"
+                    class="explanation-content"
+                  >
+                    <text class="explanation-label">解析：</text>
+                    <rich-text :nodes="formatContent(question.explanation)"></rich-text>
+                  </view>
                 </view>
-              </view>
-            </template>
-          </view>
+              </template>
+            </view>
+          </scroll-view>
         </swiper-item>
       </swiper>
 
@@ -319,9 +338,17 @@
               @click="jumpToQuestion(index)"
             >
               <text class="question-number">{{ index + 1 }}</text>
-              <text class="question-type-tag">{{
-                getQuestionTypeLabel(question.type, index)
-              }}</text>
+              <text class="question-type-tag">
+                {{
+                  question.type === "essay" &&
+                  (question.originalType === "综合应用题" ||
+                    question.originalType === "综合应用" ||
+                    question.originalType === "综合分析题" ||
+                    question.originalType === "综合分析")
+                    ? question.originalType.replace("题", "")
+                    : getQuestionTypeLabel(question.type, index)
+                }}
+              </text>
               <text
                 v-if="answers[index] && updateQuestionStatus(index) !== 'unanswered'"
                 class="status-icon"
@@ -439,6 +466,8 @@ export default {
       aiButtonY: 400,
       buttonWidth: buttonWidthPx, // 初始化按钮宽度
       buttonHeight: buttonWidthPx, // 初始化按钮高度
+      scrollTop: 0,
+      lastScrollTop: 0,
     };
   },
 
@@ -496,8 +525,11 @@ export default {
         multiple: "多选",
         blank: "填空",
         essay:
-          question?.originalType === "综合应用" || question?.originalType === "综合应用题"
-            ? "综合应用"
+          question?.originalType === "综合应用" ||
+          question?.originalType === "综合应用题" ||
+          question?.originalType === "综合分析" || // 添加综合分析的判断
+          question?.originalType === "综合分析题" // 添加综合分析题的判断
+            ? question.originalType.replace("题", "") // 保留原始类型名称,去掉"题"字
             : "简答",
       };
       return types[type] || "未知";
@@ -644,6 +676,9 @@ export default {
     handlePageChange(e) {
       const oldQuestion = this.currentQuestion;
       const newQuestion = e.detail.current;
+
+      // 切换题目时重置滚动位置
+      this.scrollTop = 0;
 
       // 获取离开的题目信息
       if (oldQuestion !== newQuestion) {
@@ -1059,8 +1094,10 @@ export default {
         填空题: "blank",
         简答题: "essay",
         论述题: "essay",
-        综合应用题: "essay", // 添加综合应用题的映射
-        综合应用: "essay", // 兼容两种可能的类型名称
+        综合应用题: "essay",
+        综合应用: "essay",
+        综合分析题: "essay", // 添加综合分析题的映射
+        综合分析: "essay", // 兼容可能的类型名称
       };
       return typeMap[type] || "single";
     },
@@ -1582,6 +1619,11 @@ export default {
         pos.y <= this.screenHeight - this.buttonHeight
       );
     },
+
+    // 添加滚动处理方法
+    handleScroll(e) {
+      this.lastScrollTop = e.detail.scrollTop;
+    },
   },
   mounted() {
     const pages = getCurrentPages();
@@ -1690,16 +1732,15 @@ export default {
 
 .swiper-item {
   height: 100%;
-  padding: 30rpx;
-  box-sizing: border-box;
-  overflow-y: auto;
+  position: relative;
+  overflow: hidden;
 }
 
 .question-card {
+  padding: 24rpx;
+  margin: 30rpx;
   background-color: #fff;
   border-radius: 12rpx;
-  padding: 24rpx;
-  /* 减小内距 */
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
@@ -2605,7 +2646,7 @@ export default {
   border-radius: 8rpx;
 }
 
-/* 添加图片hover效果 */
+/* ��加图片hover效果 */
 .preview-image {
   cursor: zoom-in !important;
   transition: opacity 0.3s ease;
@@ -2846,5 +2887,15 @@ export default {
 .ai-chat-btn:active {
   transform: scale(0.95);
   box-shadow: 0 2rpx 8rpx rgba(24, 144, 255, 0.2);
+}
+
+/* 添加scroll-view样式 */
+.question-scroll {
+  height: 100%;
+  box-sizing: border-box;
+  /* #ifdef H5 */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* #endif */
 }
 </style>
