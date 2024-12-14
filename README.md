@@ -7,6 +7,8 @@
 
 ### 🚀 在线体验
 - 官网地址：https://www.lics.asia
+- 后台API开源地址：https://gitee.com/li_chun_shengcc/ss-tutor-open-api
+- 管理后台地址：https://gitee.com/li_chun_shengcc/ss-tutor-admin-open
 
 ### 📱 项目简介
 专注于为考生提供智能刷题服务
@@ -15,6 +17,7 @@
 - AI智能出题：根据知识点智能生成题目
 - AI押题预测：基于大数据分析预测考点
 - AI记题助手：智能生成个性化记忆方法
+- AI智能导师：支持实时流式对话辅导
 
 > **当前状态**：
 > - 目前系统仅开放软件工程学科数据，其他学科数据正在逐步完善中
@@ -46,13 +49,19 @@
 - 个性化记忆方法
 - 知识点关联记忆
 - 易错点强化记忆
+
+🎓 AI智能导师
+- 智能问答解惑
+- 实时流式对话
+- 个性化辅导
+- 深度知识讲解
 ```
 
 ### ⚡功能特色
 1. **智能刷题系统**
    - AI自动评分
    - 实时答题反馈
-   - 错题智能归类
+   - 错题��能归类
    - 个性化练习推荐
 
 2. **AI辅助备考**
@@ -66,6 +75,12 @@
    - 正确率统计
    - 知识点掌握度
    - 学习时长记录
+
+4. **AI智能导师**
+   - 智能问答解答
+   - 知识点详解
+   - 实时流式对话
+   - 个性化学习指导
 
 ### 🔨 技术栈
 | 技术 | 版本 | 说明 |
@@ -107,7 +122,7 @@
 ```js
 const environment = {
   development: {
-    baseURL: 'http://localhost:8080'  // 开发��境
+    baseURL: 'http://localhost:8080'  // 开发环境
   },
   production: {
     baseURL: 'https://api.lics.asia'  // 生产环境
@@ -143,6 +158,11 @@ module.exports = {
 - 支持H5端适配
 - 采用统一的命名规范和目录结构
 - 兼容H5端开发
+
+### 💻 开源地址
+- 前端项目：https://github.com/lics-ai/web
+- 后端API：https://github.com/lics-ai/api
+- 小程序端：https://github.com/lics-ai/miniapp
 
 ### 🙏 特别鸣谢
 
