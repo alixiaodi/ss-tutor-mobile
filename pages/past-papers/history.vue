@@ -131,7 +131,13 @@ export default {
       this.loadPaperDetail();
       this.refreshHistoryList();
     } else {
-      uni.navigateBack();
+      const pages = getCurrentPages();
+      const currentPage = pages[pages.length - 1];
+      if (currentPage && currentPage.options && currentPage.options.id) {
+        this.paperId = currentPage.options.id;
+        this.loadPaperDetail();
+        this.refreshHistoryList();
+      }
     }
   },
 
@@ -170,9 +176,6 @@ export default {
     },
 
     viewHistoryDetail(history) {
-      console.log(history);
-      console.log("查看历史记录");
-      debugger;
       uni.navigateTo({
         url: `/pages/past-papers/review?id=${history.id}`,
       });
