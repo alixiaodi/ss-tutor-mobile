@@ -648,8 +648,32 @@ export default {
       uni.showModal({
         title: "提示",
         content: "确认提交答卷吗？提交后将无法修改答案",
-        success: (res) => {
+        success: async (res) => {
           if (res.confirm) {
+            // 显示加载提示
+            uni.showLoading({
+              title: "正在提交...",
+              mask: true,
+            });
+
+            // 先上传当前题目的答案
+            const currentQuestion = this.questions[this.currentQuestion];
+            const currentAnswer = this.answers[this.currentQuestion];
+
+            if (currentAnswer) {
+              try {
+                await AnswerQuestionsApi.uploadAnswer({
+                  answerQuestionsId: this.answerId,
+                  answer: Array.isArray(currentAnswer)
+                    ? currentAnswer.join(",")
+                    : currentAnswer,
+                  questionNumber: currentQuestion.id,
+                });
+              } catch (error) {
+                console.error("上传当前答案失败:", error);
+              }
+            }
+
             // 原有的提交逻辑
             console.log("提交的答案：", this.answerId);
             const data = this.answers.map((answer, index) => ({
@@ -660,15 +684,29 @@ export default {
               usedTime: this.usedTime,
             }));
 
-            AnswerQuestionsApi.submit(this.answerId, data).then((res) => {
-              uni.showToast({
-                title: "提交成功",
-                icon: "success",
-                duration: 2000,
+            AnswerQuestionsApi.submit(this.answerId, data)
+              .then((res) => {
+                // 隐藏加载提示
+                uni.hideLoading();
+
+                uni.showToast({
+                  title: "提交成功",
+                  icon: "success",
+                  duration: 2000,
+                });
+                console.log("返回上一页");
+                uni.navigateBack();
+              })
+              .catch((err) => {
+                // 发生错误时隐藏加载提示
+                uni.hideLoading();
+
+                uni.showToast({
+                  title: "提交失败，请重试",
+                  icon: "none",
+                  duration: 2000,
+                });
               });
-              console.log("返回上一页");
-              uni.navigateBack();
-            });
           }
         },
       });
