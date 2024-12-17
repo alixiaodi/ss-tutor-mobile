@@ -518,7 +518,7 @@ export default {
   methods: {
     getQuestionTypeLabel(type, index = this.currentQuestion) {
       if (!type) return "";
-      const question = this.questions[index]; // 使用传入的索引获取对应题目
+      const question = this.questions[index];
 
       const types = {
         single: "单选",
@@ -527,9 +527,11 @@ export default {
         essay:
           question?.originalType === "综合应用" ||
           question?.originalType === "综合应用题" ||
-          question?.originalType === "综合分析" || // 添加综合分析的判断
-          question?.originalType === "综合分析题" // 添加综合分析题的判断
-            ? question.originalType.replace("题", "") // 保留原始类型名称,去掉"题"字
+          question?.originalType === "综合分析" ||
+          question?.originalType === "综合分析题"
+            ? question.originalType.replace("题", "") // 只对综合应用和综合分析去掉"题"字
+            : question?.originalType === "论述题"
+            ? question.originalType // 论述题保留"题"字
             : "简答",
       };
       return types[type] || "未知";
@@ -2841,7 +2843,7 @@ export default {
   );
 }
 
-/* 调整文字为更深的金色 */
+/* 调整文字为��深的��色 */
 .memory-tip-btn text {
   color: #8b6914; /* 深金色 */
   font-size: 28rpx;
