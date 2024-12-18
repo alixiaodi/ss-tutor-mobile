@@ -45,7 +45,7 @@
     <swiper
       :current="currentIndex"
       @change="handleSwiperChange"
-      :style="{ height: swiperHeight + 'px' }"
+      :style="{ height: 'calc(100vh - ' + (getStatusBarHeight + 144) + 'px)' }"
     >
       <swiper-item v-for="(item, index) in operationList" :key="index">
         <view class="content-modules">
@@ -67,10 +67,13 @@
               <image src="/static/icons/tutor.png" class="module-icon"></image>
               <text class="module-title">AI导师</text>
             </view>
-
             <view class="module-card" @click="navigateTo('/pages/ai-predict/index')">
               <image src="/static/icons/predict.png" class="module-icon"></image>
               <text class="module-title">AI押题</text>
+            </view>
+            <view class="module-card" @click="navigateTo('/pages/ai-predict/index')">
+              <image src="/static/icons/year_analysis.png" class="module-icon"></image>
+              <text class="module-title">历年真题分析</text>
             </view>
           </view>
         </view>
@@ -103,6 +106,10 @@ export default {
   },
   onShow() {
     this.loadSubjectData();
+    setTimeout(() => {
+      const systemInfo = uni.getSystemInfoSync();
+      this.getStatusBarHeight = systemInfo.statusBarHeight || 0;
+    }, 50);
   },
   methods: {
     loadSubjectData() {
@@ -198,124 +205,19 @@ export default {
   data() {
     return {
       isLoading: true,
-      isCanvas2d: true,
-      delayload: false,
-      historyData: {
-        categories: ["1月", "2月", "2月", "4月", "5月"],
-        series: [
-          {
-            name: "收入情况",
-            data: [1601, 1840.5, 1900, 1760, 1500.85],
-            type: "line",
-            style: "curve",
-            color: "#4ECDB6",
-            unit: "",
-          },
-        ],
-        yAxis: [
-          {
-            calibration: true,
-            position: "left",
-            title: "单位/元",
-            titleFontSize: 12,
-            unit: "",
-            tofix: 0,
-            min: 0,
-            disableGrid: true,
-          },
-        ],
-      },
-      detail_list: [
-        {
-          date: now_time.month + "-01",
-          time: "11:01",
-          type: "extend",
-          money: "10.00",
-          desc: "银行卡转出",
-        },
-        {
-          date: now_time.month + "-01",
-          time: "13:45",
-          type: "income",
-          money: "18.00",
-          desc: "银行卡收入",
-        },
-        {
-          date: now_time.month + "-02",
-          time: "06:21",
-          type: "extend",
-          money: "123.45",
-          desc: "信用卡转出",
-        },
-        {
-          date: now_time.month + "-03",
-          time: "07:38",
-          type: "income",
-          money: "23.00",
-          desc: "银行卡收入",
-        },
-        {
-          date: now_time.month + "-08",
-          time: "16:28",
-          type: "extend",
-          money: "23.56",
-          desc: "信用卡转出",
-        },
-        {
-          date: now_time.month + "-09",
-          time: "15:25",
-          type: "income",
-          money: "850.12",
-          desc: "银行卡收入",
-        },
-        {
-          date: now_time.month + "-09",
-          time: "18:52",
-          type: "income",
-          money: "1.88",
-          desc: "银行卡收入",
-        },
-        {
-          date: now_time.month + "-11",
-          time: "21:12",
-          type: "extend",
-          money: "220.21",
-          desc: "银行卡转出",
-        },
-        {
-          date: now_time.month + "-12",
-          time: "13:08",
-          type: "income",
-          money: "32.28",
-          desc: "银行卡收入",
-        },
-        {
-          date: now_time.month + "-12",
-          time: "12:41",
-          type: "extend",
-          money: "122.12",
-          desc: "信用卡转",
-        },
-        {
-          date: now_time.month + "-13",
-          time: "17:21",
-          type: "income",
-          money: "10.00",
-          desc: "银行卡收入",
-        },
-      ],
       currentIndex: 0,
       operationList: [],
       examName: "",
       examCode: "",
       currentSubjectCode: "",
-      swiperHeight: 300, // 添加 swiper 高度控制
+      swiperHeight: 300,
+      getStatusBarHeight: 0,
     };
   },
   mounted() {
     // 设置 swiper 高度
     const systemInfo = uni.getSystemInfoSync();
-    this.swiperHeight = systemInfo.windowHeight - 220; // 根据实际内容调整减去的高度
+    this.getStatusBarHeight = systemInfo.statusBarHeight || 0;
   },
 };
 </script>
@@ -334,7 +236,12 @@ export default {
   color: #ffffff;
   display: flex;
   align-items: center;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+
+  // 添加悬停效果
+  &:active {
+    opacity: 0.8;
+  }
 }
 
 .subject-text {
@@ -347,8 +254,13 @@ export default {
   width: 40rpx;
   height: 40rpx;
   margin-left: 12rpx;
-  filter: brightness(0) invert(1);
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  filter: brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  transition: transform 0.3s ease;
+
+  // 添加旋转动画
+  &:active {
+    transform: rotate(180deg);
+  }
 }
 
 .header {
@@ -357,84 +269,125 @@ export default {
   margin-bottom: 5px;
 }
 
+// 优化内容容器
 .content-container {
-  padding: 0 10px;
+  padding: 0 15px;
 }
 
+// 优化选项卡容器
 .tabs-container {
   position: relative;
   z-index: 2;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.98);
   margin-top: -60px;
-  border-radius: 15px;
-  padding: 5px 15px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  padding: 8px 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   overflow-x: auto;
   white-space: nowrap;
+
+  // 优化滚动条样式
+  &::-webkit-scrollbar {
+    height: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(78, 205, 182, 0.6);
+    border-radius: 1.5px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(241, 241, 241, 0.5);
+    border-radius: 1.5px;
+  }
 }
 
-.tabs-container::-webkit-scrollbar {
-  height: 4px;
-}
-
-.tabs-container::-webkit-scrollbar-thumb {
-  background: #4ecdb6;
-  border-radius: 2px;
-}
-
-.tabs-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 2px;
-}
-
+// 优化菜单图标
 .menu-icon {
   padding: 0 10px;
   display: flex;
   align-items: center;
   height: 100%;
   cursor: pointer;
+
+  &:active {
+    opacity: 0.7;
+  }
 }
 
+// 优化内容模块
 .content-modules {
-  margin-top: 20px; // 调整上边距
+  margin-top: 15px;
   padding: 0 15px;
-  height: 100%;
+  height: calc(100% - 15px);
+  overflow-y: auto;
+  padding-bottom: 0;
+  box-sizing: border-box;
 }
 
+// 优化网格布局
 .grid-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 20px;
+  padding-bottom: 15px;
 }
 
+// 优化模块卡片
 .module-card {
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 20px 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
   height: 120px;
-  transition: all 0.2s ease;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
 
+  // 添加悬停效果
   &:active {
-    transform: translateY(1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    transform: translateY(2px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
     background: #fafafa;
+  }
+
+  // 修改背景装饰
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+      circle at top right,
+      rgba(78, 205, 182, 0.03) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
   }
 }
 
 .module-icon {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   margin-bottom: 12px;
   opacity: 0.9;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.3s ease;
+
+  &:active {
+    transform: scale(1.05);
+  }
 }
 
 .module-title {
@@ -442,31 +395,57 @@ export default {
   color: #2c3e50;
   font-weight: 600;
   text-align: center;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
+  position: relative;
+  z-index: 1;
 }
 
+// 优化引导提示
 .guide-tip {
   background: #ffffff;
-  border-radius: 8px;
-  padding: 8px 16px;
+  border-radius: 12px;
+  padding: 10px 18px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   position: fixed;
   top: calc(var(--status-bar-height) + 70px);
   left: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid #4ecdb6;
+  box-shadow: 0 4px 15px rgba(78, 205, 182, 0.15);
+  border: 1.5px solid #4ecdb6;
   z-index: 999;
   cursor: pointer;
+  transition: all 0.3s ease;
 
   text {
     color: #4ecdb6;
     font-size: 14px;
+    font-weight: 500;
   }
 
   &:active {
-    opacity: 0.8;
+    transform: translateY(1px);
+    box-shadow: 0 2px 8px rgba(78, 205, 182, 0.1);
+  }
+}
+
+// 修改 swiper 相关样式
+:deep(.uni-swiper-wrapper) {
+  height: 100% !important;
+}
+
+:deep(.uni-swiper-item) {
+  height: 100% !important;
+  overflow-y: auto;
+  box-sizing: border-box;
+
+  // 添加这些样式来修复可能的滚动问题
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0 !important;
+    height: 0 !important;
+    -webkit-appearance: none;
+    background: transparent;
   }
 }
 </style>
