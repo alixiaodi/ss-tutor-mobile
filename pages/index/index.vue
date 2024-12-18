@@ -221,7 +221,24 @@ export default {
   },
 };
 </script>
-<style lang="scss">
+<style lang="scss" scoped>
+// 修改全局滚动控制
+:deep(page) {
+  overflow: hidden;
+  height: 100vh;
+  position: fixed;
+  width: 100%;
+}
+
+.index-content {
+  height: 100vh;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  left: 0;
+  top: 0;
+}
+
 .subject-selector {
   text-align: left;
   position: absolute;
@@ -326,6 +343,7 @@ export default {
   overflow-y: auto;
   padding-bottom: 0;
   box-sizing: border-box;
+  -webkit-overflow-scrolling: touch; /* 添加平滑滚动 */
 }
 
 // 优化网格布局
@@ -437,15 +455,21 @@ export default {
 :deep(.uni-swiper-item) {
   height: 100% !important;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
+  position: relative;
 
-  // 添加这些样式来修复可能的滚动问题
   &::-webkit-scrollbar {
-    display: none;
-    width: 0 !important;
-    height: 0 !important;
-    -webkit-appearance: none;
-    background: transparent;
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 2px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: transparent;
   }
 }
 </style>
