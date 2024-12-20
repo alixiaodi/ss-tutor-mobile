@@ -1,6 +1,12 @@
 <template>
   <view class="history-container">
-    <Navbar title="答题历史" bgColor="#fff" :hideBtn="false" :h5Show="true"></Navbar>
+    <Navbar
+      title="答题历史"
+      bgColor="#4ECDB6"
+      :hideBtn="false"
+      :h5Show="true"
+      titleStyle="color: #ffffff; font-weight: 500;"
+    ></Navbar>
 
     <!-- 顶部信息 -->
     <view class="paper-info">

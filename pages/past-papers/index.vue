@@ -1,6 +1,12 @@
 <template>
   <view class="mock-exam">
-    <Navbar title="历年真题" bgColor="#fff" :hideBtn="false" :h5Show="true"></Navbar>
+    <Navbar
+      title="历年真题"
+      bgColor="#4ECDB6"
+      :hideBtn="false"
+      :h5Show="true"
+      titleStyle="color: #ffffff; font-weight: 500;"
+    ></Navbar>
     <view class="header">
       <text class="title">试卷列表</text>
     </view>

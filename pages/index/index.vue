@@ -71,7 +71,7 @@
               <image src="/static/icons/predict.png" class="module-icon"></image>
               <text class="module-title">AI押题</text>
             </view>
-            <view class="module-card" @click="navigateTo('/pages/ai-predict/index')">
+            <view class="module-card" @click="navigateTo('/pages/year-analysis/index')">
               <image src="/static/icons/year_analysis.png" class="module-icon"></image>
               <text class="module-title">历年真题分析</text>
             </view>
