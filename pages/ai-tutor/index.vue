@@ -191,7 +191,7 @@ export default {
         await aiApi.chat(userMessage, (newText) => {
           const lastMessage = this.chatHistory[this.chatHistory.length - 1];
           if (newText === "<|stop|>") {
-            lastMessage.status = 1;
+            this.$set(lastMessage, "status", 1);
             this.$nextTick(() => {
               setTimeout(() => {
                 this.isScrolling = false;
