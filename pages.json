@@ -153,6 +153,19 @@
 			"style": {
 				"navigationBarTitleText": "购买详情"
 			}
+		},
+		{
+			"path": "pages/year-analysis/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/year-analysis/detail",
+			"style": {
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"tabBar": {

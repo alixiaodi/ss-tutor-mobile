@@ -74,6 +74,9 @@
             <view class="module-card" @click="navigateTo('/pages/year-analysis/index')">
               <image src="/static/icons/year_analysis.png" class="module-icon"></image>
               <text class="module-title">历年真题分析</text>
+              <view class="vip-badge">
+                <text>VIP</text>
+              </view>
             </view>
           </view>
         </view>
@@ -189,6 +192,9 @@ export default {
 
       // 其他页面跳转逻辑保持不变
       if (url === "/pages/mock-exam/index" || url === "/pages/past-papers/index") {
+        url = `${url}?subjectCode=${this.currentSubjectCode}`;
+      }
+      if (url === "/pages/year-analysis/index") {
         url = `${url}?subjectCode=${this.currentSubjectCode}`;
       }
       uni.navigateTo({ url });
@@ -470,6 +476,83 @@ export default {
 
   &::-webkit-scrollbar-track {
     background-color: transparent;
+  }
+}
+
+.vip-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+  padding: 3px 10px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(4px);
+  transform: rotate(0deg);
+  transition: all 0.3s ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.4),
+      rgba(255, 255, 255, 0.1)
+    );
+    border-radius: 12px;
+    z-index: -1;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent
+    );
+    animation: shine 2s infinite;
+  }
+
+  text {
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    letter-spacing: 0.5px;
+  }
+}
+
+@keyframes shine {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+// 修改 module-card 的 hover 状态，让 VIP 标识有动画效果
+.module-card {
+  &:active {
+    .vip-badge {
+      transform: rotate(-5deg) scale(1.05);
+    }
   }
 }
 </style>
