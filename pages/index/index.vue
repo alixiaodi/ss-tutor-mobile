@@ -96,6 +96,7 @@
 <script>
 import Navbar from "@/components/navbar/Navbar";
 import * as SubjectApi from "@/api/subjectUser";
+import { saveLog } from "@/api/log";
 
 let _now = new Date();
 let now_time = {};
@@ -113,6 +114,8 @@ export default {
       const systemInfo = uni.getSystemInfoSync();
       this.getStatusBarHeight = systemInfo.statusBarHeight || 0;
     }, 50);
+
+    this.recordPageView();
   },
   methods: {
     loadSubjectData() {
@@ -205,6 +208,12 @@ export default {
       this.handleSelect({
         index: index,
         subjectCode: this.operationList[index].subjectCode,
+      });
+    },
+    recordPageView() {
+      // 直接调用，不使用 async/await
+      saveLog("访问首页").catch((error) => {
+        console.error("记录日志失败:", error);
       });
     },
   },
