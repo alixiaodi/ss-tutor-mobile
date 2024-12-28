@@ -8,6 +8,22 @@
       titleStyle="color: #ffffff; font-weight: 500;"
     ></Navbar>
 
+    <!-- 修改固定题目显示区域的样式 -->
+    <view class="sticky-original" :class="{ 'show-sticky': showSticky }">
+      <view class="sticky-content" v-if="currentGroup">
+        <view class="sticky-header">
+          <view class="group-index">{{ currentGroup.index }}</view>
+          <text class="group-title">原始题目</text>
+          <view class="toggle-btn" @click="toggleStickyExpand">
+            <u-icon :name="isStickyExpanded ? 'arrow-up' : 'arrow-down'" size="14" color="#666"></u-icon>
+          </view>
+        </view>
+        <view class="sticky-body" :class="{ 'expanded': isStickyExpanded }">
+          <text class="topic-content">{{ currentGroup.original }}</text>
+        </view>
+      </view>
+    </view>
+
     <view class="content">
       <!-- 添加空状态显示 -->
       <view v-if="!groupedData.length" class="empty-state">
@@ -22,13 +38,11 @@
         class="topic-group"
       >
         <view class="group-wrapper">
-          <!-- 组标题 -->
+          <!-- 原有的题目显示区域保留 -->
           <view class="group-header">
-            <view class="group-index">{{ groupIndex + 1 }}</view>
+            <view class="group-index">{{ group.index }}</view>
             <text class="group-title">原始题目</text>
           </view>
-
-          <!-- 原始题目 -->
           <view class="original-topic">
             <view class="topic-content">{{ group.original }}</view>
           </view>
@@ -86,6 +100,15 @@
         </view>
       </view>
     </view>
+
+    <!-- 添加返回顶部按钮 -->
+    <view 
+      class="back-to-top" 
+      v-show="showBackToTop"
+      @click="scrollToTop"
+    >
+      <u-icon name="arrow-up" color="#fff" size="20"></u-icon>
+    </view>
   </view>
 </template>
 
@@ -100,6 +123,11 @@ export default {
   data() {
     return {
       groupedData: [], // 按原始题目分组的数据
+      showSticky: false,
+      currentGroup: null,
+      currentGroupIndex: 0,
+      isStickyExpanded: false,
+      showBackToTop: false, // 是否显示返回顶部按钮
     };
   },
   methods: {
@@ -122,16 +150,67 @@ export default {
       // 使用 Vue.set 确保响应性
       this.$set(item, "isExpanded", !item.isExpanded);
     },
+    toggleStickyExpand() {
+      this.isStickyExpanded = !this.isStickyExpanded;
+    },
+    handleScroll(e) {
+      // 获取滚动距离
+      const scrollTop = e.scrollTop;
+      
+      // 控制返回顶部按钮的显示/隐藏
+      this.showBackToTop = scrollTop > 200;
+      
+      // 如果滚动距离大于100px，显示固定题目
+      if (scrollTop > 100) {
+        // 计算当前显示的题目组
+        const query = uni.createSelectorQuery().in(this);
+        query.selectAll('.topic-group').boundingClientRect(rects => {
+          if (!rects || rects.length === 0) return;
+          
+          // 找到第一个在视图中的题目组
+          const viewportHeight = uni.getSystemInfoSync().windowHeight;
+          const navbarHeight = 44; // navbar的高度
+          
+          for (let i = 0; i < rects.length; i++) {
+            const rect = rects[i];
+            // 检查元素是否在可视区域内
+            if (rect.top <= viewportHeight / 2 && rect.bottom >= navbarHeight) {
+              this.currentGroup = this.groupedData[i];
+              this.showSticky = true;
+              break;
+            } else if (i === rects.length - 1 && rect.top <= viewportHeight) {
+              // 如果是最后一个元素且在视图内
+              this.currentGroup = this.groupedData[i];
+              this.showSticky = true;
+              break;
+            }
+          }
+        }).exec();
+      } else {
+        this.showSticky = false;
+      }
+    },
+    // 滚动到顶部
+    scrollToTop() {
+      uni.pageScrollTo({
+        scrollTop: 0,
+        duration: 300
+      });
+    },
   },
   async onLoad(options) {
     if (options.id) {
       try {
         const res = await AnalysisApi.getPaperAnalysisDetail(options.id);
         if (res.data) {
-          // 为每个对比结果添加展开状态，默认为折叠状态
+          // 为数据添加序号
+          res.data.forEach((group, index) => {
+            // 添加题目序号（从1开始）
+            group.index = index + 1;
+          });
           res.data.forEach((group) => {
             group.data.forEach((item) => {
-              this.$set(item, "isExpanded", false); // 修改为默认折叠
+              this.$set(item, "isExpanded", false);
             });
           });
           this.groupedData = res.data;
@@ -144,10 +223,99 @@ export default {
       }
     }
   },
+  mounted() {
+    // 添加页面滚动监听
+    // 不需要在这里添加监听，使用onPageScroll生命周期
+  },
+  beforeDestroy() {
+    // 清理滚动监听
+    // 不需要手动清理
+  },
+  onPageScroll(e) {
+    this.handleScroll(e);
+  }
 };
 </script>
 
 <style lang="scss" scoped>
+.detail-container {
+  // 移除padding-top
+}
+
+.sticky-original {
+  position: fixed;
+  top: 44px; // navbar的高度
+  left: 0;
+  right: 0;
+  z-index: 999;
+  transform: translateY(-100%);
+  transition: all 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+
+  &.show-sticky {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .sticky-content {
+    margin: 8px 15px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .sticky-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f0f0;
+
+    .group-index {
+      width: 24px;
+      height: 24px;
+      line-height: 24px;
+      text-align: center;
+      background: #4ecdb6;
+      color: #fff;
+      border-radius: 12px;
+      font-size: 14px;
+      margin-right: 12px;
+    }
+
+    .group-title {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .toggle-btn {
+      padding: 4px;
+      margin-left: 8px;
+    }
+  }
+
+  .sticky-body {
+    padding: 12px 16px;
+    max-height: 44px;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    
+    &.expanded {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .topic-content {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #333;
+    }
+  }
+}
+
 .content {
   padding: 15px;
   background: #fff;
@@ -371,6 +539,28 @@ export default {
     margin-top: 20px;
     font-size: 28rpx;
     color: #999;
+  }
+}
+
+/* 返回顶部按钮样式 */
+.back-to-top {
+  position: fixed;
+  right: 20px;
+  bottom: 120px;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #4ecdb6 0%, #44b6a1 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(78, 205, 182, 0.3);
+  z-index: 99;
+  transition: all 0.3s;
+  
+  &:active {
+    transform: scale(0.95);
+    opacity: 0.9;
   }
 }
 </style>
