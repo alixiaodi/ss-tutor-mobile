@@ -57,7 +57,8 @@
                 }}</text>
                 <text class="question-score">{{ question.score }}分</text>
               </view>
-              <view class="question-content">
+              <!-- 修改这里：只在非填空题时显示question-content -->
+              <view class="question-content" v-if="question.type !== 'blank'">
                 <rich-text
                   :nodes="formatContent(question.content)"
                   user-select
@@ -1813,7 +1814,7 @@ export default {
 }
 
 .question-card {
-  padding: 24rpx 32rpx; /* 只保留左右内边距，让内容更集中 */
+  padding: 24rpx 20rpx; /* 减小卡片本身的内边距，避免叠加过多间距 */
   margin-top: 20rpx; /* 添加顶部间距 */
 }
 
@@ -1853,10 +1854,10 @@ export default {
 .question-content {
   font-size: 34rpx;
   color: #333;
-  line-height: 1.6;
+  line-height: 1.8; /* 增加行高，让文字间距更大 */
   margin-bottom: 32rpx;
   font-weight: 500;
-  padding: 0 4rpx; /* 添加小的左右内边距，让内容更协调 */
+  letter-spacing: 4rpx; /* 添加字间距 */
 }
 
 .question-content img {
@@ -1871,7 +1872,6 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 12rpx;
-  /* 减小选项间距 */
 }
 
 .option-item {
@@ -1901,8 +1901,9 @@ export default {
 
 .option-text {
   flex: 1;
-  font-size: 32rpx; /* 原来是 28rpx */
-  line-height: 1.5; /* 原来是 1.4 */
+  font-size: 32rpx;
+  line-height: 1.8; /* 同样增加选项文字的行高 */
+  letter-spacing: 4rpx; /* 保持与题目文字相同的字间距 */
 }
 
 .option-text img {
@@ -2014,20 +2015,24 @@ export default {
 }
 
 .explanation-content {
-  font-size: 28rpx;
+  font-size: 34rpx;
   color: #333;
   line-height: 1.6;
   padding: 16rpx;
   background: #fff;
   border-radius: 8rpx;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  letter-spacing: 4rpx; /* 添加与题目一致的字间距 */
 }
 
 .explanation-text {
-  margin-top: 16rpx;
+  font-size: 34rpx;
+  color: #666;
+  line-height: 1.6;
   padding: 16rpx;
   background: #fff;
   border-radius: 8rpx;
+  letter-spacing: 4rpx; /* 添加与题目一致的字间距 */
 }
 
 .explanation-label {
@@ -2036,6 +2041,8 @@ export default {
   font-weight: 500;
   margin-right: 8rpx;
   position: relative;
+  font-size: 34rpx;
+  letter-spacing: 4rpx; /* 添加与题目一致的字间距 */
 }
 
 .answer-card-drawer {
@@ -2213,25 +2220,34 @@ export default {
 .blank-content {
   margin: 20rpx 0;
   line-height: 2;
-  font-size: 34rpx; /* 原来是 30rpx */
+  font-size: 34rpx;
   color: #333;
+  letter-spacing: 4rpx;
+  padding: 0; /* 确保没有内边距 */
 }
 
 .blank-text {
   word-wrap: break-word;
   white-space: pre-wrap;
+  display: inline;
+  letter-spacing: 4rpx;
 }
 
 .blank-wrapper {
   display: inline-flex;
   align-items: center;
-  margin: 0 8rpx;
+  margin: 0 12rpx;
   vertical-align: middle;
+  min-width: 200rpx;
+}
+
+/* 修改填空题选项容器样式 */
+.options.blank {
+  padding: 0; /* 移除填空题选项的内边距 */
 }
 
 .blank-input {
   width: 200rpx;
-  /* 固定度 */
   height: 60rpx;
   line-height: 60rpx;
   padding: 0 20rpx;
@@ -2242,6 +2258,7 @@ export default {
   color: #333;
   background: #f8f9fa;
   border-radius: 4rpx;
+  margin: 0 4rpx; /* 添加输入框的左右间距 */
 }
 
 .blank-input:focus {
@@ -2252,9 +2269,8 @@ export default {
 /* 论述题样式优化 */
 .essay-container {
   margin-top: 10rpx;
-  background-color: #fff;
   border-radius: 12rpx;
-  padding: 16rpx;
+  padding: 0 24rpx; /* 调整为与单选题一致的左右内边距 */
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
@@ -2263,13 +2279,15 @@ export default {
   min-height: 400rpx;
   padding: 24rpx;
   box-sizing: border-box;
-  font-size: 28rpx;
+  font-size: 34rpx;
   line-height: 1.8;
+  letter-spacing: 4rpx;
   color: #333;
   background-color: #f8f9fa;
   border: 2rpx solid #e9ecef;
   border-radius: 8rpx;
   transition: all 0.3s ease;
+  margin-top: 20rpx; /* 添加上边距，与题目保持适当间距 */
 }
 
 .essay-input:focus {
@@ -2563,9 +2581,13 @@ export default {
 }
 
 .explanation-content {
-  font-size: 28rpx;
-  color: #666;
+  font-size: 34rpx; /* 从 28rpx 改为 34rpx，与题目字号一致 */
+  color: #333;
   line-height: 1.6;
+  padding: 16rpx;
+  background: #fff;
+  border-radius: 8rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
 }
 
 /* 修改解析部分式 */
@@ -2591,9 +2613,13 @@ export default {
 }
 
 .explanation-content {
-  font-size: 28rpx;
-  color: #666;
+  font-size: 34rpx; /* 从 28rpx 改为 34rpx，与题目字号一致 */
+  color: #333;
   line-height: 1.6;
+  padding: 16rpx;
+  background: #fff;
+  border-radius: 8rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
 }
 
 /* 优化答案显示区域式 */
@@ -2706,14 +2732,14 @@ export default {
 
 .explanation-label {
   display: inline-block;
-  font-size: 28rpx;
+  font-size: 34rpx; /* 从 28rpx 改为 34rpx */
   color: #1890ff;
   font-weight: 500;
-  margin-bottom: 8rpx;
+  margin-right: 8rpx;
 }
 
 .explanation-text {
-  font-size: 28rpx;
+  font-size: 34rpx; /* 从 28rpx 改为 34rpx */
   color: #666;
   line-height: 1.6;
   padding: 16rpx;
@@ -2881,7 +2907,7 @@ export default {
 /* 调整文字为深金色 */
 .memory-tip-btn text {
   color: #8b6914; /* 深金色 */
-  font-size: 28rpx;
+  font-size: 34rpx; /* 从 28rpx 改为 34rpx */
   font-weight: 600;
   letter-spacing: 2rpx;
 }
@@ -2909,14 +2935,15 @@ export default {
 
 .memory-tip-title {
   color: #8b4513;
-  font-size: 30rpx;
+  font-size: 34rpx; /* 从 30rpx 改为 34rpx */
   font-weight: 600;
 }
 
 .memory-tip-text {
-  font-size: 30rpx; /* 稍微增加文字大小 */
+  font-size: 34rpx; /* 从 30rpx 改为 34rpx */
   color: #666;
-  line-height: 1.6;
+  line-height: 1.8;
+  letter-spacing: 4rpx;
   padding: 16rpx;
   background: rgba(255, 255, 255, 0.6);
   border-radius: 8rpx;
