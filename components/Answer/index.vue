@@ -516,21 +516,44 @@ export default {
   },
 
   methods: {
+    getQuestionType(type) {
+      const typeMap = {
+        单选: "single",
+        多选: "multiple",
+        填空题: "blank",
+        简答题: "essay",
+        论述题: "essay",
+        综合题: "essay", // 添加综合题映射
+        综合应用题: "essay",
+        综合应用: "essay",
+        综合分析题: "essay",
+        综合分析: "essay",
+        // 其他可能的综合类型...
+      };
+
+      // 如果是以"综合"开头的题型，都归类为 essay
+      if (type && type.startsWith("综合")) {
+        return "essay";
+      }
+
+      return typeMap[type] || "single";
+    },
+
     getQuestionTypeLabel(type, index = this.currentQuestion) {
       if (!type) return "";
       const question = this.questions[index];
+
+      // 如果原始题型以"综合"开头，直接返回原始题型
+      if (question?.originalType && question.originalType.startsWith("综合")) {
+        return question.originalType.replace("题", ""); // 去掉"题"字
+      }
 
       const types = {
         single: "单选",
         multiple: "多选",
         blank: "填空",
         essay:
-          question?.originalType === "综合应用" ||
-          question?.originalType === "综合应用题" ||
-          question?.originalType === "综合分析" ||
-          question?.originalType === "综合分析题"
-            ? question.originalType.replace("题", "") // 只对综合应用和综合分析去掉"题"字
-            : question?.originalType === "论述题"
+          question?.originalType === "论述题"
             ? question.originalType // 论述题保留"题"字
             : "简答",
       };
@@ -785,7 +808,7 @@ export default {
             currentQuestion?.type === "essay") &&
           answer
         ) {
-          // TODO: 实�� judge 接口调用
+          // TODO: 实 judge 接口调用
           // await AiApi.judge(currentQuestion.id, answer, this.answerId);
         }
 
@@ -1056,18 +1079,18 @@ export default {
       return Array(totalBlanks).fill("");
     },
 
-    // 解���填空题���容将���划线等转换为输入
+    // 解填空题容将划线等转换为输入
     parseBlankContent(content) {
       const parts = [];
       let lastIndex = 0;
       let blankIndex = 0;
 
-      // 处理��种可能填空格式
+      // 处理种可能填空格式
       const blankRegex = /_{2,}|\[.*?\]|（\s*）/g;
       let match;
 
       while ((match = blankRegex.exec(content)) !== null) {
-        // ��加填空的��本
+        // 加填空的本
         if (match.index > lastIndex) {
           parts.push({
             type: "text",
@@ -1134,11 +1157,19 @@ export default {
         填空题: "blank",
         简答题: "essay",
         论述题: "essay",
+        综合题: "essay", // 添加综合题映射
         综合应用题: "essay",
         综合应用: "essay",
-        综合分析题: "essay", // 添加综合分析题的映射
-        综合分析: "essay", // 兼容可能的类型名称
+        综合分析题: "essay",
+        综合分析: "essay",
+        // 其他可能的综合类型...
       };
+
+      // 如果是以"综合"开头的题型，都归类为 essay
+      if (type && type.startsWith("综合")) {
+        return "essay";
+      }
+
       return typeMap[type] || "single";
     },
 
@@ -1251,7 +1282,7 @@ export default {
       const question = this.questions[index];
       const answer = this.answers[index];
 
-      // ��有答案不显示解析
+      // 有答案不显示解析
       if (!answer) return false;
 
       // 填空题特殊处理必须完全填写才显示解析
@@ -1371,13 +1402,13 @@ export default {
       }
     },
 
-    // 新增：初化���寸方法
+    // 新增：初化寸方法
     initSizes() {
       const sysInfo = uni.getSystemInfoSync();
       this.screenWidth = sysInfo.windowWidth;
       this.screenHeight = sysInfo.windowHeight;
 
-      // 转换��柄尺寸（80rpx 和 180rpx）
+      // 转换柄尺寸（80rpx 和 180rpx）
       this.handleWidth = Math.ceil((80 * this.screenWidth) / 750);
       this.handleHeight = Math.ceil((180 * this.screenWidth) / 750);
 
@@ -1777,11 +1808,8 @@ export default {
 }
 
 .question-card {
-  padding: 24rpx;
-  margin: 30rpx;
-  background-color: #fff;
-  border-radius: 12rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+  padding: 24rpx 32rpx; /* 只保留左右内边距，让内容更集中 */
+  margin-top: 20rpx; /* 添加顶部间距 */
 }
 
 .question-title {
@@ -1818,11 +1846,12 @@ export default {
 }
 
 .question-content {
-  font-size: 30rpx;
+  font-size: 34rpx;
   color: #333;
-  line-height: 1.5;
-  margin-bottom: 24rpx;
+  line-height: 1.6;
+  margin-bottom: 32rpx;
   font-weight: 500;
+  padding: 0 4rpx; /* 添加小的左右内边距，让内容更协调 */
 }
 
 .question-content img {
@@ -1841,13 +1870,13 @@ export default {
 }
 
 .option-item {
-  padding: 16rpx 24rpx;
+  padding: 20rpx 28rpx; /* 原来是 16rpx 24rpx */
   background-color: #f8f9fa;
   border-radius: 6rpx;
   border: 1rpx solid transparent;
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 16rpx; /* 原来是 12rpx */
 }
 
 .option-item.active {
@@ -1867,8 +1896,8 @@ export default {
 
 .option-text {
   flex: 1;
-  font-size: 28rpx;
-  line-height: 1.4;
+  font-size: 32rpx; /* 原来是 28rpx */
+  line-height: 1.5; /* 原来是 1.4 */
 }
 
 .option-text img {
@@ -2162,23 +2191,24 @@ export default {
   padding: 20rpx;
   border: 2rpx solid #ddd;
   border-radius: 8rpx;
-  font-size: 28rpx;
+  font-size: 32rpx; /* 原来是 28rpx */
 }
 
 .essay-input {
   width: 100%;
   min-height: 300rpx;
-  padding: 20rpx;
+  padding: 28rpx; /* 原来是 24rpx */
   border: 2rpx solid #ddd;
   border-radius: 8rpx;
-  font-size: 28rpx;
+  font-size: 32rpx; /* 原来是 28rpx */
+  line-height: 1.6; /* 原来是 1.8 */
 }
 
 /* 添加或修改样式 */
 .blank-content {
   margin: 20rpx 0;
   line-height: 2;
-  font-size: 30rpx;
+  font-size: 34rpx; /* 原来是 30rpx */
   color: #333;
 }
 
@@ -2561,7 +2591,7 @@ export default {
   line-height: 1.6;
 }
 
-/* 优化答案显示区域���式 */
+/* 优化答案显示区域式 */
 .explanation-section {
   margin-top: 32rpx;
   padding: 24rpx;
@@ -2595,7 +2625,7 @@ export default {
   color: #1890ff;
 }
 
-/* 优化按���样式 */
+/* 优化按样式 */
 .center-btns {
   display: flex;
   gap: 16rpx;
@@ -2686,7 +2716,7 @@ export default {
   border-radius: 8rpx;
 }
 
-/* ��加图片hover效果 */
+/* 加图片hover效果 */
 .preview-image {
   cursor: zoom-in !important;
   transition: opacity 0.3s ease;
@@ -2713,7 +2743,7 @@ export default {
   border-radius: 8rpx !important;
 }
 
-/* 保图��可点击的样式 */
+/* 保图可点击的样式 */
 .preview-image {
   cursor: pointer !important;
   -webkit-tap-highlight-color: transparent;
@@ -2843,7 +2873,7 @@ export default {
   );
 }
 
-/* 调整文字为��深的��色 */
+/* 调整文字为深金色 */
 .memory-tip-btn text {
   color: #8b6914; /* 深金色 */
   font-size: 28rpx;
@@ -2879,7 +2909,7 @@ export default {
 }
 
 .memory-tip-text {
-  font-size: 28rpx;
+  font-size: 30rpx; /* 稍微增加文字大小 */
   color: #666;
   line-height: 1.6;
   padding: 16rpx;
