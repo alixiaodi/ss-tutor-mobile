@@ -1611,9 +1611,14 @@ export default {
     },
 
     openAiChat() {
-      // 跳转到 AI 导师页面
+      // 获取当前题目信息
+      const currentQuestion = this.questions[this.currentQuestion];
+
+      // 跳转到 AI 导师页面，并传递题号参数
       uni.navigateTo({
-        url: "/pages/ai-tutor/index",
+        url: `/pages/ai-tutor/index?questionId=${currentQuestion.id}&questionNumber=${
+          this.currentQuestion + 1
+        }`,
       });
     },
 

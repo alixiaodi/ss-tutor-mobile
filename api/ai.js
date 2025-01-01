@@ -15,7 +15,7 @@ export const getGenerateCount = () => request.get(`/ai/getGeneratePaperCount`, n
 export const generatePaper = (sCode) => request.post(`/ai/generatePaper/${sCode}`, null)
 
 // AI chat
-export const chat = (message, onProgress) => {
+export const chat = (message, onProgress, params = {}) => {
   return new Promise((resolve, reject) => {
     try {
       const xhr = new XMLHttpRequest();
@@ -23,16 +23,22 @@ export const chat = (message, onProgress) => {
       const baseURL = process.env.NODE_ENV === 'production' 
         ? environment.baseURL 
         : '';
-      xhr.open('POST', `${baseURL}/ai/chat?message=${message}`, true);
+      
+      // 构建URL参数
+      const queryParams = new URLSearchParams({
+        message: message,
+        ...params  // 添加额外的参数
+      }).toString();
+      
+      xhr.open('POST', `${baseURL}/ai/chat?${queryParams}`, true);
       xhr.setRequestHeader('Content-Type', 'text/event-stream');
       xhr.send(null);
 
       let fullResponse = '';
-      let lastProcessedIndex = 0;  // 添加一个变量来追踪上次处理的位置
+      let lastProcessedIndex = 0;
       
       xhr.onprogress = function(event) {
         const responseText = xhr.responseText;
-        // 从上次处理的位置开始截取新数据
         const newData = responseText.substring(lastProcessedIndex);
         
         if (newData) {
@@ -41,11 +47,9 @@ export const chat = (message, onProgress) => {
             if (chunk.trim()) {
               const newStr = JSON.parse(chunk.trim()).data
               fullResponse += newStr;
-              // 调用回调函数，实时更新UI
               onProgress && onProgress(newStr);
             }
           });
-          // 更新已处理位置
           lastProcessedIndex = responseText.length;
         }
       };

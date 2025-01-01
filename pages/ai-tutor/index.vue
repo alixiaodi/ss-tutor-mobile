@@ -44,13 +44,14 @@
       </view>
 
       <view class="input-wrapper">
-        <u-input
-          v-model="message"
-          placeholder="请输入您的问题"
-          border="surround"
-          :clearable="true"
-        >
-          <template slot="suffix">
+        <view class="input-container">
+          <u-input
+            v-model="message"
+            placeholder="请输入您的问题"
+            border="surround"
+            :clearable="true"
+          ></u-input>
+          <view class="button-group">
             <u-button
               @click="sendMessage"
               type="primary"
@@ -58,8 +59,16 @@
               :disabled="!message.trim()"
               >发送</u-button
             >
-          </template>
-        </u-input>
+            <u-button
+              v-if="questionId"
+              @click="showTemplates"
+              type="info"
+              size="mini"
+              icon="plus"
+              class="template-btn"
+            ></u-button>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -107,6 +116,9 @@ export default {
       resetTimeText: "",
       scrollAnimationDuration: 100,
       isScrolling: false,
+      templates: ["请解释一下这个题目"],
+      showTemplatePopup: false,
+      questionId: "",
     };
   },
   async onShow() {
@@ -115,6 +127,9 @@ export default {
     this.resetTimeInterval = setInterval(() => {
       this.updateResetTime();
     }, 60000);
+  },
+  onLoad(options) {
+    this.questionId = options.questionId || "";
   },
   methods: {
     async getUserInfo() {
@@ -261,6 +276,67 @@ export default {
 
       this.resetTimeText = `${hours}小时${minutes}分钟后重置`;
     },
+    showTemplates() {
+      uni.showActionSheet({
+        itemList: this.templates,
+        success: (res) => {
+          const selectedTemplate = this.templates[res.tapIndex];
+          this.chatHistory.push({
+            type: "user",
+            content: selectedTemplate,
+          });
+
+          this.chatHistory.push({
+            type: "ai",
+            content: "",
+          });
+
+          this.scrollToBottom();
+
+          // 构建请求参数
+          const params = this.questionId
+            ? { questionId: this.questionId, type: "aq" }
+            : {};
+
+          aiApi
+            .chat(
+              selectedTemplate,
+              (newText) => {
+                const lastMessage = this.chatHistory[this.chatHistory.length - 1];
+                if (newText === "<|stop|>") {
+                  this.$set(lastMessage, "status", 1);
+                  this.$nextTick(() => {
+                    setTimeout(() => {
+                      this.isScrolling = false;
+                      this.scrollToBottom();
+                    }, 200);
+                  });
+                } else {
+                  lastMessage.content += newText;
+                  if (!this.isScrolling) {
+                    this.scrollToBottom();
+                  }
+                }
+              },
+              params
+            ) // 传入参数
+            .catch((error) => {
+              console.error("AI回复失败:", error);
+              this.chatHistory.pop();
+              this.chatHistory.pop();
+
+              uni.showToast({
+                title: error.message || "获取回复失败，请重试",
+                icon: "none",
+              });
+            });
+
+          if (!this.isVip && this.freeChatNum > 0) {
+            this.freeChatNum--;
+          }
+        },
+      });
+    },
   },
   onHide() {
     if (this.resetTimeInterval) {
@@ -363,27 +439,40 @@ export default {
     }
 
     .input-wrapper {
-      :deep(.u-input) {
-        min-height: 80rpx;
-
-        &__content {
-          min-height: 80rpx;
-          padding: 0 20rpx;
-        }
-
-        &__input {
-          height: 80rpx;
-          font-size: 28rpx;
-        }
-      }
-
-      :deep(.u-button) {
-        margin-left: 20rpx;
-        margin-right: 10rpx;
-        height: 64rpx;
-        padding: 0 30rpx;
+      .input-container {
         display: flex;
         align-items: center;
+        gap: 10rpx;
+
+        :deep(.u-input) {
+          flex: 1;
+          min-height: 80rpx;
+
+          &__content {
+            min-height: 80rpx;
+            padding: 0 20rpx;
+          }
+
+          &__input {
+            height: 80rpx;
+            font-size: 28rpx;
+          }
+        }
+
+        .button-group {
+          display: flex;
+          align-items: center;
+          gap: 10rpx;
+
+          .u-button {
+            height: 64rpx;
+          }
+
+          .template-btn {
+            padding: 0;
+            width: 64rpx;
+          }
+        }
       }
     }
   }
