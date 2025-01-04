@@ -130,7 +130,6 @@ export default {
       hasMore: true,
       isRefreshing: false,
       pageSize: 10, // 每页数量
-      isFirstLoad: true,
     };
   },
   components: {
@@ -140,23 +139,20 @@ export default {
     if (options.id) {
       this.paperId = options.id;
       this.loadPaperDetail();
-      this.refreshHistoryList();
     } else {
       const pages = getCurrentPages();
       const currentPage = pages[pages.length - 1];
       if (currentPage && currentPage.options && currentPage.options.id) {
         this.paperId = currentPage.options.id;
         this.loadPaperDetail();
-        this.refreshHistoryList();
       }
     }
   },
 
   onShow() {
-    if (this.paperId && !this.isFirstLoad) {
+    if (this.paperId) {
       this.refreshHistoryList();
     }
-    this.isFirstLoad = false;
   },
 
   methods: {
@@ -176,27 +172,14 @@ export default {
         return;
       }
 
-      // 先检查是否有进行中的答题记录
-      AnswerQuestionsApi.getHistory(this.paperId, {
-        page: 1,
-        pageSize: 1,
+      // 直接创建新的答题记录
+      AnswerQuestionsApi.add({
+        paperId: this.paperId,
+        type: mode,
       }).then((res) => {
-        if (res.data && res.data.length > 0 && !res.data[0].endTime) {
-          // 如果有进行中的记录，直接跳转继续答题
-          uni.navigateTo({
-            url: `/pages/past-papers/exam?id=${this.paperId}&mode=${mode}&answerId=${res.data[0].id}`,
-          });
-        } else {
-          // 如果没有进行中的记录，才创建新的答题记录
-          AnswerQuestionsApi.add({
-            paperId: this.paperId,
-            type: mode,
-          }).then((res) => {
-            uni.navigateTo({
-              url: `/pages/past-papers/exam?id=${this.paperId}&mode=${mode}&answerId=${res.data}`,
-            });
-          });
-        }
+        uni.navigateTo({
+          url: `/pages/past-papers/exam?id=${this.paperId}&mode=${mode}&answerId=${res.data}`,
+        });
       });
     },
 

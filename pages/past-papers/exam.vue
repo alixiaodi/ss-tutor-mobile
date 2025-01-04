@@ -1,6 +1,10 @@
 <template>
   <view>
-    <Answer :rawQuestions="questions" />
+    <Answer
+      :rawQuestions="questions"
+      :answerHistory="answerHistory"
+      :answerId="answerId"
+    />
   </view>
 </template>
 
@@ -40,27 +44,28 @@ export default {
     this.mode = options.mode;
     this.answerId = options.answerId;
 
+    console.log("初始化参数:", {
+      examCode: this.examCode,
+      mode: this.mode,
+      answerId: this.answerId,
+    });
+
+    // 先获取试题数据
+    await this.fetchExamData();
+
+    // 再获取答题历史
     if (this.answerId) {
       await this.fetchAnswerHistory();
     }
-    await this.fetchExamData();
   },
   methods: {
     async fetchAnswerHistory() {
       try {
         const res = await AnswerQuestionsApi.getAnswerDetail(this.answerId);
+        console.log("答题历史接口返回:", res);
         if (res.code === 200) {
           this.answerHistory = res.data;
-          if (Array.isArray(this.answerHistory)) {
-            this.answerHistory = {
-              answers: this.answerHistory.map((item) => ({
-                questionId: item.questionNumber,
-                answer: item.answer,
-                score: item.score,
-                desc: item.desc,
-              })),
-            };
-          }
+          console.log("获取到的答题历史:", this.answerHistory);
         }
       } catch (error) {
         console.error("获取历史答题记录失败:", error);
@@ -73,22 +78,9 @@ export default {
     async fetchExamData() {
       try {
         const res = await TestPaperInfoApi.getQuestionsByPaperId(this.examCode);
+        console.log("试题数据接口返回:", res);
         this.questions = res.data;
-
-        if (this.answerHistory && this.answerHistory.answers) {
-          this.questions = this.questions.map((question) => {
-            const historicalAnswer = this.answerHistory.answers.find(
-              (a) =>
-                a.questionId === question.id || a.questionId === question.questionNumber
-            );
-            if (historicalAnswer) {
-              question.userAnswer = historicalAnswer.answer;
-              question.score = historicalAnswer.score;
-              question.answerDesc = historicalAnswer.desc;
-            }
-            return question;
-          });
-        }
+        console.log("处理后的试题数据:", this.questions);
       } catch (error) {
         console.error("获取试题失败:", error);
         uni.showToast({

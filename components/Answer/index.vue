@@ -432,6 +432,21 @@ import * as AiApi from "@/api/ai";
 import * as AnswerQuestionsApi from "@/api/answerQuestions";
 
 export default {
+  props: {
+    rawQuestions: {
+      type: Array,
+      default: () => [],
+    },
+    answerHistory: {
+      type: Array,
+      default: null,
+    },
+    answerId: {
+      type: String,
+      default: null,
+    },
+  },
+
   data() {
     const sysInfo = uni.getSystemInfoSync(); // 在 data 中获取系统信息
     const buttonWidthPx = uni.upx2px(100); // 转换按钮宽度为 px
@@ -457,7 +472,6 @@ export default {
       statusBarHeight: 0, // 添加状态栏高度
       id: null, // 题目ID
       mode: null, // 模式
-      answerId: null, // 答案ID
       startTime: null, // 添加开始时间
       usedTime: 0, // 添加已用时间
       timer: null, // 添加计时器引用
@@ -469,16 +483,9 @@ export default {
       buttonHeight: buttonWidthPx, // 初始化按钮高度
       scrollTop: 0,
       lastScrollTop: 0,
-      answerHistory: null, // 添加答题历史记录
     };
   },
 
-  props: {
-    rawQuestions: {
-      type: Array,
-      default: () => [],
-    },
-  },
   watch: {
     rawQuestions: {
       immediate: true,
@@ -487,11 +494,15 @@ export default {
           this.questions = this.transformQuestions(newQuestions);
           // 初始化答案数组
           this.answers = new Array(this.questions.length).fill(null);
-
-          // 如果有历史答案，重新获取
-          if (this.answerId) {
-            this.fetchAnswerHistory();
-          }
+        }
+      },
+    },
+    answerHistory: {
+      immediate: true,
+      handler(newHistory) {
+        console.log("接收到新的答题历史:", newHistory);
+        if (newHistory) {
+          this.initAnswersFromHistory(newHistory);
         }
       },
     },
@@ -1058,10 +1069,11 @@ export default {
 
     // 转换题目数据格式
     transformQuestions(rawQuestions) {
-      return rawQuestions.map((q) => ({
-        id: q.id,
+      console.log("转换前的原始题目:", rawQuestions);
+      const transformed = rawQuestions.map((q) => ({
+        id: q.id || q.questionNumber, // 添加 questionNumber 作为备选
         type: this.getQuestionType(q.type),
-        originalType: q.type, // 保存原始题目类型
+        originalType: q.type,
         content: q.title,
         score: q.score,
         options: this.transformOptions(q.options),
@@ -1071,6 +1083,8 @@ export default {
         blanks:
           this.getQuestionType(q.type) === "blank" ? this.parseBlankCount(q.title) : [],
       }));
+      console.log("转换后的题目:", transformed);
+      return transformed;
     },
 
     // 解析填空题中的空的数量
@@ -1706,66 +1720,54 @@ export default {
       this.lastScrollTop = e.detail.scrollTop;
     },
 
-    // 修改获取答题历史的方法
-    async fetchAnswerHistory() {
-      try {
-        const res = await AnswerQuestionsApi.getAnswerDetail(this.answerId);
-        if (res.code === 200 && Array.isArray(res.data)) {
-          this.answerHistory = res.data;
-          console.log("题目列表:", this.questions);
-          console.log("历史答案:", this.answerHistory);
+    // 新增初始化答案的方法
+    initAnswersFromHistory(history) {
+      if (!Array.isArray(history)) return;
 
-          // 遍历历史答案数据
-          this.answerHistory.forEach((historyItem) => {
-            // 查找对应的题目索引
-            const questionIndex = this.questions.findIndex(
-              (q) => String(q.id) === String(historyItem.questionNumber)
-            );
+      console.log("开始初始化答案，历史记录:", history);
+      console.log("当前题目列表:", this.questions);
 
-            console.log("匹配题目:", {
-              questionNumber: historyItem.questionNumber,
-              foundIndex: questionIndex,
-              answer: historyItem.answer,
-            });
+      history.forEach((historyItem) => {
+        // 尝试多种可能的 ID 匹配
+        const questionIndex = this.questions.findIndex(
+          (q) => 
+            String(q.id) === String(historyItem.questionNumber) || 
+            String(q.id) === String(historyItem.questionId) ||
+            String(q.questionNumber) === String(historyItem.questionNumber)
+        );
 
-            if (questionIndex !== -1) {
-              // 获取题目类型
-              const questionType = this.questions[questionIndex].type;
-              let formattedAnswer = historyItem.answer;
+        console.log("匹配题目:", {
+          questionNumber: historyItem.questionNumber,
+          questionId: historyItem.questionId,
+          foundIndex: questionIndex,
+          answer: historyItem.answer,
+        });
 
-              // 根据题目类型处理答案格式
-              if (questionType === "multiple" && typeof formattedAnswer === "string") {
-                // 多选题答案转换为数组
-                formattedAnswer = formattedAnswer.split(",");
-              } else if (
-                questionType === "blank" &&
-                typeof formattedAnswer === "string"
-              ) {
-                // 填空题答案转换为数组
-                formattedAnswer = formattedAnswer.split(",");
-              }
+        if (questionIndex !== -1) {
+          const questionType = this.questions[questionIndex].type;
+          let formattedAnswer = historyItem.answer;
 
-              console.log("设置答案:", {
-                index: questionIndex,
-                type: questionType,
-                answer: formattedAnswer,
-              });
+          // 根据题目类型处理答案格式
+          if (questionType === "multiple" && typeof formattedAnswer === "string") {
+            formattedAnswer = formattedAnswer.split(",");
+          } else if (questionType === "blank" && typeof formattedAnswer === "string") {
+            formattedAnswer = formattedAnswer.split(",");
+          }
 
-              // 设置答案
-              this.$set(this.answers, questionIndex, formattedAnswer);
-            }
+          console.log("设置答案:", {
+            index: questionIndex,
+            type: questionType,
+            rawAnswer: historyItem.answer,
+            formattedAnswer: formattedAnswer,
           });
 
-          // 检查最终答案数组
-          console.log("最终答案数组:", this.answers);
+          this.$set(this.answers, questionIndex, formattedAnswer);
+        } else {
+          console.warn("未找到匹配的题目:", historyItem);
         }
-      } catch (error) {
-        console.error("获取答题历史失败:", error);
-        uni.showToast({
-          title: "获取答题历史失败",
-          icon: "none",
-        });
-      }
+      });
+
+      console.log("初始化后的答案数组:", this.answers);
     },
   },
   mounted() {
@@ -1776,11 +1778,6 @@ export default {
     this.id = options.id;
     this.mode = options.mode;
     this.answerId = options.answerId;
-
-    // 如果存在 answerId，获取答题历史
-    if (this.answerId) {
-      this.fetchAnswerHistory();
-    }
 
     // 设置开始时间
     this.startTime = Date.now();
