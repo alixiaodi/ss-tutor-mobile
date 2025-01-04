@@ -15,6 +15,9 @@ export const clearAnswer = (id) => request.delete(`/answerQuestions/deleteAnswer
 
 export const getAnswerDetail = (id) => request.get(`/answerQuestions/getAnswerDetail/${id}`)  
 
+export const getLastAnswer = (subjectId) => request.get(`/answerQuestions/getLastAnswer/${subjectId}`)
+
+
 // 获取记忆方法的示例数据
 export function getMemoryTip(questionId) {
   // 模拟接口调用

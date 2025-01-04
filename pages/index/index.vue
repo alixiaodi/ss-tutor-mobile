@@ -195,7 +195,7 @@ export default {
 
       // 其他页面跳转逻辑保持不变
       if (url === "/pages/mock-exam/index" || url === "/pages/past-papers/index") {
-        url = `${url}?subjectCode=${this.currentSubjectCode}`;
+        url = `${url}?subjectCode=${this.currentSubjectCode}&from=index`;
       }
       if (url === "/pages/year-analysis/index") {
         url = `${url}?subjectCode=${this.currentSubjectCode}`;

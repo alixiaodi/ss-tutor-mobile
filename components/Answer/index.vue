@@ -961,51 +961,43 @@ export default {
     },
 
     handleBack() {
-      // 检查是否有答题记录需要保存
-      const hasAnswers = this.answers.some((answer) => answer !== null && answer !== "");
-
-      if (hasAnswers) {
-        uni.showModal({
-          title: "提示",
-          content: "是否保存答题记录？",
-          cancelText: "不保存",
-          confirmText: "保存",
-          success: (res) => {
-            if (res.confirm) {
-              // 用户选择保存，直接返回
-              history.back();
-            } else {
-              // 用户选择不保存，显示二次确认
-              uni.showModal({
-                title: "警告",
-                content: "不保存将删除当前答题记录，确定要继续吗？",
-                cancelText: "取消",
-                confirmText: "确定",
-                success: (secondRes) => {
-                  if (secondRes.confirm) {
-                    // 用户确认删除，调用清除接口后返回
-                    AnswerQuestionsApi.clearAnswer(this.answerId)
-                      .then(() => {
-                        history.back();
-                      })
-                      .catch((err) => {
-                        console.error("清除答题记录失败:", err);
-                        uni.showToast({
-                          title: "清除记录失败",
-                          icon: "none",
-                        });
+      uni.showModal({
+        title: "提示",
+        content: "是否保存答题记录？",
+        cancelText: "不保存",
+        confirmText: "保存",
+        success: (res) => {
+          if (res.confirm) {
+            // 用户选择保存，直接返回
+            history.back();
+          } else {
+            // 用户选择不保存，显示二次确认
+            uni.showModal({
+              title: "警告",
+              content: "不保存将删除当前答题记录，确定要继续吗？",
+              cancelText: "取消",
+              confirmText: "确定",
+              success: (secondRes) => {
+                if (secondRes.confirm) {
+                  // 用户确认删除，调用清除接口后返回
+                  AnswerQuestionsApi.clearAnswer(this.answerId)
+                    .then(() => {
+                      history.back();
+                    })
+                    .catch((err) => {
+                      console.error("清除答题记录失败:", err);
+                      uni.showToast({
+                        title: "清除记录失败",
+                        icon: "none",
                       });
-                  }
-                  // 如果用户点击取消，则不做任何操作，停留在当前页面
-                },
-              });
-            }
-          },
-        });
-      } else {
-        // 没有答题记录，直接返回
-        history.back();
-      }
+                    });
+                }
+                // 如果用户点击取消，则不做任何操作，停留在当前页面
+              },
+            });
+          }
+        },
+      });
     },
 
     // 解析填空题内容，将文本和空位置分开

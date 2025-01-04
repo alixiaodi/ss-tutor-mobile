@@ -22,6 +22,7 @@
         v-for="item in examList"
         :key="item.id"
         class="exam-item"
+        :class="{ 'exam-item-active': item.id === lastAnswerPaperId }"
         @click="goToExam(item.id)"
       >
         <view class="exam-info">
@@ -40,6 +41,7 @@
 <script>
 import Navbar from "@/components/navbar/Navbar";
 import * as TestPaperApi from "@/api/testPaper";
+import * as AnswerQuestionsApi from "@/api/answerQuestions";
 export default {
   components: { Navbar },
   name: "MockExam",
@@ -47,16 +49,25 @@ export default {
     return {
       subjectCode: "",
       examList: [],
+      lastAnswerPaperId: null,
+      fromIndex: false,
+      hasShownPrompt: false,
     };
   },
   onLoad(options) {
     if (options.subjectCode) {
       this.subjectCode = options.subjectCode;
+      const pages = getCurrentPages();
+      if (pages.length >= 2) {
+        const prevPage = pages[pages.length - 2];
+        this.fromIndex = prevPage.route === "pages/index/index";
+      }
     }
   },
-  onShow() {
+  async onShow() {
     if (this.subjectCode) {
-      this.fetchExamData();
+      await this.fetchExamData();
+      await this.getLastAnswerRecord();
     } else {
       uni.switchTab({
         url: "/pages/index/index",
@@ -73,6 +84,32 @@ export default {
       await TestPaperApi.getYearPaper(this.subjectCode).then((res) => {
         this.examList = res.data;
       });
+    },
+    async getLastAnswerRecord() {
+      try {
+        const res = await AnswerQuestionsApi.getLastAnswer(this.subjectCode);
+        if (res.data && res.data.endTime === null) {
+          this.lastAnswerPaperId = res.data.paperId;
+          if (this.fromIndex && !this.hasShownPrompt) {
+            this.hasShownPrompt = true;
+            uni.showModal({
+              title: "提示",
+              content: `您有未完成的《${res.data.testPaperName}》答题记录，是否继续答题？`,
+              confirmText: "继续答题",
+              cancelText: "取消",
+              success: (result) => {
+                if (result.confirm) {
+                  uni.navigateTo({
+                    url: `/pages/past-papers/exam?id=${res.data.paperId}&mode=${res.data.type}&answerId=${res.data.id}`,
+                  });
+                }
+              },
+            });
+          }
+        }
+      } catch (error) {
+        console.error("获取最后一次答题记录失败:", error);
+      }
     },
   },
 };
@@ -148,5 +185,10 @@ export default {
   background-color: #fff;
   border-radius: 12rpx;
   margin-top: 20rpx;
+}
+
+.exam-item-active {
+  background-color: #f0faf8;
+  border-left: 8rpx solid #4ecdb6;
 }
 </style>
