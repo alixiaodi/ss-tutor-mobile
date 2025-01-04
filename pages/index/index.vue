@@ -78,6 +78,10 @@
                 <text>VIP</text>
               </view>
             </view>
+            <view class="module-card" @click="navigateTo('/pages/my-questions/index')">
+              <image src="/static/icons/my_questions.png" class="module-icon"></image>
+              <text class="module-title">我的题库</text>
+            </view>
           </view>
         </view>
       </swiper-item>

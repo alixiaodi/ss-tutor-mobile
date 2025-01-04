@@ -55,7 +55,6 @@ export default {
     };
   },
   onLoad(options) {
-    debugger;
     if (options.subjectCode) {
       this.subjectCode = options.subjectCode;
       if (options.from === "index") {

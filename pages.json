@@ -166,6 +166,13 @@
 			"style": {
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/my-questions/index",
+			"style": {
+				"navigationBarTitleText": "我的题库",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"tabBar": {
