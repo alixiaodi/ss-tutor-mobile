@@ -88,9 +88,9 @@ export default {
     async getLastAnswerRecord() {
       try {
         const res = await AnswerQuestionsApi.getLastAnswer(this.subjectCode);
-        if (res.data && res.data.endTime === null) {
+        if (res.data) {
           this.lastAnswerPaperId = res.data.paperId;
-          if (this.fromIndex && !this.hasShownPrompt) {
+          if (res.data.endTime === null && this.fromIndex && !this.hasShownPrompt) {
             this.hasShownPrompt = true;
             uni.showModal({
               title: "提示",
