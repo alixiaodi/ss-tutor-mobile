@@ -943,42 +943,39 @@ export default {
     },
 
     handleBack() {
-      uni.showModal({
-        title: "提示",
-        content: "返回首页将不保存答题记录，是否确认返回？",
-        success: (res) => {
-          if (res.confirm) {
-            // 打印需要清除的记录
-            console.log("需要清除的答题记录:", {
-              answerId: this.answerId,
-              questions: this.questions,
-              answers: this.answers,
-              usedTime: this.usedTime,
-            });
+      // 检查是否有答题记录需要保存
+      const hasAnswers = this.answers.some((answer) => answer !== null && answer !== "");
 
-            // 调用清除接口，成功后再返回
-            AnswerQuestionsApi.clearAnswer(this.answerId)
-              .then((res) => {
-                console.log("清除答题记录结果:", res);
-                if (res.code === 200) {
+      if (hasAnswers) {
+        uni.showModal({
+          title: "提示",
+          content: "是否保存答题记录？",
+          cancelText: "不保存",
+          confirmText: "保存",
+          success: (res) => {
+            if (res.confirm) {
+              // 用户选择保存，直接返回
+              history.back();
+            } else {
+              // 用户选择不保存，调用清除接口后返回
+              AnswerQuestionsApi.clearAnswer(this.answerId)
+                .then(() => {
                   history.back();
-                } else {
+                })
+                .catch((err) => {
+                  console.error("清除答题记录失败:", err);
                   uni.showToast({
-                    title: "清除答题记录失败",
+                    title: "清除记录失败",
                     icon: "none",
                   });
-                }
-              })
-              .catch((err) => {
-                console.error("清除答题记录失败:", err);
-                uni.showToast({
-                  title: "清除答题记录失败",
-                  icon: "none",
                 });
-              });
-          }
-        },
-      });
+            }
+          },
+        });
+      } else {
+        // 没有答题记录，直接返回
+        history.back();
+      }
     },
 
     // 解析填空题内容，将文本和空位置分开

@@ -86,7 +86,12 @@
             <text class="history-mode" :class="item.mode">
               {{ item.mode === "practice" ? "练习" : "考试" }}
             </text>
-            <text class="history-score">{{ item.score }}分</text>
+            <text
+              class="history-score"
+              :class="{ 'in-progress': item.score === '进行中' }"
+            >
+              {{ item.score === "进行中" ? "进行中" : item.score + "分" }}
+            </text>
             <text class="history-time">{{ item.date }}</text>
           </view>
           <view class="history-stats">
@@ -171,20 +176,44 @@ export default {
         return;
       }
 
-      AnswerQuestionsApi.add({
-        paperId: this.paperId,
-        type: mode,
+      // 先检查是否有进行中的答题记录
+      AnswerQuestionsApi.getHistory(this.paperId, {
+        page: 1,
+        pageSize: 1,
       }).then((res) => {
-        uni.navigateTo({
-          url: `/pages/past-papers/exam?id=${this.paperId}&mode=${mode}&answerId=${res.data}`,
-        });
+        if (res.data && res.data.length > 0 && !res.data[0].endTime) {
+          // 如果有进行中的记录，直接跳转继续答题
+          uni.navigateTo({
+            url: `/pages/past-papers/exam?id=${this.paperId}&mode=${mode}&answerId=${res.data[0].id}`,
+          });
+        } else {
+          // 如果没有进行中的记录，才创建新的答题记录
+          AnswerQuestionsApi.add({
+            paperId: this.paperId,
+            type: mode,
+          }).then((res) => {
+            uni.navigateTo({
+              url: `/pages/past-papers/exam?id=${this.paperId}&mode=${mode}&answerId=${res.data}`,
+            });
+          });
+        }
       });
     },
 
     viewHistoryDetail(history) {
-      uni.navigateTo({
-        url: `/pages/past-papers/review?id=${history.id}`,
-      });
+      if (history.score === "进行中") {
+        // 继续作答
+        uni.navigateTo({
+          url: `/pages/past-papers/exam?id=${this.paperId}&mode=${
+            history.mode === "practice" ? "0" : "1"
+          }&answerId=${history.id}`,
+        });
+      } else {
+        // 查看历史详情
+        uni.navigateTo({
+          url: `/pages/past-papers/review?id=${history.id}`,
+        });
+      }
     },
 
     loadHistory(isRefresh = false) {
@@ -201,7 +230,7 @@ export default {
           const formattedData = res.data.map((item) => ({
             id: item.id,
             mode: item.type === "0" ? "practice" : "exam",
-            score: item.totalScore || 0,
+            score: item.endTime ? item.totalScore || 0 : "进行中",
             date: this.formatDateTime(item.startTime),
             duration: this.calculateDuration(item.startTime, item.endTime),
             correct: "-",
@@ -453,6 +482,10 @@ export default {
   font-size: 28rpx;
   font-weight: 500;
   color: #52c41a;
+}
+
+.history-score.in-progress {
+  color: #1890ff;
 }
 
 .history-time {

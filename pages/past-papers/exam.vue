@@ -7,6 +7,8 @@
 <script>
 import Answer from "@/components/Answer";
 import * as TestPaperInfoApi from "@/api/testpaperInfo";
+import * as AnswerQuestionsApi from "@/api/answerQuestions";
+
 export default {
   components: {
     Answer,
@@ -21,6 +23,8 @@ export default {
       selectedAnswer: null,
       questions: [],
       mode: null,
+      answerId: null,
+      answerHistory: null,
     };
   },
   computed: {
@@ -34,13 +38,64 @@ export default {
   async onLoad(options) {
     this.examCode = options.id;
     this.mode = options.mode;
+    this.answerId = options.answerId;
+
+    if (this.answerId) {
+      await this.fetchAnswerHistory();
+    }
     await this.fetchExamData();
   },
   methods: {
+    async fetchAnswerHistory() {
+      try {
+        const res = await AnswerQuestionsApi.getAnswerDetail(this.answerId);
+        if (res.code === 200) {
+          this.answerHistory = res.data;
+          if (Array.isArray(this.answerHistory)) {
+            this.answerHistory = {
+              answers: this.answerHistory.map((item) => ({
+                questionId: item.questionNumber,
+                answer: item.answer,
+                score: item.score,
+                desc: item.desc,
+              })),
+            };
+          }
+        }
+      } catch (error) {
+        console.error("获取历史答题记录失败:", error);
+        uni.showToast({
+          title: "获取历史答题记录失败",
+          icon: "none",
+        });
+      }
+    },
     async fetchExamData() {
-      TestPaperInfoApi.getQuestionsByPaperId(this.examCode).then((res) => {
+      try {
+        const res = await TestPaperInfoApi.getQuestionsByPaperId(this.examCode);
         this.questions = res.data;
-      });
+
+        if (this.answerHistory && this.answerHistory.answers) {
+          this.questions = this.questions.map((question) => {
+            const historicalAnswer = this.answerHistory.answers.find(
+              (a) =>
+                a.questionId === question.id || a.questionId === question.questionNumber
+            );
+            if (historicalAnswer) {
+              question.userAnswer = historicalAnswer.answer;
+              question.score = historicalAnswer.score;
+              question.answerDesc = historicalAnswer.desc;
+            }
+            return question;
+          });
+        }
+      } catch (error) {
+        console.error("获取试题失败:", error);
+        uni.showToast({
+          title: "获取试题失败",
+          icon: "none",
+        });
+      }
     },
     selectAnswer(index) {
       this.selectedAnswer = index;

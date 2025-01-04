@@ -13,6 +13,8 @@ export const getHistory = (id) => request.get(`/answerQuestions/answerList/${id}
 // 清除答题记录
 export const clearAnswer = (id) => request.delete(`/answerQuestions/deleteAnswer/${id}`)
 
+export const getAnswerDetail = (id) => request.get(`/answerQuestions/getAnswerDetail/${id}`)  
+
 // 获取记忆方法的示例数据
 export function getMemoryTip(questionId) {
   // 模拟接口调用
