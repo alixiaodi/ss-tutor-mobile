@@ -469,6 +469,7 @@ export default {
       buttonHeight: buttonWidthPx, // 初始化按钮高度
       scrollTop: 0,
       lastScrollTop: 0,
+      answerHistory: null, // 添加答题历史记录
     };
   },
 
@@ -484,7 +485,13 @@ export default {
       handler(newQuestions) {
         if (newQuestions.length) {
           this.questions = this.transformQuestions(newQuestions);
+          // 初始化答案数组
           this.answers = new Array(this.questions.length).fill(null);
+
+          // 如果有历史答案，重新获取
+          if (this.answerId) {
+            this.fetchAnswerHistory();
+          }
         }
       },
     },
@@ -1698,6 +1705,68 @@ export default {
     handleScroll(e) {
       this.lastScrollTop = e.detail.scrollTop;
     },
+
+    // 修改获取答题历史的方法
+    async fetchAnswerHistory() {
+      try {
+        const res = await AnswerQuestionsApi.getAnswerDetail(this.answerId);
+        if (res.code === 200 && Array.isArray(res.data)) {
+          this.answerHistory = res.data;
+          console.log("题目列表:", this.questions);
+          console.log("历史答案:", this.answerHistory);
+
+          // 遍历历史答案数据
+          this.answerHistory.forEach((historyItem) => {
+            // 查找对应的题目索引
+            const questionIndex = this.questions.findIndex(
+              (q) => String(q.id) === String(historyItem.questionNumber)
+            );
+
+            console.log("匹配题目:", {
+              questionNumber: historyItem.questionNumber,
+              foundIndex: questionIndex,
+              answer: historyItem.answer,
+            });
+
+            if (questionIndex !== -1) {
+              // 获取题目类型
+              const questionType = this.questions[questionIndex].type;
+              let formattedAnswer = historyItem.answer;
+
+              // 根据题目类型处理答案格式
+              if (questionType === "multiple" && typeof formattedAnswer === "string") {
+                // 多选题答案转换为数组
+                formattedAnswer = formattedAnswer.split(",");
+              } else if (
+                questionType === "blank" &&
+                typeof formattedAnswer === "string"
+              ) {
+                // 填空题答案转换为数组
+                formattedAnswer = formattedAnswer.split(",");
+              }
+
+              console.log("设置答案:", {
+                index: questionIndex,
+                type: questionType,
+                answer: formattedAnswer,
+              });
+
+              // 设置答案
+              this.$set(this.answers, questionIndex, formattedAnswer);
+            }
+          });
+
+          // 检查最终答案数组
+          console.log("最终答案数组:", this.answers);
+        }
+      } catch (error) {
+        console.error("获取答题历史失败:", error);
+        uni.showToast({
+          title: "获取答题历史失败",
+          icon: "none",
+        });
+      }
+    },
   },
   mounted() {
     const pages = getCurrentPages();
@@ -1707,6 +1776,11 @@ export default {
     this.id = options.id;
     this.mode = options.mode;
     this.answerId = options.answerId;
+
+    // 如果存在 answerId，获取答题历史
+    if (this.answerId) {
+      this.fetchAnswerHistory();
+    }
 
     // 设置开始时间
     this.startTime = Date.now();
