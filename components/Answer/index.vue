@@ -975,18 +975,30 @@ export default {
               // 用户选择保存，直接返回
               history.back();
             } else {
-              // 用户选择不保存，调用清除接口后返回
-              AnswerQuestionsApi.clearAnswer(this.answerId)
-                .then(() => {
-                  history.back();
-                })
-                .catch((err) => {
-                  console.error("清除答题记录失败:", err);
-                  uni.showToast({
-                    title: "清除记录失败",
-                    icon: "none",
-                  });
-                });
+              // 用户选择不保存，显示二次确认
+              uni.showModal({
+                title: "警告",
+                content: "不保存将删除当前答题记录，确定要继续吗？",
+                cancelText: "取消",
+                confirmText: "确定",
+                success: (secondRes) => {
+                  if (secondRes.confirm) {
+                    // 用户确认删除，调用清除接口后返回
+                    AnswerQuestionsApi.clearAnswer(this.answerId)
+                      .then(() => {
+                        history.back();
+                      })
+                      .catch((err) => {
+                        console.error("清除答题记录失败:", err);
+                        uni.showToast({
+                          title: "清除记录失败",
+                          icon: "none",
+                        });
+                      });
+                  }
+                  // 如果用户点击取消，则不做任何操作，停留在当前页面
+                },
+              });
             }
           },
         });
@@ -1730,8 +1742,8 @@ export default {
       history.forEach((historyItem) => {
         // 尝试多种可能的 ID 匹配
         const questionIndex = this.questions.findIndex(
-          (q) => 
-            String(q.id) === String(historyItem.questionNumber) || 
+          (q) =>
+            String(q.id) === String(historyItem.questionNumber) ||
             String(q.id) === String(historyItem.questionId) ||
             String(q.questionNumber) === String(historyItem.questionNumber)
         );
