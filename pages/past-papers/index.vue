@@ -55,12 +55,11 @@ export default {
     };
   },
   onLoad(options) {
+    debugger;
     if (options.subjectCode) {
       this.subjectCode = options.subjectCode;
-      const pages = getCurrentPages();
-      if (pages.length >= 2) {
-        const prevPage = pages[pages.length - 2];
-        this.fromIndex = prevPage.route === "pages/index/index";
+      if (options.from === "index") {
+        this.fromIndex = true;
       }
     }
   },
