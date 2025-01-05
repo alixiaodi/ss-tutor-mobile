@@ -229,7 +229,16 @@
                         mode="aspectFit"
                       ></image>
                       <text class="memory-tip-title">记忆方法</text>
+                      <!-- 修改收藏按钮 -->
+                      <view
+                        class="collect-btn"
+                        @click.stop="showCollectDialog(question.id)"
+                      >
+                        <text class="collect-icon">★</text>
+                        <text class="collect-text">收藏</text>
+                      </view>
                     </view>
+                    <!-- 修改记忆方法内容展示 -->
                     <view class="memory-tip-text">
                       <rich-text :nodes="memoryTipContent[question.id]"></rich-text>
                     </view>
@@ -424,6 +433,136 @@
       <view class="close-btn" @click.stop="closePreview">×</view>
     </view>
     <!-- #endif -->
+
+    <!-- 添加收藏选择弹窗 -->
+    <view
+      class="collect-dialog"
+      v-if="showCollectSelect"
+      @click.stop="closeCollectDialog"
+    >
+      <view class="collect-dialog-content" @click.stop>
+        <view class="dialog-header">
+          <text class="dialog-title">收藏内容</text>
+          <text class="dialog-close" @click="closeCollectDialog">×</text>
+        </view>
+
+        <view class="collect-dialog-body">
+          <!-- 左侧：内容选择区域 -->
+          <view class="content-section">
+            <view class="section-header">
+              <text class="section-title">选择要收藏的内容</text>
+              <text class="selected-count" v-if="selectedTexts.length">
+                已选择 {{ selectedTexts.length }} 段
+              </text>
+            </view>
+
+            <scroll-view scroll-y class="content-list">
+              <view
+                v-for="(paragraph, index) in parsedParagraphs"
+                :key="index"
+                class="content-item"
+                :class="{ selected: selectedIndexes.includes(index) }"
+                @click="toggleParagraphSelect(index, paragraph)"
+              >
+                <view class="item-header">
+                  <view class="checkbox">
+                    <text v-if="selectedIndexes.includes(index)" class="checkbox-icon"
+                      >✓</text
+                    >
+                  </view>
+                  <text class="item-type" v-if="paragraph.type"
+                    >【{{ paragraph.type }}】</text
+                  >
+                </view>
+                <view class="item-content">
+                  <text class="item-keywords" v-if="paragraph.keywords">{{
+                    paragraph.keywords
+                  }}</text>
+                  <text class="item-text">{{ paragraph.content }}</text>
+                </view>
+              </view>
+            </scroll-view>
+          </view>
+
+          <!-- 右侧：分组选择区域 -->
+          <view class="group-section">
+            <view class="section-header">
+              <text class="section-title">选择收藏分组</text>
+              <text class="add-btn" @click="showAddGroup">新建分组</text>
+            </view>
+
+            <view class="search-box">
+              <input
+                class="search-input"
+                v-model="searchGroupKeyword"
+                placeholder="搜索分组"
+                @input="onSearchInput"
+              />
+              <text v-if="searchGroupKeyword" class="clear-btn" @click="clearSearch"
+                >×</text
+              >
+            </view>
+
+            <scroll-view scroll-y class="group-list">
+              <view
+                v-for="group in filteredGroups"
+                :key="group.id"
+                class="group-item"
+                :class="{ active: selectedGroupId === group.id }"
+                @click="selectGroup(group.id)"
+              >
+                <text class="group-name">{{ group.name }}</text>
+                <text class="group-count">{{ group.count || 0 }}</text>
+              </view>
+              <view v-if="filteredGroups.length === 0" class="empty-tip">
+                未找到相关分组
+              </view>
+            </scroll-view>
+          </view>
+        </view>
+
+        <view class="dialog-footer">
+          <view class="btn cancel" @click="closeCollectDialog">取消</view>
+          <view
+            class="btn confirm"
+            :class="{ disabled: !selectedGroupId || !selectedTexts.length }"
+            @click="confirmCollect"
+          >
+            确定收藏
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 添加新建分组弹窗 -->
+    <view class="add-group-dialog" v-if="showAddGroupDialog" @click.stop="closeAddGroup">
+      <view class="add-group-content" @click.stop>
+        <view class="add-group-header">
+          <text class="add-group-title">新建分组</text>
+          <text class="close-btn" @click="closeAddGroup">×</text>
+        </view>
+        <view class="add-group-body">
+          <input
+            class="group-name-input"
+            v-model="newGroupName"
+            placeholder="请输入分组名称"
+            maxlength="20"
+            @input="onGroupNameInput"
+          />
+          <text class="input-count">{{ newGroupName.length }}/20</text>
+        </view>
+        <view class="add-group-footer">
+          <view class="dialog-btn cancel" @click="closeAddGroup">取消</view>
+          <view
+            class="dialog-btn confirm"
+            :class="{ disabled: !newGroupName.trim() }"
+            @click="createGroup"
+          >
+            确定
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -483,6 +622,29 @@ export default {
       buttonHeight: buttonWidthPx, // 初始化按钮高度
       scrollTop: 0,
       lastScrollTop: 0,
+      isCollected: {}, // 新增：存储收藏状态
+      showCollectSelect: false, // 是否显示收藏选择弹窗
+      selectedTexts: [], // 改为数组，存储多段选中的文本
+      selectedIndexes: [], // 存储选中段落的索引
+      parsedParagraphs: [], // 存储解析后的段落
+      currentQuestionId: null, // 当前操作的题目ID
+      currentMemoryContent: "", // 修改为字符串，存储完整的HTML内容
+      parsedMemoryItems: [], // 新增：存储解析后的可选择内容
+      currentSelection: "", // 当前选中的文本
+      isLongPressed: false, // 新增：是否处于长按状态
+      longPressTimer: null, // 新增：长按定时器
+      collectGroups: [
+        { id: "1", name: "重点记忆", count: 12 },
+        { id: "2", name: "易错知识点", count: 8 },
+        { id: "3", name: "待复习", count: 5 },
+        { id: "4", name: "收藏夹", count: 3 },
+        { id: "5", name: "错题本", count: 15 },
+      ],
+      selectedGroupId: "",
+      showAddGroupDialog: false,
+      newGroupName: "",
+      searchGroupKeyword: "", // 添加搜索关键词
+      localGroupId: 6, // 用于生成本地分组ID
     };
   },
 
@@ -531,6 +693,18 @@ export default {
     },
     currentQuestionData() {
       return this.questions[this.currentQuestion] || null;
+    },
+    // 计算选中文本的总长度
+    totalSelectedLength() {
+      return this.selectedTexts.reduce((total, text) => total + text.length, 0);
+    },
+    // 添加过滤后的分组列表计算属性
+    filteredGroups() {
+      if (!this.searchGroupKeyword) return this.collectGroups;
+      const keyword = this.searchGroupKeyword.toLowerCase();
+      return this.collectGroups.filter((group) =>
+        group.name.toLowerCase().includes(keyword)
+      );
     },
   },
 
@@ -1570,28 +1744,32 @@ export default {
                   });
 
                   // 格式化记忆方法内容
-                  let content = "";
+                  let content = '<div class="memory-content">';
 
                   res.data.forEach((item) => {
-                    content += '<div style="margin-bottom: 16rpx;">';
-                    content += `<div style="font-weight: bold; color: #8b4513; margin-bottom: 8rpx;">${item.type}：</div>`;
+                    content += `<div class="memory-section">`;
+                    content += `<div class="memory-type">${item.type}：</div>`;
 
                     // 如果有关键词数组，先显示关键词
                     if (item.keyword && item.keyword.length) {
-                      content += `<div style="margin-bottom: 8rpx;">${item.keyword.join(
+                      content += `<div class="memory-keywords">${item.keyword.join(
                         "、"
                       )}</div>`;
                     }
 
                     // 显示记忆内容
                     if (item.memory && item.memory.length) {
-                      content += item.memory
-                        .map((m) => `<div style="margin: 4rpx 0;">• ${m}</div>`)
-                        .join("");
+                      content += `<div class="memory-items">`;
+                      item.memory.forEach((m) => {
+                        content += `<div class="memory-item">• ${m}</div>`;
+                      });
+                      content += `</div>`;
                     }
 
-                    content += "</div>";
+                    content += `</div>`;
                   });
+
+                  content += "</div>";
 
                   // 更新记忆方法内容和显示状态
                   this.$set(this.memoryTipContent, questionId, content);
@@ -1772,6 +1950,216 @@ export default {
       });
 
       console.log("初始化后的答案数组:", this.answers);
+    },
+
+    // 新增：切换收藏状态
+    toggleCollect(questionId) {
+      // 使用 $set 确保响应式更新
+      this.$set(this.isCollected, questionId, !this.isCollected[questionId]);
+
+      // 显示提示
+      uni.showToast({
+        title: this.isCollected[questionId] ? "收藏成功" : "已取消收藏",
+        icon: "none",
+        duration: 1500,
+      });
+    },
+
+    // 修改显示收藏弹窗方法
+    async showCollectDialog(questionId) {
+      this.currentQuestionId = questionId;
+      this.selectedTexts = [];
+      this.selectedIndexes = [];
+      this.selectedGroupId = "";
+
+      // 解析内容为段落
+      this.parsedParagraphs = this.parseContentToParagraphs(
+        this.memoryTipContent[questionId]
+      );
+
+      // 获取收藏分组列表
+      await this.getCollectGroups();
+
+      this.showCollectSelect = true;
+    },
+
+    // 解析内容为段落
+    parseContentToParagraphs(htmlContent) {
+      if (!htmlContent) return [];
+
+      // 创建临时 DOM 元素
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = htmlContent;
+
+      const paragraphs = [];
+
+      // 获取所有记忆内容部分
+      const memoryItems = tempDiv.querySelectorAll(".memory-items");
+      memoryItems.forEach((section) => {
+        // 获取该部分的类型（从父元素获取）
+        const typeElement = section
+          .closest(".memory-section")
+          .querySelector(".memory-type");
+        const type = typeElement ? typeElement.textContent.replace("：", "") : "";
+
+        // 获取该部分的关键词（如果有）
+        const keywordsElement = section
+          .closest(".memory-section")
+          .querySelector(".memory-keywords");
+        const keywords = keywordsElement ? keywordsElement.textContent : "";
+
+        // 获取记忆内容
+        const items = section.querySelectorAll(".memory-item");
+        items.forEach((item) => {
+          if (item.textContent.trim()) {
+            paragraphs.push({
+              type,
+              keywords,
+              content: item.textContent.trim(),
+            });
+          }
+        });
+      });
+
+      return paragraphs;
+    },
+
+    // 切换段落选择状态
+    toggleParagraphSelect(index, paragraph) {
+      const position = this.selectedIndexes.indexOf(index);
+      if (position === -1) {
+        // 添加选中
+        this.selectedIndexes.push(index);
+        // 构建完整的记忆内容
+        let fullContent = paragraph.content;
+        if (paragraph.type || paragraph.keywords) {
+          fullContent = `${paragraph.type ? `【${paragraph.type}】` : ""}${
+            paragraph.keywords ? `关键词：${paragraph.keywords}\n` : ""
+          }${fullContent}`;
+        }
+        this.selectedTexts.push(fullContent);
+      } else {
+        // 取消选中
+        this.selectedIndexes.splice(position, 1);
+        this.selectedTexts.splice(position, 1);
+      }
+    },
+
+    // 移除已选择的内容
+    removeSelected(index) {
+      this.selectedTexts.splice(index, 1);
+      this.selectedIndexes.splice(index, 1);
+    },
+
+    // 清空所有已选择的内容
+    clearSelected() {
+      this.selectedTexts = [];
+      this.selectedIndexes = [];
+    },
+
+    // 确认收藏
+    async confirmCollect() {
+      if (this.selectedTexts.length === 0) {
+        uni.showToast({
+          title: "请选择要收藏的内容",
+          icon: "none",
+        });
+        return;
+      }
+
+      if (!this.selectedGroupId) {
+        uni.showToast({
+          title: "请选择收藏分组",
+          icon: "none",
+        });
+        return;
+      }
+
+      // 更新本地分组计数
+      const groupIndex = this.collectGroups.findIndex(
+        (g) => g.id === this.selectedGroupId
+      );
+      if (groupIndex !== -1) {
+        this.collectGroups[groupIndex].count++;
+      }
+
+      this.$set(this.isCollected, this.currentQuestionId, true);
+
+      uni.showToast({
+        title: "收藏成功",
+        icon: "success",
+      });
+
+      this.closeCollectDialog();
+    },
+
+    // 关闭弹窗
+    closeCollectDialog() {
+      this.showCollectSelect = false;
+      this.selectedTexts = [];
+      this.selectedIndexes = [];
+      this.currentQuestionId = null;
+    },
+
+    // 获取收藏分组列表
+    async getCollectGroups() {
+      // 使用本地数据，无需实际请求
+      return;
+    },
+
+    // 选择分组
+    selectGroup(groupId) {
+      this.selectedGroupId = groupId;
+    },
+
+    // 显示新建分组弹窗
+    showAddGroup() {
+      this.showAddGroupDialog = true;
+      this.newGroupName = "";
+    },
+
+    // 关闭新建分组弹窗
+    closeAddGroup() {
+      this.showAddGroupDialog = false;
+      this.newGroupName = "";
+    },
+
+    // 监听分组名称输入
+    onGroupNameInput(e) {
+      this.newGroupName = e.detail.value.slice(0, 20);
+    },
+
+    // 创建新分组
+    async createGroup() {
+      if (!this.newGroupName.trim()) return;
+
+      // 创建新分组对象
+      const newGroup = {
+        id: String(this.localGroupId++),
+        name: this.newGroupName.trim(),
+        count: 0,
+      };
+
+      // 添加到本地数组
+      this.collectGroups.unshift(newGroup);
+
+      // 自动选中新创建的分组
+      this.selectedGroupId = newGroup.id;
+      this.closeAddGroup();
+
+      uni.showToast({
+        title: "创建成功",
+        icon: "success",
+      });
+    },
+
+    // 添加搜索相关方法
+    onSearchInput(e) {
+      this.searchGroupKeyword = e.detail.value;
+    },
+
+    clearSearch() {
+      this.searchGroupKeyword = "";
     },
   },
   mounted() {
@@ -3003,6 +3391,7 @@ export default {
   align-items: center;
   gap: 12rpx;
   margin-bottom: 16rpx;
+  padding-right: 12rpx;
 }
 
 .memory-tip-title {
@@ -3071,5 +3460,395 @@ export default {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   /* #endif */
+}
+
+/* 添加收藏按钮样式 */
+.collect-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 20rpx;
+  background: rgba(255, 215, 0, 0.1);
+  border-radius: 28rpx;
+  border: 2rpx solid rgba(218, 165, 32, 0.3);
+  transition: all 0.3s ease;
+}
+
+.collect-btn:active {
+  transform: scale(0.95);
+  background: rgba(255, 215, 0, 0.2);
+}
+
+.collect-icon {
+  font-size: 32rpx;
+  color: #bbb;
+  transition: all 0.3s ease;
+}
+
+.collect-icon.active {
+  color: #ffd700;
+}
+
+.collect-text {
+  font-size: 24rpx;
+  color: #8b6914;
+}
+
+/* 收藏选择弹窗样式 */
+.collect-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.collect-dialog-content {
+  width: 90%;
+  max-width: 900rpx;
+  height: 80vh;
+  background: #fff;
+  border-radius: 16rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 头部样式 */
+.dialog-header {
+  padding: 24rpx 32rpx;
+  border-bottom: 1rpx solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dialog-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.dialog-close {
+  font-size: 36rpx;
+  color: #999;
+  padding: 10rpx;
+}
+
+/* 主体内容区域 */
+.collect-dialog-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  padding: 24rpx;
+  gap: 24rpx;
+}
+
+/* 左侧内容区域 */
+.content-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1rpx solid #eee;
+  padding-right: 24rpx;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.selected-count {
+  font-size: 26rpx;
+  color: #1890ff;
+}
+
+.content-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.content-item {
+  margin-bottom: 16rpx;
+  border: 1rpx solid #eee;
+  border-radius: 8rpx;
+  transition: all 0.3s ease;
+}
+
+.item-header {
+  padding: 12rpx 16rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.checkbox {
+  width: 32rpx;
+  height: 32rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 4rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox-icon {
+  color: #1890ff;
+  font-size: 24rpx;
+  font-weight: bold;
+}
+
+.item-type {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.item-content {
+  padding: 16rpx;
+}
+
+.item-keywords {
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 8rpx;
+  display: block;
+}
+
+.item-text {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.content-item.selected {
+  border-color: #1890ff;
+  background: #e6f7ff;
+}
+
+.content-item.selected .item-text {
+  -webkit-line-clamp: unset;
+}
+
+/* 右侧分组区域 */
+.group-section {
+  width: 300rpx;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.add-btn {
+  font-size: 26rpx;
+  color: #1890ff;
+  padding: 6rpx 12rpx;
+  border: 1rpx solid #1890ff;
+  border-radius: 4rpx;
+}
+
+.search-box {
+  position: relative;
+  margin-bottom: 16rpx;
+}
+
+.search-input {
+  width: 100%;
+  height: 64rpx;
+  padding: 0 60rpx 0 20rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  background: #f5f7fa;
+  box-sizing: border-box;
+}
+
+.clear-btn {
+  position: absolute;
+  right: 20rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 28rpx;
+  padding: 10rpx;
+}
+
+.group-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.group-item {
+  padding: 16rpx;
+  margin-bottom: 12rpx;
+  background: #f5f7fa;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.group-item.active {
+  background: #e6f7ff;
+  border: 1rpx solid #1890ff;
+}
+
+.group-name {
+  font-size: 26rpx;
+  color: #333;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-count {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 12rpx;
+}
+
+.empty-tip {
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
+  padding: 32rpx 0;
+}
+
+/* 底部按钮区域 */
+.dialog-footer {
+  padding: 24rpx 32rpx;
+  border-top: 1rpx solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16rpx;
+}
+
+.btn {
+  min-width: 160rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  text-align: center;
+  border-radius: 36rpx;
+  font-size: 28rpx;
+  transition: all 0.3s ease;
+}
+
+.btn.cancel {
+  background: #f5f7fa;
+  color: #666;
+}
+
+.btn.confirm {
+  background: #1890ff;
+  color: #fff;
+}
+
+.btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+/* 新建分组弹窗样式 */
+.add-group-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-group-content {
+  width: 600rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.add-group-header {
+  padding: 24rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1rpx solid #eee;
+}
+
+.add-group-title {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.add-group-body {
+  padding: 32rpx 24rpx;
+  position: relative;
+}
+
+.group-name-input {
+  width: 100%;
+  height: 80rpx;
+  padding: 0 24rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  background: #f5f7fa;
+  box-sizing: border-box;
+}
+
+.input-count {
+  position: absolute;
+  right: 32rpx;
+  bottom: 8rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.add-group-footer {
+  padding: 24rpx;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16rpx;
+  border-top: 1rpx solid #eee;
+}
+
+/* 修改关闭按钮样式 */
+.close-btn {
+  font-size: 32rpx;
+  color: #999;
+  padding: 10rpx;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  color: #666;
 }
 </style>
