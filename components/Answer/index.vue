@@ -474,11 +474,12 @@
                     >【{{ paragraph.type }}】</text
                   >
                 </view>
+                <!-- 修改内容展示部分 -->
                 <view class="item-content">
-                  <text class="item-keywords" v-if="paragraph.keywords">{{
-                    paragraph.keywords
-                  }}</text>
-                  <text class="item-text">{{ paragraph.content }}</text>
+                  <text class="item-type" v-if="paragraph.type"
+                    >【{{ paragraph.type }}】</text
+                  >
+                  <text class="item-text" user-select>{{ paragraph.content }}</text>
                 </view>
               </view>
             </scroll-view>
@@ -1744,32 +1745,28 @@ export default {
                   });
 
                   // 格式化记忆方法内容
-                  let content = '<div class="memory-content">';
+                  let content = "";
 
                   res.data.forEach((item) => {
-                    content += `<div class="memory-section">`;
-                    content += `<div class="memory-type">${item.type}：</div>`;
+                    content += '<div style="margin-bottom: 16rpx;">';
+                    content += `<div style="font-weight: bold; color: #8b4513; margin-bottom: 8rpx;">${item.type}：</div>`;
 
                     // 如果有关键词数组，先显示关键词
                     if (item.keyword && item.keyword.length) {
-                      content += `<div class="memory-keywords">${item.keyword.join(
+                      content += `<div style="margin-bottom: 8rpx;">${item.keyword.join(
                         "、"
                       )}</div>`;
                     }
 
                     // 显示记忆内容
                     if (item.memory && item.memory.length) {
-                      content += `<div class="memory-items">`;
-                      item.memory.forEach((m) => {
-                        content += `<div class="memory-item">• ${m}</div>`;
-                      });
-                      content += `</div>`;
+                      content += item.memory
+                        .map((m) => `<div style="margin: 4rpx 0;">• ${m}</div>`)
+                        .join("");
                     }
 
-                    content += `</div>`;
+                    content += "</div>";
                   });
-
-                  content += "</div>";
 
                   // 更新记忆方法内容和显示状态
                   this.$set(this.memoryTipContent, questionId, content);
@@ -1987,39 +1984,48 @@ export default {
     parseContentToParagraphs(htmlContent) {
       if (!htmlContent) return [];
 
-      // 创建临时 DOM 元素
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = htmlContent;
-
       const paragraphs = [];
 
-      // 获取所有记忆内容部分
-      const memoryItems = tempDiv.querySelectorAll(".memory-items");
-      memoryItems.forEach((section) => {
-        // 获取该部分的类型（从父元素获取）
-        const typeElement = section
-          .closest(".memory-section")
-          .querySelector(".memory-type");
-        const type = typeElement ? typeElement.textContent.replace("：", "") : "";
+      // 移除所有HTML标签，保留文本内容和基本格式
+      let content = htmlContent
+        .replace(/<div style="font-weight: bold[^>]*>([^<]*)<\/div>/g, "【$1】\n") // 将粗体标题转换为【】格式
+        .replace(/<div style="margin: 4rpx 0;">•\s*(.*?)<\/div>/g, "• $1\n") // 保留项目符号
+        .replace(/<[^>]+>/g, "") // 移除其他HTML标签
+        .trim();
 
-        // 获取该部分的关键词（如果有）
-        const keywordsElement = section
-          .closest(".memory-section")
-          .querySelector(".memory-keywords");
-        const keywords = keywordsElement ? keywordsElement.textContent : "";
+      // 按照换行符分割内容
+      const lines = content.split("\n").filter((line) => line.trim());
 
-        // 获取记忆内容
-        const items = section.querySelectorAll(".memory-item");
-        items.forEach((item) => {
-          if (item.textContent.trim()) {
+      // 将内容按照标题分组
+      let currentType = "";
+      let currentContent = [];
+
+      lines.forEach((line) => {
+        if (line.startsWith("【") && line.endsWith("】")) {
+          // 如果已经有累积的内容，保存为一个段落
+          if (currentType && currentContent.length > 0) {
             paragraphs.push({
-              type,
-              keywords,
-              content: item.textContent.trim(),
+              type: currentType,
+              content: currentContent.join("\n"),
+              keywords: "",
             });
           }
-        });
+          // 更新当前类型
+          currentType = line.slice(1, -1);
+          currentContent = [];
+        } else {
+          currentContent.push(line);
+        }
       });
+
+      // 添加最后一个段落
+      if (currentType && currentContent.length > 0) {
+        paragraphs.push({
+          type: currentType,
+          content: currentContent.join("\n"),
+          keywords: "",
+        });
+      }
 
       return paragraphs;
     },
@@ -2030,14 +2036,10 @@ export default {
       if (position === -1) {
         // 添加选中
         this.selectedIndexes.push(index);
-        // 构建完整的记忆内容
-        let fullContent = paragraph.content;
-        if (paragraph.type || paragraph.keywords) {
-          fullContent = `${paragraph.type ? `【${paragraph.type}】` : ""}${
-            paragraph.keywords ? `关键词：${paragraph.keywords}\n` : ""
-          }${fullContent}`;
-        }
-        this.selectedTexts.push(fullContent);
+        this.selectedTexts.push({
+          type: paragraph.type,
+          content: paragraph.content,
+        });
       } else {
         // 取消选中
         this.selectedIndexes.splice(position, 1);
@@ -2274,8 +2276,10 @@ export default {
 }
 
 .question-card {
-  padding: 24rpx 20rpx; /* 减小卡片本身的内边距，避免叠加过多间距 */
-  margin-top: 20rpx; /* 添加顶部间距 */
+  padding: 24rpx 20rpx;
+  /* 减小卡片本身的内边距，避免叠加过多间距 */
+  margin-top: 20rpx;
+  /* 添加顶部间距 */
 }
 
 .question-title {
@@ -2314,10 +2318,12 @@ export default {
 .question-content {
   font-size: 34rpx;
   color: #333;
-  line-height: 1.8; /* 增加行高，让文字间距更大 */
+  line-height: 1.8;
+  /* 增加行高，让文字间距更大 */
   margin-bottom: 32rpx;
   font-weight: 500;
-  letter-spacing: 4rpx; /* 添加字间距 */
+  letter-spacing: 4rpx;
+  /* 添加字间距 */
 }
 
 .question-content img {
@@ -2335,13 +2341,15 @@ export default {
 }
 
 .option-item {
-  padding: 20rpx 28rpx; /* 原来是 16rpx 24rpx */
+  padding: 20rpx 28rpx;
+  /* 原来是 16rpx 24rpx */
   background-color: #f8f9fa;
   border-radius: 6rpx;
   border: 1rpx solid transparent;
   display: flex;
   align-items: center;
-  gap: 16rpx; /* 原来是 12rpx */
+  gap: 16rpx;
+  /* 原来是 12rpx */
 }
 
 .option-item.active {
@@ -2362,8 +2370,10 @@ export default {
 .option-text {
   flex: 1;
   font-size: 32rpx;
-  line-height: 1.8; /* 同样增加选项文字的行高 */
-  letter-spacing: 4rpx; /* 保持与题目文字相同的字间距 */
+  line-height: 1.8;
+  /* 同样增加选项文字的行高 */
+  letter-spacing: 4rpx;
+  /* 保持与题目文字相同的字间距 */
 }
 
 .option-text img {
@@ -2482,7 +2492,8 @@ export default {
   background: #fff;
   border-radius: 8rpx;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
-  letter-spacing: 4rpx; /* 添加与题目一致的字间距 */
+  letter-spacing: 4rpx;
+  /* 添加与题目一致的字间距 */
 }
 
 .explanation-text {
@@ -2492,7 +2503,8 @@ export default {
   padding: 16rpx;
   background: #fff;
   border-radius: 8rpx;
-  letter-spacing: 4rpx; /* 添加与题目一致的字间距 */
+  letter-spacing: 4rpx;
+  /* 添加与题目一致的字间距 */
 }
 
 .explanation-label {
@@ -2502,7 +2514,8 @@ export default {
   margin-right: 8rpx;
   position: relative;
   font-size: 34rpx;
-  letter-spacing: 4rpx; /* 添加与题目一致的字间距 */
+  letter-spacing: 4rpx;
+  /* 添加与题目一致的字间距 */
 }
 
 .answer-card-drawer {
@@ -2663,17 +2676,21 @@ export default {
   padding: 20rpx;
   border: 2rpx solid #ddd;
   border-radius: 8rpx;
-  font-size: 32rpx; /* 原来是 28rpx */
+  font-size: 32rpx;
+  /* 原来是 28rpx */
 }
 
 .essay-input {
   width: 100%;
   min-height: 300rpx;
-  padding: 28rpx; /* 原来是 24rpx */
+  padding: 28rpx;
+  /* 原来是 24rpx */
   border: 2rpx solid #ddd;
   border-radius: 8rpx;
-  font-size: 32rpx; /* 原来是 28rpx */
-  line-height: 1.6; /* 原来是 1.8 */
+  font-size: 32rpx;
+  /* 原来是 28rpx */
+  line-height: 1.6;
+  /* 原来是 1.8 */
 }
 
 /* 添加或修改样式 */
@@ -2683,7 +2700,8 @@ export default {
   font-size: 34rpx;
   color: #333;
   letter-spacing: 4rpx;
-  padding: 0; /* 确保没有内边距 */
+  padding: 0;
+  /* 确保没有内边距 */
 }
 
 .blank-text {
@@ -2703,7 +2721,8 @@ export default {
 
 /* 修改填空题选项容器样式 */
 .options.blank {
-  padding: 0; /* 移除填空题选项的内边距 */
+  padding: 0;
+  /* 移除填空题选项的内边距 */
 }
 
 .blank-input {
@@ -2718,7 +2737,8 @@ export default {
   color: #333;
   background: #f8f9fa;
   border-radius: 4rpx;
-  margin: 0 4rpx; /* 添加输入框的左右间距 */
+  margin: 0 4rpx;
+  /* 添加输入框的左右间距 */
 }
 
 .blank-input:focus {
@@ -2730,7 +2750,8 @@ export default {
 .essay-container {
   margin-top: 10rpx;
   border-radius: 12rpx;
-  padding: 0 24rpx; /* 调整为与单选题一致的左右内边距 */
+  padding: 0 24rpx;
+  /* 调整为与单选题一致的左右内边距 */
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
@@ -2747,7 +2768,8 @@ export default {
   border: 2rpx solid #e9ecef;
   border-radius: 8rpx;
   transition: all 0.3s ease;
-  margin-top: 20rpx; /* 添加上边距，与题目保持适当间距 */
+  margin-top: 20rpx;
+  /* 添加上边距，与题目保持适当间距 */
 }
 
 .essay-input:focus {
@@ -2830,7 +2852,8 @@ export default {
   pointer-events: auto;
   box-shadow: -2rpx 0 10rpx rgba(0, 0, 0, 0.1);
   border-radius: v-bind('isOnLeft ? "0 16rpx 16rpx 0" : "16rpx 0 0 16rpx"');
-  will-change: transform; /* 优化性能 */
+  will-change: transform;
+  /* 优化性能 */
 }
 
 .handle-text {
@@ -2838,7 +2861,8 @@ export default {
   text-orientation: upright;
   letter-spacing: 8rpx;
   font-weight: 500;
-  user-select: none; /* 止文字选中 */
+  user-select: none;
+  /* 止文字选中 */
 }
 
 /* 添加待批改状态的样式 */
@@ -2991,6 +3015,7 @@ export default {
     opacity: 0;
     transform: translateY(-10rpx);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -3041,7 +3066,8 @@ export default {
 }
 
 .explanation-content {
-  font-size: 34rpx; /* 从 28rpx 改为 34rpx，与题目字号一致 */
+  font-size: 34rpx;
+  /* 从 28rpx 改为 34rpx，与题目字号一致 */
   color: #333;
   line-height: 1.6;
   padding: 16rpx;
@@ -3073,7 +3099,8 @@ export default {
 }
 
 .explanation-content {
-  font-size: 34rpx; /* 从 28rpx 改为 34rpx，与题目字号一致 */
+  font-size: 34rpx;
+  /* 从 28rpx 改为 34rpx，与题目字号一致 */
   color: #333;
   line-height: 1.6;
   padding: 16rpx;
@@ -3192,14 +3219,16 @@ export default {
 
 .explanation-label {
   display: inline-block;
-  font-size: 34rpx; /* 从 28rpx 改为 34rpx */
+  font-size: 34rpx;
+  /* 从 28rpx 改为 34rpx */
   color: #1890ff;
   font-weight: 500;
   margin-right: 8rpx;
 }
 
 .explanation-text {
-  font-size: 34rpx; /* 从 28rpx 改为 34rpx */
+  font-size: 34rpx;
+  /* 从 28rpx 改为 34rpx */
   color: #666;
   line-height: 1.6;
   padding: 16rpx;
@@ -3246,6 +3275,7 @@ export default {
 .preview-image {
   pointer-events: auto !important;
 }
+
 /* #endif */
 
 /* 确保rich-text内的图片样式正确 */
@@ -3366,8 +3396,10 @@ export default {
 
 /* 调整文字为深金色 */
 .memory-tip-btn text {
-  color: #8b6914; /* 深金色 */
-  font-size: 34rpx; /* 从 28rpx 改为 34rpx */
+  color: #8b6914;
+  /* 深金色 */
+  font-size: 34rpx;
+  /* 从 28rpx 改为 34rpx */
   font-weight: 600;
   letter-spacing: 2rpx;
 }
@@ -3396,12 +3428,14 @@ export default {
 
 .memory-tip-title {
   color: #8b4513;
-  font-size: 34rpx; /* 从 30rpx 改为 34rpx */
+  font-size: 34rpx;
+  /* 从 30rpx 改为 34rpx */
   font-weight: 600;
 }
 
 .memory-tip-text {
-  font-size: 34rpx; /* 从 30rpx 改为 34rpx */
+  font-size: 34rpx;
+  /* 从 30rpx 改为 34rpx */
   color: #666;
   line-height: 1.8;
   letter-spacing: 4rpx;
@@ -3620,6 +3654,8 @@ export default {
 
 .item-content {
   padding: 16rpx;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .item-keywords {
@@ -3633,10 +3669,7 @@ export default {
   font-size: 28rpx;
   color: #333;
   line-height: 1.6;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  user-select: text;
 }
 
 .content-item.selected {
@@ -3646,6 +3679,7 @@ export default {
 
 .content-item.selected .item-text {
   -webkit-line-clamp: unset;
+  background: rgba(24, 144, 255, 0.1);
 }
 
 /* 右侧分组区域 */
