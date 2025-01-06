@@ -1433,14 +1433,16 @@ export default {
       const question = this.questions[index];
       const answer = this.answers[index];
 
-      // 没答案时显示未
+      // 没有答案时显示未答
       if (!answer) return "unanswered";
 
       // 填空题特殊处理
       if (question.type === "blank") {
-        if (!this.isBlankAnswerComplete(answer)) {
-          return "unanswered";
+        // 修改这里：如果有任何答案，就显示为待批改状态，与essay保持一致
+        if (Array.isArray(answer) && answer.some((item) => item && item.trim())) {
+          return "pending";
         }
+        return "unanswered";
       }
 
       // 简答题显示待批改
