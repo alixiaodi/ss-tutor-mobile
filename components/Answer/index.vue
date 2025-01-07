@@ -570,7 +570,8 @@
 <script>
 import * as AiApi from "@/api/ai";
 import * as AnswerQuestionsApi from "@/api/answerQuestions";
-
+import * as CollectGroupApi from "@/api/collectGroup";
+import * as CollectInfoApi from "@/api/collectInfo";
 export default {
   props: {
     rawQuestions: {
@@ -634,13 +635,7 @@ export default {
       currentSelection: "", // 当前选中的文本
       isLongPressed: false, // 新增：是否处于长按状态
       longPressTimer: null, // 新增：长按定时器
-      collectGroups: [
-        { id: "1", name: "重点记忆", count: 12 },
-        { id: "2", name: "易错知识点", count: 8 },
-        { id: "3", name: "待复习", count: 5 },
-        { id: "4", name: "收藏夹", count: 3 },
-        { id: "5", name: "错题本", count: 15 },
-      ],
+      collectGroups: [], // 改为空数组，通过 API 获取数据
       selectedGroupId: "",
       showAddGroupDialog: false,
       newGroupName: "",
@@ -2079,22 +2074,61 @@ export default {
         return;
       }
 
-      // 更新本地分组计数
-      const groupIndex = this.collectGroups.findIndex(
-        (g) => g.id === this.selectedGroupId
-      );
-      if (groupIndex !== -1) {
-        this.collectGroups[groupIndex].count++;
+      try {
+        // 显示加载提示
+        uni.showLoading({
+          title: "收藏中...",
+          mask: true,
+        });
+
+        // 组合所有选中的内容
+        const content = this.selectedTexts
+          .map((item) => {
+            return `【${item.type}】${item.content}`;
+          })
+          .join("\n\n");
+
+        // 调用收藏接口
+        const collectData = {
+          groupId: this.selectedGroupId,
+          content: content,
+          topicId: this.currentQuestionId,
+        };
+
+        const res = await CollectInfoApi.addCollectInfo(collectData);
+
+        if (res.code === 200) {
+          // 更新本地分组计数
+          const groupIndex = this.collectGroups.findIndex(
+            (g) => g.id === this.selectedGroupId
+          );
+          if (groupIndex !== -1) {
+            this.collectGroups[groupIndex].count++;
+          }
+
+          this.$set(this.isCollected, this.currentQuestionId, true);
+
+          uni.showToast({
+            title: "收藏成功",
+            icon: "success",
+          });
+
+          this.closeCollectDialog();
+        } else {
+          uni.showToast({
+            title: res.msg || "收藏失败",
+            icon: "none",
+          });
+        }
+      } catch (error) {
+        console.error("收藏失败:", error);
+        uni.showToast({
+          title: "收藏失败，请重试",
+          icon: "none",
+        });
+      } finally {
+        uni.hideLoading();
       }
-
-      this.$set(this.isCollected, this.currentQuestionId, true);
-
-      uni.showToast({
-        title: "收藏成功",
-        icon: "success",
-      });
-
-      this.closeCollectDialog();
     },
 
     // 关闭弹窗
@@ -2107,8 +2141,37 @@ export default {
 
     // 获取收藏分组列表
     async getCollectGroups() {
-      // 使用本地数据，无需实际请求
-      return;
+      try {
+        // 显示加载提示
+        uni.showLoading({
+          title: "加载中...",
+          mask: true,
+        });
+
+        const res = await CollectGroupApi.getCollectGroupList();
+
+        if (res.code === 200) {
+          // 更新收藏分组列表，使用 infoCount 替代 count
+          this.collectGroups = res.data.map((group) => ({
+            id: group.id,
+            name: group.name,
+            count: parseInt(group.infoCount) || 0, // 将 infoCount 转为数字类型
+          }));
+        } else {
+          uni.showToast({
+            title: res.msg || "获取分组失败",
+            icon: "none",
+          });
+        }
+      } catch (error) {
+        console.error("获取收藏分组失败:", error);
+        uni.showToast({
+          title: "获取分组失败，请重试",
+          icon: "none",
+        });
+      } finally {
+        uni.hideLoading();
+      }
     },
 
     // 选择分组
@@ -2137,24 +2200,47 @@ export default {
     async createGroup() {
       if (!this.newGroupName.trim()) return;
 
-      // 创建新分组对象
-      const newGroup = {
-        id: String(this.localGroupId++),
-        name: this.newGroupName.trim(),
-        count: 0,
-      };
+      try {
+        // 显示加载提示
+        uni.showLoading({
+          title: "创建中...",
+          mask: true,
+        });
 
-      // 添加到本地数组
-      this.collectGroups.unshift(newGroup);
+        const res = await CollectGroupApi.addCollectGroup({
+          name: this.newGroupName.trim(),
+        });
 
-      // 自动选中新创建的分组
-      this.selectedGroupId = newGroup.id;
-      this.closeAddGroup();
+        if (res.code === 200) {
+          // 创建成功后，重新获取分组列表
+          await this.getCollectGroups();
 
-      uni.showToast({
-        title: "创建成功",
-        icon: "success",
-      });
+          // 自动选中新创建的分组
+          if (res.data?.id) {
+            this.selectedGroupId = res.data.id;
+          }
+
+          this.closeAddGroup();
+
+          uni.showToast({
+            title: "创建成功",
+            icon: "success",
+          });
+        } else {
+          uni.showToast({
+            title: res.msg || "创建失败",
+            icon: "none",
+          });
+        }
+      } catch (error) {
+        console.error("创建分组失败:", error);
+        uni.showToast({
+          title: "创建失败，请重试",
+          icon: "none",
+        });
+      } finally {
+        uni.hideLoading();
+      }
     },
 
     // 添加搜索相关方法
@@ -3886,5 +3972,53 @@ export default {
 
 .close-btn:hover {
   color: #666;
+}
+
+/* 修改 add-group-footer 相关样式 */
+.add-group-footer {
+  padding: 24rpx;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16rpx;
+  border-top: 1rpx solid #eee;
+}
+
+.dialog-btn {
+  min-width: 160rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 36rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.dialog-btn.cancel {
+  background: #f5f7fa;
+  color: #666;
+  border: 2rpx solid #e8e8e8;
+}
+
+.dialog-btn.confirm {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  color: #fff;
+  box-shadow: 0 4rpx 12rpx rgba(24, 144, 255, 0.3);
+}
+
+.dialog-btn:active {
+  transform: scale(0.95);
+  opacity: 0.9;
+}
+
+.dialog-btn.confirm:active {
+  background: linear-gradient(135deg, #096dd9 0%, #0050b3 100%);
+  box-shadow: 0 2rpx 8rpx rgba(24, 144, 255, 0.2);
+}
+
+.dialog-btn.disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 </style>
