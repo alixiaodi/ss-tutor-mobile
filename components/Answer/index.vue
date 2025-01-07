@@ -230,13 +230,13 @@
                       ></image>
                       <text class="memory-tip-title">记忆方法</text>
                       <!-- 修改收藏按钮 -->
-                      <view
+                      <!--   <view
                         class="collect-btn"
                         @click.stop="showCollectDialog(question.id)"
                       >
                         <text class="collect-icon">★</text>
                         <text class="collect-text">收藏</text>
-                      </view>
+                      </view> -->
                     </view>
                     <!-- 修改记忆方法内容展示 -->
                     <view class="memory-tip-text">
