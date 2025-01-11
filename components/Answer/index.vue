@@ -254,13 +254,13 @@
                       ></image>
                       <text class="memory-tip-title">记忆方法</text>
                       <!-- 修改收藏按钮 -->
-                      <!--   <view
+                      <view
                         class="collect-btn"
                         @click.stop="showCollectDialog(question.id)"
                       >
                         <text class="collect-icon">★</text>
                         <text class="collect-text">收藏</text>
-                      </view> -->
+                      </view>
                     </view>
                     <!-- 修改记忆方法内容展示 -->
                     <view class="memory-tip-text">
@@ -4084,6 +4084,7 @@ export default {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -4093,9 +4094,11 @@ export default {
   0% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.1);
   }
+
   100% {
     transform: scale(1);
   }
@@ -4107,6 +4110,7 @@ export default {
     opacity: 0.3;
     transform: rotate(-135deg) translateX(0);
   }
+
   50% {
     opacity: 1;
     transform: rotate(-135deg) translateX(-10rpx);
@@ -4123,6 +4127,7 @@ export default {
     opacity: 0.3;
     transform: rotate(45deg) translateX(0);
   }
+
   50% {
     opacity: 1;
     transform: rotate(45deg) translateX(10rpx);
