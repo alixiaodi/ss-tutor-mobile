@@ -9,6 +9,15 @@
     ></Navbar>
 
     <view class="content">
+      <!-- 统计分析入口 -->
+      <view class="analysis-entry" @click="goToAnalysis">
+        <view class="entry-left">
+          <u-icon name="list-dot" size="32" color="#4ECDB6"></u-icon>
+          <text>考点统计</text>
+        </view>
+        <u-icon name="arrow-right" color="#999" size="28"></u-icon>
+      </view>
+
       <view class="paper-list">
         <view v-if="needVip" class="empty-tip">
           <u-icon name="file-text" size="80" color="#c0c4cc" class="empty-icon"></u-icon>
@@ -93,6 +102,11 @@ export default {
         url: `/pages/year-analysis/detail?id=${item.id}`,
       });
     },
+    goToAnalysis() {
+      uni.navigateTo({
+        url: `/pages/year-analysis/statistics?subjectCode=${this.subjectCode}`,
+      });
+    },
   },
 };
 </script>
@@ -101,6 +115,91 @@ export default {
 .analysis-container {
   min-height: 100vh;
   background-color: #f5f6fa;
+
+  .content {
+    padding: 20px 15px;
+  }
+
+  .analysis-entry {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 30rpx;
+    margin-bottom: 20rpx;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+
+    .entry-left {
+      display: flex;
+      align-items: center;
+      gap: 20rpx;
+
+      text {
+        font-size: 32rpx;
+        color: #333;
+        font-weight: 500;
+      }
+    }
+
+    &:active {
+      background-color: #f9f9f9;
+    }
+  }
+
+  .paper-list {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  }
+
+  .paper-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: all 0.3s;
+
+    &:active {
+      background-color: #f9f9f9;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .paper-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .paper-name {
+    font-size: 16px;
+    color: #333;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .paper-year {
+    font-size: 13px;
+    color: #999;
+    line-height: 1.2;
+  }
+
+  .vip-text {
+    margin-top: 20rpx;
+    color: #4ecdb6;
+    font-size: 28rpx;
+    font-weight: 500;
+
+    &:active {
+      opacity: 0.8;
+    }
+  }
 
   .empty-tip {
     height: 70vh;
@@ -137,64 +236,6 @@ export default {
         line-height: 88rpx;
       }
     }
-  }
-}
-
-.content {
-  padding: 20px 15px;
-}
-
-.paper-list {
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-}
-
-.paper-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  transition: all 0.3s;
-
-  &:active {
-    background-color: #f9f9f9;
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
-}
-
-.paper-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.paper-name {
-  font-size: 16px;
-  color: #333;
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-.paper-year {
-  font-size: 13px;
-  color: #999;
-  line-height: 1.2;
-}
-
-.vip-text {
-  margin-top: 20rpx;
-  color: #4ecdb6;
-  font-size: 28rpx;
-  font-weight: 500;
-
-  &:active {
-    opacity: 0.8;
   }
 }
 </style>

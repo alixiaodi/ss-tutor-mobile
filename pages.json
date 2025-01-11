@@ -168,6 +168,13 @@
 			}
 		},
 		{
+			"path": "pages/year-analysis/statistics",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
 			"path": "pages/my-questions/index",
 			"style": {
 				"navigationBarTitleText": "我的题库",
