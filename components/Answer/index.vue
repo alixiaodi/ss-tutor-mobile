@@ -26,11 +26,25 @@
       <view class="timer"> 答题用时: {{ formatTime }} </view>
       <!-- 添加提交按钮 -->
       <view class="submit-btn" @click="submitExam">
-        <text>提交</text>
+        <view class="icon-text-wrapper">
+          <svg
+            viewBox="0 0 1024 1024"
+            version="1.1"
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+          >
+            <path
+              d="M512 0C229.376 0 0 229.376 0 512s229.376 512 512 512 512-229.376 512-512S794.624 0 512 0z m281.6 407.552L480.256 720.896c-12.288 12.288-32.768 12.288-45.056 0L268.288 553.984c-12.288-12.288-12.288-32.768 0-45.056 12.288-12.288 32.768-12.288 45.056 0l144.384 144.384 290.816-290.816c12.288-12.288 32.768-12.288 45.056 0 12.288 12.288 12.288 32.768 0 45.056z"
+              fill="#FFFFFF"
+            ></path>
+          </svg>
+          <text>提交</text>
+        </view>
       </view>
     </view>
 
-    <!-- ���区域 -->
+    <!-- 区域 -->
     <view class="exam-content">
       <swiper class="swiper" :current="currentQuestion" @change="handlePageChange">
         <swiper-item
@@ -166,6 +180,16 @@
                   </view>
                 </template>
               </view>
+
+              <!-- 完成作答按钮 -->
+              <template v-if="question.type === 'blank' || question.type === 'essay'">
+                <view class="submit-answer-section" v-if="!showingAnswer">
+                  <view class="submit-answer-btn" @click="submitCurrentAnswer">
+                    <text>完成作答</text>
+                  </view>
+                </view>
+              </template>
+
               <!-- 答案解析部 -->
               <template v-if="question">
                 <view
@@ -260,59 +284,104 @@
       </swiper>
 
       <view class="exam-footer" @click.stop>
-        <view
-          class="nav-btn"
-          @click="prevQuestion"
-          :class="{ disabled: currentQuestion === 0 }"
-        >
-          <text>上一题</text>
-        </view>
-
-        <!-- 填空题和简答题的操作按钮 -->
-        <view class="center-btns">
-          <template
-            v-if="
-              currentQuestionData &&
-              (isBlankQuestion(currentQuestionData.type) ||
-                currentQuestionData.type === 'essay')
-            "
+        <view class="nav-btn" @click="openAiChat">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 1024 1024"
+            version="1.1"
+            xmlns="http://www.w3.org/2000/svg"
           >
-            <template v-if="!showingAnswer">
-              <view class="submit-answer-btn" @click="submitCurrentAnswer">
-                <text>完成作答</text>
-              </view>
-            </template>
-            <view
-              class="view-answer-btn"
-              :class="{ active: showingAnswer }"
-              @click="toggleAnswerView"
-            >
-              <text class="btn-icon" :class="{ active: showingAnswer }">{{
-                showingAnswer ? "✕" : "?"
-              }}</text>
-              <text class="btn-text">{{ showingAnswer ? "隐藏答案" : "查看答案" }}</text>
-            </view>
-          </template>
-          <template v-else-if="currentQuestionData">
-            <view
-              class="view-answer-btn"
-              :class="{ active: showingAnswer }"
-              @click="toggleAnswerView"
-            >
-              <text class="btn-icon" :class="{ active: showingAnswer }">{{
-                showingAnswer ? "✕" : "?"
-              }}</text>
-              <text class="btn-text">{{ showingAnswer ? "隐藏答案" : "查看答案" }}</text>
-            </view>
-          </template>
+            <path
+              d="M512 85.333333c235.648 0 426.666667 191.018667 426.666667 426.666667s-191.018667 426.666667-426.666667 426.666667S85.333333 747.648 85.333333 512 276.352 85.333333 512 85.333333z m0 64c-200.298667 0-362.666667 162.368-362.666667 362.666667s162.368 362.666667 362.666667 362.666667 362.666667-162.368 362.666667-362.666667-162.368-362.666667-362.666667-362.666667z m-74.965333 254.698667L572.586667 512l-135.552 107.968a32 32 0 1 0 39.893333 50.074667l170.666667-136a32 32 0 0 0 0-50.074667l-170.666667-136a32 32 0 1 0-39.893333 50.074667z"
+              fill="#1890ff"
+            ></path>
+          </svg>
+          <text>AI助手</text>
         </view>
 
-        <view
-          class="nav-btn"
-          @click="nextQuestion"
-          :class="{ disabled: currentQuestion === questions.length - 1 }"
-        >
-          <text>下一题</text>
+        <view class="nav-btn" @click="toggleAnswerView">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 1024 1024"
+            version="1.1"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M512 234.666667c176.725333 0 328.874667 102.912 401.365333 252.245333a32 32 0 0 1 0 28.181333C840.874667 664.426667 688.725333 767.36 512 767.36c-176.725333 0-328.874667-102.912-401.365333-252.266667a32 32 0 0 1 0-28.181333C183.125333 337.578667 335.274667 234.666667 512 234.666667z m0 64c-146.282667 0-275.093333 83.306667-338.346667 209.365333C236.906667 634.069333 365.717333 717.397333 512 717.397333c146.282667 0 275.093333-83.306667 338.346667-209.365333C787.093333 382.016 658.282667 298.666667 512 298.666667z m0 106.666666a106.666667 106.666667 0 1 1 0 213.333334 106.666667 106.666667 0 0 1 0-213.333334z m0 64a42.666667 42.666667 0 1 0 0 85.333334 42.666667 42.666667 0 0 0 0-85.333334z"
+              fill="#1890ff"
+            ></path>
+          </svg>
+          <text>{{ showingAnswer ? "隐藏答案" : "查看答案" }}</text>
+        </view>
+
+        <view class="nav-btn" @click="toggleAnswerCard">
+          <svg
+            class="nav-icon"
+            viewBox="0 0 1024 1024"
+            version="1.1"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M810.666667 128H213.333333c-46.933333 0-85.333333 38.4-85.333333 85.333333v597.333334c0 46.933333 38.4 85.333333 85.333333 85.333333h597.333334c46.933333 0 85.333333-38.4 85.333333-85.333333V213.333333c0-46.933333-38.4-85.333333-85.333333-85.333333z m21.333333 682.666667c0 12.8-8.533333 21.333333-21.333333 21.333333H213.333333c-12.8 0-21.333333-8.533333-21.333333-21.333333V213.333333c0-12.8 8.533333-21.333333 21.333333-21.333333h597.333334c12.8 0 21.333333 8.533333 21.333333 21.333333v597.333334z"
+              fill="#1890ff"
+            ></path>
+            <path
+              d="M298.666667 298.666667h426.666666v64H298.666667zM298.666667 480h426.666666v64H298.666667zM298.666667 661.333333h213.333333v64H298.666667z"
+              fill="#1890ff"
+            ></path>
+          </svg>
+          <text>答题卡</text>
+        </view>
+      </view>
+
+      <!-- 在题目内容区域底部添加完成作答按钮 -->
+      <template
+        v-if="
+          currentQuestionData &&
+          (isBlankQuestion(currentQuestionData.type) ||
+            currentQuestionData.type === 'essay')
+        "
+      >
+        <view class="submit-answer-section">
+          <view
+            class="submit-answer-btn"
+            @click="submitCurrentAnswer"
+            v-if="!showingAnswer"
+          >
+            <text>完成作答</text>
+          </view>
+        </view>
+      </template>
+    </view>
+
+    <!-- 添加首次使用提示 -->
+    <view class="swipe-tip" v-if="showSwipeTip" @click="closeSwipeTip">
+      <view class="tip-content" @click.stop>
+        <!-- 添加手势图标和动画 -->
+        <view class="gesture-animation">
+          <view class="gesture-icon">
+            <view class="arrow-left"></view>
+            <view class="hand-icon">👆</view>
+            <view class="arrow-right"></view>
+          </view>
+        </view>
+        <!-- 提示文本 -->
+        <view class="tip-text">
+          <text>左右滑动，轻松切换题目</text>
+          <text class="sub-text">体验更流畅的答题方式</text>
+        </view>
+        <!-- 进度条 -->
+        <view class="progress-bar">
+          <view class="progress" :style="{ width: progressWidth + '%' }"></view>
+        </view>
+        <!-- 不再提示选项 -->
+        <view class="tip-options">
+          <view class="no-more-tip" @click="disableTip">
+            <text>不再提示</text>
+          </view>
+          <view class="confirm-btn" @click="closeSwipeTip">
+            <text>我知道了</text>
+          </view>
         </view>
       </view>
     </view>
@@ -369,44 +438,7 @@
           </view>
         </scroll-view>
       </view>
-      <movable-area class="handle-area">
-        <movable-view
-          class="drawer-handle"
-          direction="all"
-          :x="handleX"
-          :y="handleY"
-          :out-of-bounds="false"
-          :damping="60"
-          :friction="3"
-          :inertia="true"
-          @change="onHandleMove"
-          @touchend="onHandleTouchEnd"
-          @click.stop="toggleAnswerCard"
-        >
-          <text class="handle-text">答题卡</text>
-        </movable-view>
-      </movable-area>
     </view>
-
-    <!-- 在 answer-card-drawer 后面添加 -->
-    <movable-area class="ai-chat-area">
-      <movable-view
-        class="ai-chat-btn"
-        direction="all"
-        :x="aiButtonX"
-        :y="aiButtonY"
-        :out-of-bounds="false"
-        :damping="50"
-        :friction="2"
-        :inertia="true"
-        @change="onAiButtonMove"
-        @touchend="onAiButtonTouchEnd"
-        @click="openAiChat"
-      >
-        <image class="ai-icon" src="/static/img/ai.png" mode="aspectFit"></image>
-        <text class="ai-text">AI助手</text>
-      </movable-view>
-    </movable-area>
 
     <!-- 自定义图片预览弹窗 -->
     <!-- #ifdef H5 || MP || APP-PLUS -->
@@ -598,17 +630,8 @@ export default {
       remainingTime: 3600,
       currentQuestion: 0,
       showAnswerCard: false,
-      handleX: 0,
-      handleY: 200,
-      screenWidth: sysInfo.windowWidth, // 初始化屏幕宽度
-      screenHeight: sysInfo.windowHeight, // 初始化屏幕高度
-      handleWidth: 0, // 新增：存储实际手柄宽度
-      handleHeight: 0, // 新增存储实际手柄高度
-      showingAnswer: false, // 添加新的数据属性
+      showingAnswer: false,
       isMoving: false, // 新增踪是正在移动
-      isOnLeft: false, // 新增：跟踪是否在左侧
-      isDragging: false, // 新增：跟踪是否正在拖动
-      lastX: 0, // 新增���������������������������记���次���X位置
       previewImage: "", // 添加预览片的URL
       statusBarHeight: 0, // 添加状态栏高度
       id: null, // 题目ID
@@ -618,10 +641,6 @@ export default {
       timer: null, // 添加计时器引用
       showingMemoryTip: {}, // 修改为对象，用于存储每个题目的记忆方法显示状态
       memoryTipContent: {}, // 修改为对象，用于存储每个题目的记忆方法内容
-      aiButtonX: sysInfo.windowWidth - buttonWidthPx, // 设置初始X位置在右侧
-      aiButtonY: 400,
-      buttonWidth: buttonWidthPx, // 初始化按钮宽度
-      buttonHeight: buttonWidthPx, // 初始化按钮高度
       scrollTop: 0,
       lastScrollTop: 0,
       isCollected: {}, // 新增：存储收藏状态
@@ -641,6 +660,10 @@ export default {
       newGroupName: "",
       searchGroupKeyword: "", // 添加搜索关键词
       localGroupId: 6, // 用于生成本地分组ID
+      showSwipeTip: false, // 新增：是否显示首次使用提示
+      progressWidth: 100,
+      autoCloseTimer: null,
+      progressTimer: null,
     };
   },
 
@@ -1024,104 +1047,6 @@ export default {
       // 然后更新当前题目索引并关闭答题卡
       this.currentQuestion = index;
       this.showAnswerCard = false;
-    },
-
-    onHandleMove(e) {
-      if (!this.isDragging) {
-        this.isDragging = true;
-        this.lastX = e.detail.x;
-      }
-
-      const middlePoint = this.screenWidth / 2;
-      const currentX = e.detail.x;
-
-      // 只有移动距离超过阈时才更新位
-      if (Math.abs(currentX - this.lastX) > 5) {
-        if (currentX < middlePoint && !this.isOnLeft) {
-          this.isOnLeft = true;
-          this.handleX = 0;
-        } else if (currentX >= middlePoint && this.isOnLeft) {
-          this.isOnLeft = false;
-          this.handleX = this.screenWidth - this.handleWidth;
-        }
-        this.lastX = currentX;
-      }
-
-      // 滑处理Y轴移动
-      const newY = Math.max(
-        0,
-        Math.min(e.detail.y, this.screenHeight - this.handleHeight)
-      );
-      // 只有移动超过一定距离才更新Y值
-      if (Math.abs(this.handleY - newY) > 2) {
-        this.handleY = newY;
-      }
-    },
-
-    onHandleTouchEnd() {
-      if (!this.isDragging) return;
-
-      this.isDragging = false;
-      this.handleX = this.isOnLeft ? 0 : this.screenWidth - this.handleWidth;
-
-      // 确保Y轴位置在有效范围内
-      this.handleY = Math.max(
-        0,
-        Math.min(this.handleY, this.screenHeight - this.handleHeight)
-      );
-
-      this.saveHandlePosition();
-    },
-
-    // 新增保存位置方法
-    saveHandlePosition() {
-      try {
-        uni.setStorageSync("drawerHandlePosition", {
-          x: this.handleX,
-          y: this.handleY,
-          isOnLeft: this.isOnLeft,
-        });
-      } catch (e) {
-        console.error("Failed to save position:", e);
-      }
-    },
-
-    // 修 initHandlePosition 方法
-    initHandlePosition() {
-      this.initSizes();
-
-      try {
-        const saved = uni.getStorageSync("drawerHandlePosition");
-        if (saved && this.isValidPosition(saved)) {
-          this.isOnLeft = saved.isOnLeft;
-          this.handleX = this.isOnLeft ? 0 : this.screenWidth - this.handleWidth;
-          this.handleY = saved.y;
-          this.lastX = this.handleX;
-        } else {
-          this.isOnLeft = false;
-          this.handleX = this.screenWidth - this.handleWidth;
-          this.handleY = 200;
-          this.lastX = this.handleX;
-        }
-      } catch (e) {
-        console.error("Failed to load position:", e);
-        this.isOnLeft = false;
-        this.handleX = this.screenWidth - this.handleWidth;
-        this.handleY = 200;
-        this.lastX = this.handleX;
-      }
-    },
-
-    isValidPosition(pos) {
-      return (
-        pos &&
-        typeof pos.x === "number" &&
-        typeof pos.y === "number" &&
-        pos.x >= 0 &&
-        pos.x <= this.screenWidth - this.handleWidth &&
-        pos.y >= 0 &&
-        pos.y <= this.screenHeight - this.handleHeight
-      );
     },
 
     onMainContainerClick() {
@@ -1522,18 +1447,6 @@ export default {
       return sortedUser.every((value, index) => value === sortedCorrect[index]);
     },
 
-    // 加新方法
-    ensureHandlePosition() {
-      const systemInfo = uni.getSystemInfoSync();
-      this.screenWidth = systemInfo.windowWidth;
-      this.screenHeight = systemInfo.windowHeight;
-
-      // 强制执行吸附
-      this.handleX = this.screenWidth - uni.upx2px(80);
-      this.handleY = 200;
-      this.onHandleTouchEnd();
-    },
-
     // 修改切换答案显示方法
     toggleAnswerView() {
       // 直接切换答案显示状态，不做任何检查
@@ -1815,135 +1728,6 @@ export default {
           this.currentQuestion + 1
         }`,
       });
-    },
-
-    onAiButtonMove(e) {
-      const middlePoint = this.screenWidth / 2;
-      const currentX = e.detail.x;
-
-      // 判断是否过中线,决定吸附方向
-      if (currentX < middlePoint && !this.isOnLeft) {
-        this.isOnLeft = true;
-        this.aiButtonX = 0;
-      } else if (currentX >= middlePoint && this.isOnLeft) {
-        this.isOnLeft = false;
-        this.aiButtonX = this.screenWidth - this.buttonWidth;
-      }
-
-      // 限制Y轴移动范围，设置最小值为300
-      this.aiButtonY = Math.max(
-        300, // 设置最小Y轴位置
-        Math.min(e.detail.y, this.screenHeight - this.buttonHeight)
-      );
-    },
-
-    onAiButtonTouchEnd() {
-      // 吸附到最近的边缘
-      this.aiButtonX = this.isOnLeft ? 0 : this.screenWidth - this.buttonWidth;
-
-      // 保存位置
-      this.saveAiButtonPosition();
-    },
-
-    initAiButtonPosition() {
-      try {
-        const saved = uni.getStorageSync("aiButtonPosition");
-        if (saved && this.isValidPosition(saved)) {
-          this.isOnLeft = saved.isOnLeft;
-          this.aiButtonX = this.isOnLeft ? 0 : this.screenWidth - this.buttonWidth;
-          this.aiButtonY = saved.y;
-        } else {
-          // 默认位置设置为右侧
-          this.isOnLeft = false;
-          this.aiButtonX = this.screenWidth - this.buttonWidth;
-          this.aiButtonY = 400;
-        }
-      } catch (e) {
-        console.error("Failed to load AI button position:", e);
-        // 默认位置设置为右侧
-        this.isOnLeft = false;
-        this.aiButtonX = this.screenWidth - this.buttonWidth;
-        this.aiButtonY = 400;
-      }
-    },
-
-    saveAiButtonPosition() {
-      try {
-        uni.setStorageSync("aiButtonPosition", {
-          x: this.aiButtonX,
-          y: this.aiButtonY,
-          isOnLeft: this.isOnLeft,
-        });
-      } catch (e) {
-        console.error("Failed to save AI button position:", e);
-      }
-    },
-
-    isValidPosition(pos) {
-      return (
-        pos &&
-        typeof pos.x === "number" &&
-        typeof pos.y === "number" &&
-        pos.x >= 0 &&
-        pos.x <= this.screenWidth - this.buttonWidth &&
-        pos.y >= 0 &&
-        pos.y <= this.screenHeight - this.buttonHeight
-      );
-    },
-
-    // 添加滚动处理方法
-    handleScroll(e) {
-      this.lastScrollTop = e.detail.scrollTop;
-    },
-
-    // 新增初始化答案的方法
-    initAnswersFromHistory(history) {
-      if (!Array.isArray(history)) return;
-
-      console.log("开始初始化答案，历史记录:", history);
-      console.log("当前题目列表:", this.questions);
-
-      history.forEach((historyItem) => {
-        // 尝试多种可能的 ID 匹配
-        const questionIndex = this.questions.findIndex(
-          (q) =>
-            String(q.id) === String(historyItem.questionNumber) ||
-            String(q.id) === String(historyItem.questionId) ||
-            String(q.questionNumber) === String(historyItem.questionNumber)
-        );
-
-        console.log("匹配题目:", {
-          questionNumber: historyItem.questionNumber,
-          questionId: historyItem.questionId,
-          foundIndex: questionIndex,
-          answer: historyItem.answer,
-        });
-
-        if (questionIndex !== -1) {
-          const questionType = this.questions[questionIndex].type;
-          let formattedAnswer = historyItem.answer;
-
-          // 根据题目类型处理答案格式
-          if (questionType === "multiple" && typeof formattedAnswer === "string") {
-            formattedAnswer = formattedAnswer.split(",");
-          } else if (questionType === "blank" && typeof formattedAnswer === "string") {
-            formattedAnswer = formattedAnswer.split(",");
-          }
-
-          console.log("设置答案:", {
-            index: questionIndex,
-            type: questionType,
-            rawAnswer: historyItem.answer,
-            formattedAnswer: formattedAnswer,
-          });
-
-          this.$set(this.answers, questionIndex, formattedAnswer);
-        } else {
-          console.warn("未找到匹配的题目:", historyItem);
-        }
-      });
-
-      console.log("初始化后的答案数组:", this.answers);
     },
 
     // 新增：切换收藏状态
@@ -2251,6 +2035,131 @@ export default {
     clearSearch() {
       this.searchGroupKeyword = "";
     },
+
+    // 新增：显示首次使用提示
+    showSwipeTipDialog() {
+      this.showSwipeTip = true;
+    },
+
+    // 新增：关闭首次使用提示
+    closeSwipeTip() {
+      this.showSwipeTip = false;
+      this.clearTimers();
+    },
+
+    // 禁用提示
+    disableTip() {
+      try {
+        uni.setStorageSync("neverShowSwipeTip", true);
+        this.closeSwipeTip();
+      } catch (e) {
+        console.error("Storage error:", e);
+      }
+    },
+
+    // 清理定时器
+    clearTimers() {
+      if (this.autoCloseTimer) {
+        clearTimeout(this.autoCloseTimer);
+        this.autoCloseTimer = null;
+      }
+      if (this.progressTimer) {
+        clearInterval(this.progressTimer);
+        this.progressTimer = null;
+      }
+    },
+
+    // 初始化提示
+    initSwipeTip() {
+      try {
+        const neverShow = uni.getStorageSync("neverShowSwipeTip");
+        const hasUsed = uni.getStorageSync("hasUsedExam");
+
+        // 只有当用户没有选择"不再提示"且是首次使用时才显示提示
+        if (!neverShow && !hasUsed && this.currentQuestion === 0) {
+          setTimeout(() => {
+            // 使用新的方法名
+            this.showSwipeTipDialog();
+            this.startAutoClose();
+            // 记录已使用状态
+            uni.setStorageSync("hasUsedExam", true);
+          }, 500);
+        }
+      } catch (e) {
+        console.error("Storage error:", e);
+      }
+    },
+
+    // 开始自动关闭倒计时
+    startAutoClose() {
+      this.progressWidth = 100;
+      const duration = 3000; // 3秒后自动关闭
+      const interval = 30; // 进度条更新间隔
+      const step = (100 * interval) / duration;
+
+      this.progressTimer = setInterval(() => {
+        this.progressWidth = Math.max(0, this.progressWidth - step);
+      }, interval);
+
+      this.autoCloseTimer = setTimeout(() => {
+        this.closeSwipeTip();
+      }, duration);
+    },
+
+    // 新增初始化答案的方法
+    initAnswersFromHistory(history) {
+      if (!Array.isArray(history)) return;
+
+      console.log("开始初始化答案，历史记录:", history);
+      console.log("当前题目列表:", this.questions);
+
+      history.forEach((historyItem) => {
+        // 尝试多种可能的 ID 匹配
+        const questionIndex = this.questions.findIndex(
+          (q) =>
+            String(q.id) === String(historyItem.questionNumber) ||
+            String(q.id) === String(historyItem.questionId) ||
+            String(q.questionNumber) === String(historyItem.questionNumber)
+        );
+
+        console.log("匹配题目:", {
+          questionNumber: historyItem.questionNumber,
+          questionId: historyItem.questionId,
+          foundIndex: questionIndex,
+          answer: historyItem.answer,
+        });
+
+        if (questionIndex !== -1) {
+          const questionType = this.questions[questionIndex].type;
+          let formattedAnswer = historyItem.answer;
+
+          // 根据题目类型处理答案格式
+          if (questionType === "multiple" && typeof formattedAnswer === "string") {
+            formattedAnswer = formattedAnswer.split(",");
+          } else if (questionType === "blank" && typeof formattedAnswer === "string") {
+            formattedAnswer = formattedAnswer.split(",");
+          }
+
+          console.log("设置答案:", {
+            index: questionIndex,
+            type: questionType,
+            rawAnswer: historyItem.answer,
+            formattedAnswer: formattedAnswer,
+          });
+
+          this.$set(this.answers, questionIndex, formattedAnswer);
+        } else {
+          console.warn("未找到匹配的题目:", historyItem);
+        }
+      });
+
+      console.log("初始化后的答案数组:", this.answers);
+    },
+
+    // 添加滚动处理方法
+    handleScroll(e) {
+      this.lastScrollTop = e.detail.scrollTop;
+    },
   },
   mounted() {
     const pages = getCurrentPages();
@@ -2271,11 +2180,13 @@ export default {
 
     // 初始化位置
     this.$nextTick(() => {
-      this.initHandlePosition();
+      this.initSizes();
     });
 
-    // 初始化按钮位置
-    this.initAiButtonPosition();
+    // 初始化滑动提示
+    this.$nextTick(() => {
+      this.initSwipeTip();
+    });
   },
 
   beforeDestroy() {
@@ -2283,6 +2194,7 @@ export default {
       clearInterval(this.timer);
       this.timer = null;
     }
+    this.clearTimers();
   },
 };
 </script>
@@ -2365,9 +2277,9 @@ export default {
 
 .question-card {
   padding: 24rpx 20rpx;
-  /* 减小卡片本身的内边距，避免叠加过多间距 */
   margin-top: 20rpx;
-  /* 添加顶部间距 */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .question-title {
@@ -2489,40 +2401,62 @@ export default {
   padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
 }
 
-.center-btns {
-  display: flex;
-  gap: 12rpx;
-}
-
 .nav-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 12rpx 24rpx;
-  color: #666;
-  font-size: 26rpx;
-}
-
-.nav-btn.disabled {
-  opacity: 0.5;
-}
-
-.submit-btn {
-  padding: 12rpx 32rpx;
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
-  border-radius: 32rpx;
-  box-shadow: 0 4rpx 12rpx rgba(24, 144, 255, 0.3);
+  gap: 12rpx;
   transition: all 0.3s ease;
 }
 
-.submit-btn text {
-  color: #fff;
+.nav-btn:active {
+  opacity: 0.7;
+}
+
+.nav-icon {
+  width: 40rpx;
+  height: 40rpx;
+}
+
+.nav-btn text {
   font-size: 28rpx;
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.submit-answer-section {
+  padding: 32rpx 24rpx;
+  margin-top: 32rpx;
+  border-top: 2rpx solid #f0f0f0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.submit-answer-btn {
+  width: 100%;
+  padding: 24rpx;
+  background: #52c41a;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 12rpx rgba(82, 196, 26, 0.2);
+  box-sizing: border-box;
+}
+
+.submit-answer-btn text {
+  color: #fff;
+  font-size: 32rpx;
   font-weight: 600;
   letter-spacing: 2rpx;
 }
 
-.submit-btn:active {
-  transform: translateY(2rpx);
-  box-shadow: 0 2rpx 8rpx rgba(24, 144, 255, 0.2);
-  background: linear-gradient(135deg, #096dd9 0%, #0050b3 100%);
+.submit-answer-btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+  background: #389e0d;
 }
 
 .explanation-section {
@@ -4020,5 +3954,245 @@ export default {
 .dialog-btn.disabled {
   opacity: 0.5;
   pointer-events: none;
+}
+
+/* 首次使用提示样式 */
+.swipe-tip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.75);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.tip-content {
+  background: rgba(255, 255, 255, 0.98);
+  padding: 40rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30rpx;
+  width: 80%;
+  max-width: 600rpx;
+}
+
+.gesture-animation {
+  margin: 20rpx 0;
+}
+
+.gesture-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40rpx;
+  animation: pulse 2s infinite;
+}
+
+.hand-icon {
+  font-size: 60rpx;
+  transform: rotate(90deg);
+}
+
+.arrow-left,
+.arrow-right {
+  width: 40rpx;
+  height: 40rpx;
+  border-top: 6rpx solid #1890ff;
+  border-right: 6rpx solid #1890ff;
+  animation: arrowMove 2s infinite;
+}
+
+.arrow-left {
+  transform: rotate(-135deg);
+}
+
+.arrow-right {
+  transform: rotate(45deg);
+}
+
+.tip-text {
+  text-align: center;
+}
+
+.tip-text text {
+  display: block;
+  color: #333;
+  font-size: 36rpx;
+  font-weight: 600;
+}
+
+.tip-text .sub-text {
+  font-size: 28rpx;
+  color: #666;
+  margin-top: 12rpx;
+  font-weight: normal;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6rpx;
+  background: #f0f0f0;
+  border-radius: 3rpx;
+  overflow: hidden;
+}
+
+.progress {
+  height: 100%;
+  background: #1890ff;
+  transition: width 0.1s linear;
+}
+
+.tip-options {
+  display: flex;
+  gap: 24rpx;
+  margin-top: 20rpx;
+}
+
+.no-more-tip,
+.confirm-btn {
+  padding: 16rpx 32rpx;
+  border-radius: 32rpx;
+  font-size: 28rpx;
+  transition: all 0.3s ease;
+}
+
+.no-more-tip {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.confirm-btn {
+  background: #1890ff;
+  color: #fff;
+}
+
+.no-more-tip:active,
+.confirm-btn:active {
+  transform: scale(0.95);
+  opacity: 0.9;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes arrowMove {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: rotate(-135deg) translateX(0);
+  }
+  50% {
+    opacity: 1;
+    transform: rotate(-135deg) translateX(-10rpx);
+  }
+}
+
+.arrow-right {
+  animation: arrowMoveRight 2s infinite;
+}
+
+@keyframes arrowMoveRight {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: rotate(45deg) translateX(0);
+  }
+  50% {
+    opacity: 1;
+    transform: rotate(45deg) translateX(10rpx);
+  }
+}
+
+.submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56rpx;
+  padding: 0 20rpx;
+  border-radius: 28rpx;
+  background: #52c41a;
+  color: #fff;
+  font-size: 26rpx;
+  font-weight: 500;
+  box-shadow: 0 2rpx 8rpx rgba(82, 196, 26, 0.2);
+  transition: all 0.3s ease;
+}
+
+.submit-btn:active {
+  opacity: 0.9;
+  transform: scale(0.98);
+  background: #389e0d;
+}
+
+.submit-btn .icon-text-wrapper {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+}
+
+.submit-btn svg {
+  width: 28rpx;
+  height: 28rpx;
+  fill: #fff;
+  margin-right: 6rpx;
+  display: block;
+  position: relative;
+  top: 1rpx;
+}
+
+.submit-btn text {
+  font-size: 26rpx;
+  color: #fff;
+  line-height: 28rpx;
+  display: block;
+}
+
+.submit-btn .icon-text-wrapper {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+}
+
+.submit-btn svg {
+  width: 28rpx;
+  height: 28rpx;
+  fill: #fff;
+  margin-right: 6rpx;
+  display: block;
+  position: relative;
+  top: 1rpx;
+}
+
+.submit-btn text {
+  font-size: 26rpx;
+  color: #fff;
+  line-height: 28rpx;
+  display: block;
 }
 </style>
