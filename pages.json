@@ -187,6 +187,13 @@
 				"navigationBarTitleText": "我的收藏",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/settings/index",
+			"style": {
+				"navigationBarTitleText": "系统配置",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"tabBar": {

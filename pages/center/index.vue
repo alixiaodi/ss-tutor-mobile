@@ -1,6 +1,8 @@
 <template>
   <view>
-    <Navbar :hideBtn="true" bgColor="#f3f4f6"></Navbar>
+    <view class="settings-btn" @click="handleSettings">
+      <u-icon name="setting" color="#2979ff" size="44rpx"></u-icon>
+    </view>
     <view class="profile-top">
       <view class="user-info">
         <view class="info-content">
@@ -405,6 +407,11 @@ export default {
     isFeatureDisabled(path) {
       return this.disabledFeatures.includes(path);
     },
+    handleSettings() {
+      uni.navigateTo({
+        url: "/pages/settings/index",
+      });
+    },
   },
 };
 </script>
@@ -716,5 +723,26 @@ export default {
   border-radius: 12rpx;
   transform: scale(0.8);
   transform-origin: right top;
+}
+
+.settings-btn {
+  position: fixed;
+  top: 20rpx;
+  right: 30rpx;
+  z-index: 999;
+  background: rgba(255, 255, 255, 0.9);
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+
+  &:active {
+    transform: scale(0.95);
+    background: rgba(255, 255, 255, 0.95);
+  }
 }
 </style>
