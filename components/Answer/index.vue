@@ -2209,7 +2209,7 @@ export default {
     this.correctAudio = uni.createInnerAudioContext();
     this.correctAudio.src = "/static/audio/bingo.mp3";
     this.wrongAudio = uni.createInnerAudioContext();
-    this.wrongAudio.src = "/static/audio/wrong_answer.wav";
+    this.wrongAudio.src = "/static/audio/wrong_answer.mp3";
 
     // 设置开始时间
     this.startTime = Date.now();
