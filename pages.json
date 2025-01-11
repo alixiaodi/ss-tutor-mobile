@@ -173,6 +173,13 @@
 				"navigationBarTitleText": "我的题库",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/collect/index",
+			"style": {
+				"navigationBarTitleText": "我的收藏",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"tabBar": {

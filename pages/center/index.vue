@@ -39,17 +39,62 @@
     </view>
     <view style="padding: 40rpx; background-color: #fff">
       <u-grid :border="false" col="4">
-        <u-grid-item @click="navigateTo('/pages/study/history')">
-          <u-icon name="file-text" color="#2979ff" size="60rpx"></u-icon>
-          <text class="btn-text">学习记录</text>
+        <u-grid-item
+          @click="navigateTo('/pages/study/history')"
+          class="grid-item"
+          :class="{ disabled: isFeatureDisabled('/pages/study/history') }"
+        >
+          <u-icon
+            name="file-text"
+            :color="isFeatureDisabled('/pages/study/history') ? '#c8c9cc' : '#2979ff'"
+            size="60rpx"
+          ></u-icon>
+          <text
+            class="btn-text"
+            :class="{ 'disabled-text': isFeatureDisabled('/pages/study/history') }"
+            >学习记录</text
+          >
+          <text v-if="isFeatureDisabled('/pages/study/history')" class="developing-tag"
+            >开发中</text
+          >
         </u-grid-item>
-        <u-grid-item @click="navigateTo('/pages/exam/history')">
-          <u-icon name="calendar" color="#2979ff" size="60rpx"></u-icon>
-          <text class="btn-text">考试记录</text>
+        <u-grid-item
+          @click="navigateTo('/pages/exam/history')"
+          class="grid-item"
+          :class="{ disabled: isFeatureDisabled('/pages/exam/history') }"
+        >
+          <u-icon
+            name="calendar"
+            :color="isFeatureDisabled('/pages/exam/history') ? '#c8c9cc' : '#2979ff'"
+            size="60rpx"
+          ></u-icon>
+          <text
+            class="btn-text"
+            :class="{ 'disabled-text': isFeatureDisabled('/pages/exam/history') }"
+            >考试记录</text
+          >
+          <text v-if="isFeatureDisabled('/pages/exam/history')" class="developing-tag"
+            >开发中</text
+          >
         </u-grid-item>
-        <u-grid-item @click="navigateTo('/pages/wrong/index')">
-          <u-icon name="bookmark" color="#2979ff" size="60rpx"></u-icon>
-          <text class="btn-text">错题本</text>
+        <u-grid-item
+          @click="navigateTo('/pages/wrong/index')"
+          class="grid-item"
+          :class="{ disabled: isFeatureDisabled('/pages/wrong/index') }"
+        >
+          <u-icon
+            name="bookmark"
+            :color="isFeatureDisabled('/pages/wrong/index') ? '#c8c9cc' : '#2979ff'"
+            size="60rpx"
+          ></u-icon>
+          <text
+            class="btn-text"
+            :class="{ 'disabled-text': isFeatureDisabled('/pages/wrong/index') }"
+            >错题本</text
+          >
+          <text v-if="isFeatureDisabled('/pages/wrong/index')" class="developing-tag"
+            >开发中</text
+          >
         </u-grid-item>
         <u-grid-item @click="navigateTo('/pages/collect/index')">
           <u-icon name="star" color="#2979ff" size="60rpx"></u-icon>
@@ -132,6 +177,11 @@ export default {
       hasSignedToday: false,
       resetPassword: false,
       showVipPopup: false,
+      disabledFeatures: [
+        "/pages/study/history",
+        "/pages/exam/history",
+        "/pages/wrong/index",
+      ],
     };
   },
   computed: {
@@ -204,7 +254,6 @@ export default {
         "/pages/study/history": "学习记录功能正在开发中，敬请期待！",
         "/pages/exam/history": "考试记录统计功能即将上线，敬请期待！",
         "/pages/wrong/index": "错题本功能正在优化中，即将与您见面！",
-        "/pages/collect/index": "收藏夹功能正在完善中，马上就来！",
       };
 
       if (developingFeatures[url]) {
@@ -260,7 +309,7 @@ export default {
       } catch (error) {
         console.error("签到失败:", error);
         uni.showToast({
-          title: "签到失���，请稍后重试",
+          title: "签到失败，请稍后重试",
           icon: "none",
         });
       }
@@ -352,6 +401,9 @@ export default {
     },
     openVipPopup() {
       this.showVipPopup = true;
+    },
+    isFeatureDisabled(path) {
+      return this.disabledFeatures.includes(path);
     },
   },
 };
@@ -638,5 +690,31 @@ export default {
     transform: scale(0.95);
     opacity: 0.9;
   }
+}
+
+.grid-item {
+  position: relative;
+
+  &.disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.disabled-text {
+  color: #c8c9cc !important;
+}
+
+.developing-tag {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: rgba(144, 147, 153, 0.8);
+  color: #fff;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  transform: scale(0.8);
+  transform-origin: right top;
 }
 </style>
