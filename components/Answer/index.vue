@@ -624,6 +624,8 @@ export default {
     const sysInfo = uni.getSystemInfoSync(); // 在 data 中获取系统信息
     const buttonWidthPx = uni.upx2px(100); // 转换按钮宽度为 px
     return {
+      correctAudio: null,
+      wrongAudio: null,
       optionLabels: ["A", "B", "C", "D", "E", "F", "G", "H"],
       questions: [], // 将从外部接收数
       answers: [],
@@ -808,13 +810,17 @@ export default {
         // 检查答案是否正确
         const isCorrect = this.checkAnswer(this.questions[index], value);
 
+        // 播放对应音效
         if (isCorrect) {
+          this.playCorrectSound();
           setTimeout(() => {
             if (index < this.questions.length - 1) {
               this.currentQuestion = index + 1;
               this.showingAnswer = false;
             }
           }, 800);
+        } else {
+          this.playWrongSound();
         }
       }
     },
@@ -1466,25 +1472,16 @@ export default {
         return;
       }
 
-      // TODO: 调用答题记录接口
-      // try {
-      //   await AnswerQuestionsApi.record({
-      //     answerId: this.answerId,
-      //     questionId: currentQuestion.id,
-      //     answer: answer
-      //   });
-      // } catch (error) {
-      //   console.error('提交答案失败:', error);
-      //   uni.showToast({
-      //     title: '提交败，请重试',
-      //     icon: 'none'
-      //   });
-      //   return;
-      // }
-
       try {
         const res = await AiApi.judge(currentQuestion.id, answer, this.answerId);
         if (res.code === 200) {
+          // 根据得分判断播放音效
+          if (res.data.score > 0) {
+            this.playCorrectSound();
+          } else {
+            this.playWrongSound();
+          }
+
           uni.showModal({
             title: "评分结果",
             content: `得分：<span style="color: #52c41a; font-weight: bold;">${res.data.score}分</span>\n评语：<span style="color: #666666;">${res.data.analysis}</span>`.replace(
@@ -2160,6 +2157,44 @@ export default {
     handleScroll(e) {
       this.lastScrollTop = e.detail.scrollTop;
     },
+
+    // 播放正确音效
+    playCorrectSound() {
+      try {
+        const soundSetting = uni.getStorageSync("soundEnabled");
+        console.log("音效设置:", soundSetting);
+
+        // 判断是否启用音效（支持直接布尔值或对象格式）
+        const isEnabled =
+          soundSetting === true || (soundSetting && soundSetting.data === true);
+
+        if (isEnabled && this.correctAudio) {
+          this.correctAudio.stop();
+          this.correctAudio.play();
+        }
+      } catch (e) {
+        console.error("获取音效设置失败:", e);
+      }
+    },
+
+    // 播放错误音效
+    playWrongSound() {
+      try {
+        const soundSetting = uni.getStorageSync("soundEnabled");
+        console.log("音效设置:", soundSetting);
+
+        // 判断是否启用音效（支持直接布尔值或对象格式）
+        const isEnabled =
+          soundSetting === true || (soundSetting && soundSetting.data === true);
+
+        if (isEnabled && this.wrongAudio) {
+          this.wrongAudio.stop();
+          this.wrongAudio.play();
+        }
+      } catch (e) {
+        console.error("获取音效设置失败:", e);
+      }
+    },
   },
   mounted() {
     const pages = getCurrentPages();
@@ -2169,6 +2204,12 @@ export default {
     this.id = options.id;
     this.mode = options.mode;
     this.answerId = options.answerId;
+
+    // 初始化音频对象
+    this.correctAudio = uni.createInnerAudioContext();
+    this.correctAudio.src = "/static/audio/bingo.mp3";
+    this.wrongAudio = uni.createInnerAudioContext();
+    this.wrongAudio.src = "/static/audio/wrong_answer.wav";
 
     // 设置开始时间
     this.startTime = Date.now();
@@ -2195,6 +2236,14 @@ export default {
       this.timer = null;
     }
     this.clearTimers();
+
+    // 销毁音频对象
+    if (this.correctAudio) {
+      this.correctAudio.destroy();
+    }
+    if (this.wrongAudio) {
+      this.wrongAudio.destroy();
+    }
   },
 };
 </script>
