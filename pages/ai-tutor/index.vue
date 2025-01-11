@@ -23,14 +23,11 @@
               mode="aspectFill"
             />
           </view>
-          <!-- <text class="message-content">{{ item.content }}</text> -->
-          <view
-            class="message-content"
-            v-if="item.status !== undefined && item.status === 1"
-          >
-            <MDParserHighlight :resource="item.content"></MDParserHighlight>
+          <view class="message-content">
+            <view class="light">
+              <f-md :content="item.content" :isStreaming="item.status !== 1"></f-md>
+            </view>
           </view>
-          <text class="message-content" v-else>{{ item.content }}</text>
         </view>
       </view>
     </view>
@@ -82,7 +79,7 @@
 </template>
 
 <script>
-import MDParserHighlight from "../../components/cmder-MDParserHighlight/index.vue";
+import fMd from "../../components/f-md/f-md.vue";
 import Navbar from "@/components/navbar/Navbar";
 import { mapState } from "vuex";
 import VipPopup from "@/components/vip-popup/index.vue";
@@ -92,7 +89,7 @@ import * as aiApi from "@/api/ai.js";
 export default {
   components: {
     VipPopup,
-    MDParserHighlight,
+    fMd,
     Navbar,
   },
   computed: {
@@ -107,6 +104,7 @@ export default {
         {
           type: "ai",
           content: "你好，我是你的AI导师，有什么我可以帮你的吗？",
+          status: 1,
         },
       ],
       scrollTop: 0,
@@ -189,6 +187,7 @@ export default {
       this.chatHistory.push({
         type: "user",
         content: this.message,
+        status: 1,
       });
 
       // 添加一个空的 AI 消息占位

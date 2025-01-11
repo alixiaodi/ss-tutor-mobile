@@ -29,8 +29,13 @@
             <text>{{ paper.name }}</text>
             <text class="question-count">({{ paper.infoCount }}个收藏)</text>
           </view>
-          <view class="fold-icon" :class="{ 'is-fold': !paper.isExpanded }">
-            <u-icon name="arrow-down" size="28"></u-icon>
+          <view class="title-actions">
+            <view class="delete-btn" @click.stop="deleteGroup(paperIndex)">
+              <u-icon name="trash" size="28" color="#FF5252"></u-icon>
+            </view>
+            <view class="fold-icon" :class="{ 'is-fold': !paper.isExpanded }">
+              <u-icon name="arrow-down" size="28"></u-icon>
+            </view>
           </view>
         </view>
         <view class="questions-wrapper" v-show="paper.isExpanded">
@@ -63,7 +68,7 @@
 
 <script>
 import Navbar from "@/components/navbar/Navbar";
-import { getCollectGroupList } from "@/api/collectGroup";
+import { getCollectGroupList, deleteCollectGroup } from "@/api/collectGroup";
 import { listCollectInfo, deleteCollectInfo } from "@/api/collectInfo";
 
 export default {
@@ -198,6 +203,37 @@ export default {
         },
       });
     },
+    // 删除收藏组
+    async deleteGroup(index) {
+      const paper = this.collectList[index];
+      uni.showModal({
+        title: "提示",
+        content: "确定要删除该收藏组吗？删除后组内所有收藏内容将一并删除",
+        success: async (res) => {
+          if (res.confirm) {
+            try {
+              uni.showLoading({
+                title: "删除中...",
+              });
+              await deleteCollectGroup(paper.id);
+              this.collectList.splice(index, 1);
+              uni.showToast({
+                title: "删除成功",
+                icon: "success",
+              });
+            } catch (error) {
+              console.error("删除收藏组失败：", error);
+              uni.showToast({
+                title: "删除失败",
+                icon: "none",
+              });
+            } finally {
+              uni.hideLoading();
+            }
+          }
+        },
+      });
+    },
   },
 };
 </script>
@@ -241,11 +277,21 @@ export default {
       }
     }
 
-    .fold-icon {
-      transition: transform 0.3s ease;
+    .title-actions {
+      display: flex;
+      align-items: center;
+      gap: 20rpx;
 
-      &.is-fold {
-        transform: rotate(-180deg);
+      .delete-btn {
+        padding: 10rpx;
+      }
+
+      .fold-icon {
+        transition: transform 0.3s ease;
+
+        &.is-fold {
+          transform: rotate(-180deg);
+        }
       }
     }
   }
