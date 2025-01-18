@@ -15,6 +15,16 @@
         @click="handleImport"
         icon="plus"
         text="导入题库"
+        :customStyle="{
+          width: '100%',
+          height: '45px',
+          background: 'linear-gradient(to right, #4ECDB6, #45BFA3)',
+          borderRadius: '8px',
+          border: 'none',
+          fontSize: '16px',
+          fontWeight: '500',
+          boxShadow: '0 2px 6px rgba(78, 205, 182, 0.2)',
+        }"
       ></u-button>
     </view>
 
@@ -68,48 +78,25 @@ export default {
     },
     // 处理导入题库
     handleImport() {
-      // 先选择文件
-      uni.chooseFile({
-        count: 1,
-        extension: [".xlsx", ".xls"],
-        success: (res) => {
-          // 弹出输入框让用户输入题库名称
+      // 生成导入链接
+      const baseUrl =
+        process.env.NODE_ENV === "production"
+          ? window.location.origin
+          : "http://localhost:8080";
+
+      const importUrl = `${baseUrl}/import-questions`;
+
+      // 复制链接到剪贴板
+      uni.setClipboardData({
+        data: importUrl,
+        success: () => {
           uni.showModal({
-            title: "请输入题库名称",
-            editable: true,
-            placeholderText: "例如：2024年模拟题",
-            success: async (modalRes) => {
-              if (modalRes.confirm && modalRes.content) {
-                // 显示上传中
-                uni.showLoading({
-                  title: "导入中...",
-                });
-
-                try {
-                  // TODO: 调用上传API
-                  const formData = new FormData();
-                  formData.append("file", res.tempFilePaths[0]);
-                  formData.append("name", modalRes.content);
-
-                  // const result = await uploadQuestionBank(formData);
-
-                  // 刷新题库列表
-                  this.loadQuestionBanks();
-
-                  uni.showToast({
-                    title: "导入成功",
-                    icon: "success",
-                  });
-                } catch (error) {
-                  uni.showToast({
-                    title: "导入失败",
-                    icon: "error",
-                  });
-                } finally {
-                  uni.hideLoading();
-                }
-              }
-            },
+            title: "链接已复制",
+            content:
+              "请在电脑浏览器中打开链接，上传Excel格式的题库文件。\n\n支持.xlsx和.xls格式",
+            confirmText: "我知道了",
+            showCancel: false,
+            confirmColor: "#4ECDB6",
           });
         },
       });
@@ -133,6 +120,12 @@ export default {
 
 .import-section {
   margin: 20px 15px;
+  .u-button {
+    &:active {
+      transform: scale(0.98);
+      transition: transform 0.2s;
+    }
+  }
 }
 
 .question-banks {

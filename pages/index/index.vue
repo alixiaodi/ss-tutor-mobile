@@ -78,10 +78,19 @@
                 <text>VIP</text>
               </view>
             </view>
-            <!--         <view class="module-card" @click="navigateTo('/pages/my-questions/index')">
+            <view class="module-card" @click="navigateTo('/pages/stage-practice/index')">
+              <image src="/static/icons/stage_practice.png" class="module-icon"></image>
+              <text class="module-title">阶段练习</text>
+            </view>
+            <view class="module-card" @click="navigateTo('/pages/premium-video/index')">
+              <image src="/static/icons/premium_video.png" class="module-icon"></image>
+              <text class="module-title">精品视频</text>
+            </view>
+            <view class="module-card" @click="navigateTo('/pages/my-questions/index')">
               <image src="/static/icons/my_questions.png" class="module-icon"></image>
               <text class="module-title">我的题库</text>
-            </view> -->
+            </view>
+            -->
           </view>
         </view>
       </swiper-item>
@@ -202,6 +211,9 @@ export default {
         url = `${url}?subjectCode=${this.currentSubjectCode}&from=index`;
       }
       if (url === "/pages/year-analysis/index") {
+        url = `${url}?subjectCode=${this.currentSubjectCode}`;
+      }
+      if (url === "/pages/stage-practice/index") {
         url = `${url}?subjectCode=${this.currentSubjectCode}`;
       }
       uni.navigateTo({ url });

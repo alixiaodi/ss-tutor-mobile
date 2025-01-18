@@ -3,7 +3,7 @@
     <!-- 固定的头部计时器 -->
     <view class="exam-header">
       <!-- #ifdef H5 -->
-      <view class="back-btn" @click="handleBack">
+      <view class="back-btn" @click="handleBack" v-if="mode !== '5'">
         <svg
           t="1730634015516"
           class="icon"
@@ -39,7 +39,7 @@
               fill="#FFFFFF"
             ></path>
           </svg>
-          <text>提交</text>
+          <text>{{ mode === "5" ? "保存" : "提交" }}</text>
         </view>
       </view>
     </view>
@@ -626,6 +626,10 @@ export default {
     return {
       correctAudio: null,
       wrongAudio: null,
+      isAudioReady: {
+        correct: false,
+        wrong: false,
+      },
       optionLabels: ["A", "B", "C", "D", "E", "F", "G", "H"],
       questions: [], // 将从外部接收数
       answers: [],
@@ -890,7 +894,8 @@ export default {
       // 添加确认提示
       uni.showModal({
         title: "提示",
-        content: "确认提交答卷吗？提交后将无法修改答案",
+        content:
+          this.mode === "5" ? "确认保存答案吗？" : "确认提交答卷吗？提交后将无法修改答案",
         success: async (res) => {
           if (res.confirm) {
             // 显示加载提示
@@ -2168,12 +2173,15 @@ export default {
         const isEnabled =
           soundSetting === true || (soundSetting && soundSetting.data === true);
 
-        if (isEnabled && this.correctAudio) {
+        if (isEnabled && this.correctAudio && this.isAudioReady.correct) {
+          // 确保音频对象存在且已准备就绪
           this.correctAudio.stop();
-          this.correctAudio.play();
+          setTimeout(() => {
+            this.correctAudio.play();
+          }, 50); // 添加短暂延时确保stop完成
         }
       } catch (e) {
-        console.error("获取音效设置失败:", e);
+        console.error("播放正确音效失败:", e);
       }
     },
 
@@ -2187,13 +2195,63 @@ export default {
         const isEnabled =
           soundSetting === true || (soundSetting && soundSetting.data === true);
 
-        if (isEnabled && this.wrongAudio) {
+        if (isEnabled && this.wrongAudio && this.isAudioReady.wrong) {
+          // 确保音频对象存在且已准备就绪
           this.wrongAudio.stop();
-          this.wrongAudio.play();
+          setTimeout(() => {
+            this.wrongAudio.play();
+          }, 50); // 添加短暂延时确保stop完成
         }
       } catch (e) {
-        console.error("获取音效设置失败:", e);
+        console.error("播放错误音效失败:", e);
       }
+    },
+
+    // 销毁音频对象
+    destroyAudio() {
+      if (this.correctAudio) {
+        this.correctAudio.destroy();
+        this.correctAudio = null;
+      }
+      if (this.wrongAudio) {
+        this.wrongAudio.destroy();
+        this.wrongAudio = null;
+      }
+    },
+
+    // 初始化音频
+    initAudio() {
+      // 创建正确音效
+      this.correctAudio = uni.createInnerAudioContext();
+      this.correctAudio.src = "/static/audio/bingo.mp3";
+
+      // 监听正确音效加载完成
+      this.correctAudio.onCanplay(() => {
+        console.log("正确音效加载完成");
+        this.isAudioReady.correct = true;
+      });
+
+      // 监听正确音效播放错误
+      this.correctAudio.onError((res) => {
+        console.error("正确音效播放错误:", res);
+        this.isAudioReady.correct = false;
+      });
+
+      // 创建错误音效
+      this.wrongAudio = uni.createInnerAudioContext();
+      this.wrongAudio.src = "/static/audio/wrong_answer.mp3";
+
+      // 监听错误音效加载完成
+      this.wrongAudio.onCanplay(() => {
+        console.log("错误音效加载完成");
+        this.isAudioReady.wrong = true;
+      });
+
+      // 监听错误音效播放错误
+      this.wrongAudio.onError((res) => {
+        console.error("错误音效播放错误:", res);
+        this.isAudioReady.wrong = false;
+      });
     },
   },
   mounted() {
@@ -2205,11 +2263,8 @@ export default {
     this.mode = options.mode;
     this.answerId = options.answerId;
 
-    // 初始化音频对象
-    this.correctAudio = uni.createInnerAudioContext();
-    this.correctAudio.src = "/static/audio/bingo.mp3";
-    this.wrongAudio = uni.createInnerAudioContext();
-    this.wrongAudio.src = "/static/audio/wrong_answer.mp3";
+    // 初始化音频
+    this.initAudio();
 
     // 设置开始时间
     this.startTime = Date.now();
@@ -2238,12 +2293,7 @@ export default {
     this.clearTimers();
 
     // 销毁音频对象
-    if (this.correctAudio) {
-      this.correctAudio.destroy();
-    }
-    if (this.wrongAudio) {
-      this.wrongAudio.destroy();
-    }
+    this.destroyAudio();
   },
 };
 </script>

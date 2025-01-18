@@ -194,6 +194,28 @@
 				"navigationBarTitleText": "系统配置",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/stage-practice/index",
+			"style": {
+				"navigationBarTitleText": "阶段练习",
+				"navigationStyle": "custom"
+			}
+		},
+	 
+		{
+			"path": "pages/premium-video/index",
+			"style": {
+				"navigationBarTitleText": "精品视频",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/premium-video/play",
+			"style": {
+				"navigationBarTitleText": "视频播放",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"tabBar": {
