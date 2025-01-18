@@ -3,7 +3,7 @@
     <!-- 固定的头部计时器 -->
     <view class="exam-header">
       <!-- #ifdef H5 -->
-      <view class="back-btn" @click="handleBack">
+      <view class="back-btn" @click="handleBack" v-if="mode !== '5'">
         <svg
           t="1730634015516"
           class="icon"
@@ -39,7 +39,7 @@
               fill="#FFFFFF"
             ></path>
           </svg>
-          <text>提交</text>
+          <text>{{ mode === "5" ? "保存" : "提交" }}</text>
         </view>
       </view>
     </view>
@@ -894,7 +894,8 @@ export default {
       // 添加确认提示
       uni.showModal({
         title: "提示",
-        content: "确认提交答卷吗？提交后将无法修改答案",
+        content:
+          this.mode === "5" ? "确认保存答案吗？" : "确认提交答卷吗？提交后将无法修改答案",
         success: async (res) => {
           if (res.confirm) {
             // 显示加载提示

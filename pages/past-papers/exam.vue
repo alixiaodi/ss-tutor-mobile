@@ -4,6 +4,7 @@
       :rawQuestions="questions"
       :answerHistory="answerHistory"
       :answerId="answerId"
+      :mode="mode"
     />
   </view>
 </template>
