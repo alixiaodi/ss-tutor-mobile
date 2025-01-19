@@ -16,9 +16,17 @@
           <text class="header-item">考试频率（次）</text>
         </view>
         <view class="list-content">
-          <view class="list-item" v-for="(item, index) in examPointList" :key="index">
+          <view
+            class="list-item"
+            v-for="(item, index) in examPointList"
+            :key="index"
+            @click="handleItemClick(item)"
+          >
             <text class="point-name">{{ item.name }}</text>
-            <text class="point-count">{{ item.count }}</text>
+            <view class="point-right">
+              <text class="point-count">{{ item.count }}</text>
+              <u-icon name="arrow-right" size="14" color="#999"></u-icon>
+            </view>
           </view>
           <!-- 空状态 -->
           <view class="empty-state" v-if="examPointList.length === 0">
@@ -49,6 +57,7 @@
 import Navbar from "@/components/navbar/Navbar";
 import * as AnalysisApi from "@/api/testPaper/analysis";
 import VipPopup from "@/components/vip-popup/index.vue";
+import * as AnswerQuestionsApi from "@/api/answerQuestions";
 
 export default {
   components: {
@@ -119,6 +128,69 @@ export default {
     handleVipClick() {
       this.showVipPopup = true;
     },
+    // 处理列表项点击
+    async handleItemClick(item) {
+      uni.showLoading({
+        title: "加载中...",
+        mask: true,
+      });
+
+      try {
+        // 获取考点题目
+        const [questionsRes, lastAnswerRecord] = await Promise.all([
+          AnalysisApi.getExamPointQuestions(item.name),
+          AnalysisApi.getLastAnswerRecord(item.name),
+        ]);
+
+        if (!questionsRes?.data?.length) {
+          throw new Error("暂无题目数据");
+        }
+
+        // 存储题目数据
+        uni.setStorageSync("examPointQuestions", questionsRes.data);
+
+        // 获取或创建答题记录
+        const answerId =
+          lastAnswerRecord?.data || (await this.createAnswerRecord(item.name));
+
+        // 跳转到答题页面
+        this.navigateToExam(answerId);
+      } catch (error) {
+        uni.showToast({
+          title: error?.msg || "操作失败，请重试",
+          icon: "none",
+        });
+      } finally {
+        uni.hideLoading();
+      }
+    },
+
+    // 创建答题记录
+    async createAnswerRecord(queryKey) {
+      const answerRes = await AnswerQuestionsApi.add({
+        queryKey,
+        type: "0",
+      });
+
+      if (answerRes?.code !== 200 || !answerRes?.data) {
+        throw new Error("创建答题记录失败");
+      }
+
+      return answerRes.data;
+    },
+
+    // 跳转到答题页面
+    navigateToExam(answerId) {
+      uni.navigateTo({
+        url: `/pages/past-papers/exam?mode=6&answerId=${answerId}&fromExamPoint=true`,
+        fail: () => {
+          uni.showToast({
+            title: "页面跳转失败",
+            icon: "none",
+          });
+        },
+      });
+    },
   },
 };
 </script>
@@ -174,11 +246,16 @@ export default {
           color: #333;
         }
 
-        .point-count {
-          font-size: 28rpx;
-          color: #4ecdb6;
-          font-weight: 500;
-          margin-left: 20rpx;
+        .point-right {
+          display: flex;
+          align-items: center;
+          gap: 10rpx;
+
+          .point-count {
+            font-size: 28rpx;
+            color: #4ecdb6;
+            font-weight: 500;
+          }
         }
       }
     }
