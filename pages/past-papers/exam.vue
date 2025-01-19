@@ -51,8 +51,18 @@ export default {
       answerId: this.answerId,
     });
 
-    // 先获取试题数据
-    await this.fetchExamData();
+    // 如果是从考点统计页面进入，直接使用存储的题目数据
+    if (options.fromExamPoint === "true") {
+      const examPointQuestions = uni.getStorageSync("examPointQuestions");
+      if (examPointQuestions) {
+        this.questions = examPointQuestions;
+        // 清除存储的题目数据
+        uni.removeStorageSync("examPointQuestions");
+      }
+    } else {
+      // 获取试题数据
+      await this.fetchExamData();
+    }
 
     // 再获取答题历史
     if (this.answerId) {
