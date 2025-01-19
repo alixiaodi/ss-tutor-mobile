@@ -16,9 +16,22 @@
           <text class="header-item">考试频率（次）</text>
         </view>
         <view class="list-content">
-          <view class="list-item" v-for="(item, index) in examPointList" :key="index">
+          <view
+            class="list-item"
+            v-for="(item, index) in examPointList"
+            :key="index"
+            @click="handleItemClick(item)"
+          >
             <text class="point-name">{{ item.name }}</text>
-            <text class="point-count">{{ item.count }}</text>
+            <view class="point-right">
+              <text class="point-count">{{ item.count }}</text>
+              <u-icon
+                name="arrow-right"
+                color="#999"
+                size="14"
+                class="arrow-icon"
+              ></u-icon>
+            </view>
           </view>
           <!-- 空状态 -->
           <view class="empty-state" v-if="examPointList.length === 0">
@@ -119,6 +132,13 @@ export default {
     handleVipClick() {
       this.showVipPopup = true;
     },
+    // 处理列表项点击
+    handleItemClick(item) {
+      uni.showToast({
+        title: "正在开发中",
+        icon: "none",
+      });
+    },
   },
 };
 </script>
@@ -174,11 +194,20 @@ export default {
           color: #333;
         }
 
-        .point-count {
-          font-size: 28rpx;
-          color: #4ecdb6;
-          font-weight: 500;
-          margin-left: 20rpx;
+        .point-right {
+          display: flex;
+          align-items: center;
+
+          .point-count {
+            font-size: 28rpx;
+            color: #4ecdb6;
+            font-weight: 500;
+            margin-right: 10rpx;
+          }
+
+          .arrow-icon {
+            margin-left: 6rpx;
+          }
         }
       }
     }
