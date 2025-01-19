@@ -626,10 +626,6 @@ export default {
     return {
       correctAudio: null,
       wrongAudio: null,
-      isAudioReady: {
-        correct: false,
-        wrong: false,
-      },
       optionLabels: ["A", "B", "C", "D", "E", "F", "G", "H"],
       questions: [], // 将从外部接收数
       answers: [],
@@ -2171,14 +2167,47 @@ export default {
 
         // 判断是否启用音效（支持直接布尔值或对象格式）
         const isEnabled =
-          soundSetting === true || (soundSetting && soundSetting.data === true);
+          soundSetting === true ||
+          (soundSetting && soundSetting.data === true) ||
+          soundSetting === "";
 
-        if (isEnabled && this.correctAudio && this.isAudioReady.correct) {
-          // 确保音频对象存在且已准备就绪
-          this.correctAudio.stop();
+        if (isEnabled) {
+          // 每次播放前重新创建音频实例
+          if (this.correctAudio) {
+            this.correctAudio.destroy();
+          }
+          this.correctAudio = uni.createInnerAudioContext();
+          this.correctAudio.autoplay = false; // 设置为不自动播放
+          this.correctAudio.src = "/static/audio/bingo.mp3";
+
+          // 监听音频加载完成
+          this.correctAudio.onCanplay(() => {
+            console.log("正确音效加载完成");
+            // 不在这里直接播放
+          });
+
+          // 监听播放完成
+          this.correctAudio.onEnded(() => {
+            console.log("正确音效播放完成");
+            this.correctAudio.destroy();
+            this.correctAudio = null;
+          });
+
+          // 监听错误
+          this.correctAudio.onError((res) => {
+            console.error("正确音效播放错误:", res);
+            if (this.correctAudio) {
+              this.correctAudio.destroy();
+              this.correctAudio = null;
+            }
+          });
+
+          // 确保在用户交互的上下文中播放
           setTimeout(() => {
-            this.correctAudio.play();
-          }, 50); // 添加短暂延时确保stop完成
+            if (this.correctAudio) {
+              this.correctAudio.play();
+            }
+          }, 100);
         }
       } catch (e) {
         console.error("播放正确音效失败:", e);
@@ -2193,14 +2222,47 @@ export default {
 
         // 判断是否启用音效（支持直接布尔值或对象格式）
         const isEnabled =
-          soundSetting === true || (soundSetting && soundSetting.data === true);
+          soundSetting === true ||
+          (soundSetting && soundSetting.data === true) ||
+          soundSetting === "";
 
-        if (isEnabled && this.wrongAudio && this.isAudioReady.wrong) {
-          // 确保音频对象存在且已准备就绪
-          this.wrongAudio.stop();
+        if (isEnabled) {
+          // 每次播放前重新创建音频实例
+          if (this.wrongAudio) {
+            this.wrongAudio.destroy();
+          }
+          this.wrongAudio = uni.createInnerAudioContext();
+          this.wrongAudio.autoplay = false; // 设置为不自动播放
+          this.wrongAudio.src = "/static/audio/wrong_answer.mp3";
+
+          // 监听音频加载完成
+          this.wrongAudio.onCanplay(() => {
+            console.log("错误音效加载完成");
+            // 不在这里直接播放
+          });
+
+          // 监听播放完成
+          this.wrongAudio.onEnded(() => {
+            console.log("错误音效播放完成");
+            this.wrongAudio.destroy();
+            this.wrongAudio = null;
+          });
+
+          // 监听错误
+          this.wrongAudio.onError((res) => {
+            console.error("错误音效播放错误:", res);
+            if (this.wrongAudio) {
+              this.wrongAudio.destroy();
+              this.wrongAudio = null;
+            }
+          });
+
+          // 确保在用户交互的上下文中播放
           setTimeout(() => {
-            this.wrongAudio.play();
-          }, 50); // 添加短暂延时确保stop完成
+            if (this.wrongAudio) {
+              this.wrongAudio.play();
+            }
+          }, 100);
         }
       } catch (e) {
         console.error("播放错误音效失败:", e);
@@ -2218,41 +2280,6 @@ export default {
         this.wrongAudio = null;
       }
     },
-
-    // 初始化音频
-    initAudio() {
-      // 创建正确音效
-      this.correctAudio = uni.createInnerAudioContext();
-      this.correctAudio.src = "/static/audio/bingo.mp3";
-
-      // 监听正确音效加载完成
-      this.correctAudio.onCanplay(() => {
-        console.log("正确音效加载完成");
-        this.isAudioReady.correct = true;
-      });
-
-      // 监听正确音效播放错误
-      this.correctAudio.onError((res) => {
-        console.error("正确音效播放错误:", res);
-        this.isAudioReady.correct = false;
-      });
-
-      // 创建错误音效
-      this.wrongAudio = uni.createInnerAudioContext();
-      this.wrongAudio.src = "/static/audio/wrong_answer.mp3";
-
-      // 监听错误音效加载完成
-      this.wrongAudio.onCanplay(() => {
-        console.log("错误音效加载完成");
-        this.isAudioReady.wrong = true;
-      });
-
-      // 监听错误音效播放错误
-      this.wrongAudio.onError((res) => {
-        console.error("错误音效播放错误:", res);
-        this.isAudioReady.wrong = false;
-      });
-    },
   },
   mounted() {
     const pages = getCurrentPages();
@@ -2262,9 +2289,6 @@ export default {
     this.id = options.id;
     this.mode = options.mode;
     this.answerId = options.answerId;
-
-    // 初始化音频
-    this.initAudio();
 
     // 设置开始时间
     this.startTime = Date.now();
