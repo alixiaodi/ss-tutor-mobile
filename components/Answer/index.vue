@@ -333,25 +333,6 @@
           <text>答题卡</text>
         </view>
       </view>
-
-      <!-- 在题目内容区域底部添加完成作答按钮 -->
-      <template
-        v-if="
-          currentQuestionData &&
-          (isBlankQuestion(currentQuestionData.type) ||
-            currentQuestionData.type === 'essay')
-        "
-      >
-        <view class="submit-answer-section">
-          <view
-            class="submit-answer-btn"
-            @click="submitCurrentAnswer"
-            v-if="!showingAnswer"
-          >
-            <text>完成作答</text>
-          </view>
-        </view>
-      </template>
     </view>
 
     <!-- 添加首次使用提示 -->
@@ -629,6 +610,7 @@ export default {
       optionLabels: ["A", "B", "C", "D", "E", "F", "G", "H"],
       questions: [], // 将从外部接收数
       answers: [],
+      answerViewStates: [], // 新增：记录每道题的答案显示状态
       remainingTime: 3600,
       currentQuestion: 0,
       showAnswerCard: false,
@@ -675,8 +657,9 @@ export default {
       handler(newQuestions) {
         if (newQuestions.length) {
           this.questions = this.transformQuestions(newQuestions);
-          // 初始化答案数组
+          // 初始化答案数组和答案显示状态数组
           this.answers = new Array(this.questions.length).fill(null);
+          this.answerViewStates = new Array(this.questions.length).fill(false);
         }
       },
     },
@@ -686,6 +669,18 @@ export default {
         console.log("接收到新的答题历史:", newHistory);
         if (newHistory) {
           this.initAnswersFromHistory(newHistory);
+          // 如果有答案历史，对应题目的答案显示状态也设置为 true
+          newHistory.forEach((historyItem) => {
+            const questionIndex = this.questions.findIndex(
+              (q) =>
+                String(q.id) === String(historyItem.questionNumber) ||
+                String(q.id) === String(historyItem.questionId) ||
+                String(q.questionNumber) === String(historyItem.questionNumber)
+            );
+            if (questionIndex !== -1 && historyItem.answer) {
+              this.$set(this.answerViewStates, questionIndex, true);
+            }
+          });
         }
       },
     },
@@ -795,17 +790,11 @@ export default {
         questionNumber: this.questions[index].id,
       });
 
-      // TODO: 调用题记录接口
-      // AnswerQuestionsApi.record({
-      //   answerId: this.answerId,
-      //   questionId: this.questions[index].id,
-      //   answer: value
-      // });
-
-      // 对于单选题
+      // 对于单选题，选择后自动显示答案
       if (this.questions[index].type === "single") {
-        // 显示答案解析
+        // 显示答案解析并记录状态
         this.showingAnswer = true;
+        this.$set(this.answerViewStates, index, true);
 
         // 检查答案是否正确
         const isCorrect = this.checkAnswer(this.questions[index], value);
@@ -816,7 +805,6 @@ export default {
           setTimeout(() => {
             if (index < this.questions.length - 1) {
               this.currentQuestion = index + 1;
-              this.showingAnswer = false;
             }
           }, 800);
         } else {
@@ -967,19 +955,15 @@ export default {
         const currentQuestion = this.questions[oldQuestion];
         const answer = this.answers[oldQuestion];
 
+        // 保存当前题目的答案显示状态
+        this.$set(this.answerViewStates, oldQuestion, this.showingAnswer);
+
         console.log("页面切换信息:", {
           oldQuestion,
           newQuestion,
           currentQuestionType: currentQuestion?.type,
           answer,
           answers: this.answers,
-        });
-
-        // 添加条件判断的详细日志
-        console.log("条件判断详情:", {
-          isEssayType: currentQuestion?.type === "essay",
-          hasAnswer: !!answer,
-          rawAnswer: answer,
         });
 
         if (currentQuestion?.type === "blank" || currentQuestion?.type === "essay") {
@@ -994,7 +978,7 @@ export default {
           if (currentQuestion.type === "blank" && Array.isArray(answer)) {
             formattedAnswer = answer.join(",");
           } else if (currentQuestion.type === "essay") {
-            formattedAnswer = answer; // 简答题直接使用答案字符串
+            formattedAnswer = answer;
           }
 
           AnswerQuestionsApi.uploadAnswer({
@@ -1007,8 +991,10 @@ export default {
         }
       }
 
+      // 更新当前题目索引并设置答案显示状态
       this.currentQuestion = newQuestion;
-      this.showingAnswer = false;
+      // 直接使用记录的状态，不做额外处理
+      this.showingAnswer = this.answerViewStates[newQuestion] || false;
     },
 
     prevQuestion() {
@@ -1456,8 +1442,9 @@ export default {
 
     // 修改切换答案显示方法
     toggleAnswerView() {
-      // 直接切换答案显示状态，不做任何检查
       this.showingAnswer = !this.showingAnswer;
+      // 保存当前题目的答案显示状态
+      this.$set(this.answerViewStates, this.currentQuestion, this.showingAnswer);
     },
 
     // 修改提交答方法
@@ -2290,6 +2277,9 @@ export default {
     this.mode = options.mode;
     this.answerId = options.answerId;
 
+    // 初始化答案显示状态数组
+    this.answerViewStates = new Array(this.questions.length).fill(false);
+
     // 设置开始时间
     this.startTime = Date.now();
 
@@ -2551,6 +2541,7 @@ export default {
 
 .submit-answer-section {
   padding: 32rpx 24rpx;
+  padding-bottom: 120rpx;
   margin-top: 32rpx;
   border-top: 2rpx solid #f0f0f0;
   width: 100%;
