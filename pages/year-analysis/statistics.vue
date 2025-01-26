@@ -21,6 +21,7 @@
             v-for="(item, index) in examPointList"
             :key="index"
             @click="handleItemClick(item)"
+            :class="{ 'list-item-active': item.name === lastExamPoint }"
           >
             <text class="point-name">{{ item.name }}</text>
             <view class="point-right">
@@ -71,12 +72,15 @@ export default {
       showBackToTop: false, // 是否显示回到顶部按钮
       needVip: false, // 是否需要VIP
       showVipPopup: false, // VIP弹窗控制
+      lastExamPoint: "", // 上一次练习的考点
     };
   },
   onLoad(options) {
     if (options.subjectCode) {
       this.subjectCode = options.subjectCode;
       this.loadStatistics();
+      // 获取本地存储的上一次练习考点
+      this.lastExamPoint = uni.getStorageSync(`lastExamPoint_${this.subjectCode}`) || "";
     }
   },
   onPageScroll(e) {
@@ -130,6 +134,10 @@ export default {
     },
     // 处理列表项点击
     async handleItemClick(item) {
+      // 存储当前选择的考点到本地
+      uni.setStorageSync(`lastExamPoint_${this.subjectCode}`, item.name);
+      this.lastExamPoint = item.name;
+
       uni.showLoading({
         title: "加载中...",
         mask: true,
@@ -238,6 +246,11 @@ export default {
 
         &:active {
           background-color: #f9f9f9;
+        }
+
+        &.list-item-active {
+          background-color: #f0faf8;
+          border-left: 8rpx solid #4ecdb6;
         }
 
         .point-name {
