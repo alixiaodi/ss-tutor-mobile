@@ -48,50 +48,98 @@
       :style="{ height: 'calc(100vh - ' + (getStatusBarHeight + 144) + 'px)' }"
     >
       <swiper-item v-for="(item, index) in operationList" :key="index">
-        <view class="content-modules">
+        <scroll-view
+          class="content-modules"
+          scroll-y="true"
+          :scroll-top="scrollTop"
+          :scroll-with-animation="true"
+        >
           <view class="grid-container">
-            <view class="module-card" @click="navigateTo('/pages/past-papers/index')">
-              <image
-                src="/static/icons/papers.png"
-                class="module-icon"
-                style="width: 80px; height: 32px; object-fit: contain"
-              ></image>
-              <text class="module-title">历年真题</text>
-            </view>
-            <view class="module-card" @click="navigateTo(`/pages/mock-exam/index`)">
-              <image src="/static/icons/exam.png" class="module-icon"></image>
-              <text class="module-title">AI模拟考试</text>
-            </view>
-
-            <view class="module-card" @click="navigateTo('/pages/ai-tutor/index')">
-              <image src="/static/icons/tutor.png" class="module-icon"></image>
-              <text class="module-title">AI导师</text>
-            </view>
-            <view class="module-card" @click="navigateTo('/pages/ai-predict/index')">
-              <image src="/static/icons/predict.png" class="module-icon"></image>
-              <text class="module-title">AI押题</text>
-            </view>
-            <view class="module-card" @click="navigateTo('/pages/year-analysis/index')">
-              <image src="/static/icons/year_analysis.png" class="module-icon"></image>
-              <text class="module-title">历年真题分析</text>
-              <view class="vip-badge">
-                <text>VIP</text>
+            <!-- 刷题模块组 -->
+            <view class="module-group">
+              <text class="group-title">刷题模式</text>
+              <view class="group-content">
+                <view
+                  class="module-card"
+                  @click="navigateTo('/pages/stage-practice/index')"
+                >
+                  <view class="step-badge">1</view>
+                  <image
+                    src="/static/icons/stage_practice.png"
+                    class="module-icon"
+                  ></image>
+                  <text class="module-title">阶段练习</text>
+                </view>
+                <view class="module-card" @click="navigateTo('/pages/past-papers/index')">
+                  <view class="step-badge">2</view>
+                  <image
+                    src="/static/icons/papers.png"
+                    class="module-icon"
+                    style="width: 80px; height: 32px; object-fit: contain"
+                  ></image>
+                  <text class="module-title">历年真题</text>
+                </view>
+                <view
+                  class="module-card"
+                  @click="navigateTo('/pages/year-analysis/index')"
+                >
+                  <view class="step-badge">3</view>
+                  <image
+                    src="/static/icons/year_analysis.png"
+                    class="module-icon"
+                  ></image>
+                  <text class="module-title">历年真题分析</text>
+                  <view class="vip-badge">
+                    <text>VIP</text>
+                  </view>
+                </view>
               </view>
             </view>
-            <view class="module-card" @click="navigateTo('/pages/stage-practice/index')">
-              <image src="/static/icons/stage_practice.png" class="module-icon"></image>
-              <text class="module-title">阶段练习</text>
+
+            <!-- AI辅助模块组 -->
+            <view class="module-group">
+              <text class="group-title">AI辅助</text>
+              <view class="group-content">
+                <view class="module-card" @click="navigateTo('/pages/ai-tutor/index')">
+                  <image src="/static/icons/tutor.png" class="module-icon"></image>
+                  <text class="module-title">AI导师</text>
+                </view>
+                <view class="module-card" @click="navigateTo(`/pages/mock-exam/index`)">
+                  <image src="/static/icons/exam.png" class="module-icon"></image>
+                  <text class="module-title">AI模拟考试</text>
+                </view>
+                <view class="module-card" @click="navigateTo('/pages/ai-predict/index')">
+                  <image src="/static/icons/predict.png" class="module-icon"></image>
+                  <text class="module-title">AI押题</text>
+                </view>
+              </view>
             </view>
-            <view class="module-card" @click="navigateTo('/pages/premium-video/index')">
-              <image src="/static/icons/premium_video.png" class="module-icon"></image>
-              <text class="module-title">精品视频</text>
-            </view>
-            <view class="module-card" @click="navigateTo('/pages/my-questions/index')">
-              <image src="/static/icons/my_questions.png" class="module-icon"></image>
-              <text class="module-title">我的题库</text>
+
+            <!-- 学习资源模块组 -->
+            <view class="module-group">
+              <text class="group-title">学习资源</text>
+              <view class="group-content">
+                <view
+                  class="module-card"
+                  @click="navigateTo('/pages/premium-video/index')"
+                >
+                  <image
+                    src="/static/icons/premium_video.png"
+                    class="module-icon"
+                  ></image>
+                  <text class="module-title">精品视频</text>
+                </view>
+                <view
+                  class="module-card"
+                  @click="navigateTo('/pages/my-questions/index')"
+                >
+                  <image src="/static/icons/my_questions.png" class="module-icon"></image>
+                  <text class="module-title">我的题库</text>
+                </view>
+              </view>
             </view>
           </view>
-        </view>
+        </scroll-view>
       </swiper-item>
     </swiper>
 
@@ -231,23 +279,56 @@ export default {
         console.error("记录日志失败:", error);
       });
     },
+    onPageScroll(e) {
+      this.pageScrollTop = e.scrollTop;
+      console.log("页面滚动位置：", e.scrollTop);
+    },
+    onTabItemTap(e) {
+      console.log("点击tabBar, index:", e.index);
+      if (e.index === 0) {
+        const currentTime = new Date().getTime();
+        console.log("当前点击时间：", currentTime);
+        console.log("上次点击时间：", this.lastTabClickTime);
+        console.log("时间间隔：", currentTime - this.lastTabClickTime);
+
+        if (currentTime - this.lastTabClickTime <= 300) {
+          console.log("触发双击返回顶部");
+          // 通过改变scrollTop值触发滚动
+          this.scrollTop = this.scrollTop === 0 ? 0.01 : 0;
+          console.log("返回顶部成功");
+        }
+        this.lastTabClickTime = currentTime;
+      }
+    },
   },
   data() {
     return {
-      isLoading: true,
-      currentIndex: 0,
+      isLoading: false,
       operationList: [],
+      currentIndex: 0,
+      currentSubjectCode: "",
       examName: "",
       examCode: "",
-      currentSubjectCode: "",
-      swiperHeight: 300,
       getStatusBarHeight: 0,
+      lastTabClickTime: 0,
+      pageScrollTop: 0,
+      scrollTop: 0,
     };
   },
   mounted() {
     // 设置 swiper 高度
     const systemInfo = uni.getSystemInfoSync();
     this.getStatusBarHeight = systemInfo.statusBarHeight || 0;
+  },
+  onReady() {
+    // 获取content-modules的引用
+    const query = uni.createSelectorQuery().in(this);
+    query
+      .select(".content-modules")
+      .boundingClientRect((data) => {
+        console.log("content-modules ref:", data);
+      })
+      .exec();
   },
 };
 </script>
@@ -376,11 +457,41 @@ export default {
   -webkit-overflow-scrolling: touch; /* 添加平滑滚动 */
 }
 
-// 优化网格布局
-.grid-container {
+// 添加模块分组样式
+.module-group {
+  margin-bottom: 30px;
+}
+
+.group-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 15px;
+  padding-left: 5px;
+  position: relative;
+  display: block;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 16px;
+    background: linear-gradient(to bottom, #2bb5a0, #4ecdb6);
+    border-radius: 3px;
+  }
+}
+
+.group-content {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
+}
+
+// 修改原有的grid-container样式
+.grid-container {
   padding-bottom: 15px;
 }
 
@@ -464,17 +575,19 @@ export default {
   z-index: 999;
   cursor: pointer;
   transition: all 0.3s ease;
+}
 
-  text {
-    color: #4ecdb6;
-    font-size: 14px;
-    font-weight: 500;
-  }
+// 添加刷题指导样式
+.study-guide {
+  display: none;
+}
 
-  &:active {
-    transform: translateY(1px);
-    box-shadow: 0 2px 8px rgba(78, 205, 182, 0.1);
-  }
+.guide-title {
+  display: none;
+}
+
+.guide-text {
+  display: none;
 }
 
 // 修改 swiper 相关样式
@@ -578,5 +691,24 @@ export default {
       transform: rotate(-5deg) scale(1.05);
     }
   }
+}
+
+.step-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: linear-gradient(135deg, #2bb5a0 0%, #4ecdb6 100%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(43, 181, 160, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  z-index: 2;
 }
 </style>
