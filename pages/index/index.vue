@@ -263,6 +263,9 @@ export default {
       if (url === "/pages/stage-practice/index") {
         url = `${url}?subjectCode=${this.currentSubjectCode}`;
       }
+      if (url === "/pages/my-questions/index") {
+        url = `${url}?subjectCode=${this.currentSubjectCode}`;
+      }
       uni.navigateTo({ url });
     },
     // 添加 swiper 切换事件处理
@@ -454,7 +457,8 @@ export default {
   overflow-y: auto;
   padding-bottom: 0;
   box-sizing: border-box;
-  -webkit-overflow-scrolling: touch; /* 添加平滑滚动 */
+  -webkit-overflow-scrolling: touch;
+  /* 添加平滑滚动 */
 }
 
 // 添加模块分组样式
@@ -675,9 +679,11 @@ export default {
     transform: translateX(-100%);
     opacity: 0;
   }
+
   50% {
     opacity: 0.5;
   }
+
   100% {
     transform: translateX(100%);
     opacity: 0;
