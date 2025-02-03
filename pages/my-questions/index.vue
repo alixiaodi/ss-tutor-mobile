@@ -129,32 +129,31 @@ export default {
       MyQuestionsApi.generateImportLink(this.subjectCode)
         .then((res) => {
           const importUrl = res.data;
-          // 尝试复制到剪贴板
-          uni.setClipboardData({
-            data: importUrl,
-            success: () => {
-              uni.showModal({
-                title: "链接已复制",
-                content:
-                  "请在电脑浏览器中打开链接，上传Excel格式的题库文件。\n\n支持.xlsx和.xls格式",
-                confirmText: "我知道了",
-                showCancel: false,
-                confirmColor: "#4ECDB6",
-              });
-            },
-            fail: () => {
-              this.showManualCopyModal(importUrl);
-            },
-            complete: (result) => {
-              // 如果既没有触发success也没有触发fail，在complete中处理
-              if (
-                !result ||
-                (!result.errMsg?.includes("ok") && !result.errMsg?.includes("fail"))
-              ) {
+          // 检测是否是iOS设备
+          const isIOS = uni.getSystemInfoSync().platform === "ios";
+
+          if (isIOS) {
+            // iOS设备直接显示链接
+            this.showManualCopyModal(importUrl);
+          } else {
+            // 其他设备尝试自动复制
+            uni.setClipboardData({
+              data: importUrl,
+              success: () => {
+                uni.showModal({
+                  title: "链接已复制",
+                  content:
+                    "请在电脑浏览器中打开链接，上传Excel格式的题库文件。\n\n支持.xlsx和.xls格式",
+                  confirmText: "我知道了",
+                  showCancel: false,
+                  confirmColor: "#4ECDB6",
+                });
+              },
+              fail: () => {
                 this.showManualCopyModal(importUrl);
-              }
-            },
-          });
+              },
+            });
+          }
         })
         .catch((err) => {
           console.error("生成导入链接失败:", err);
@@ -169,20 +168,26 @@ export default {
     showManualCopyModal(importUrl) {
       uni.showModal({
         title: "导入题库",
-        content: `请复制以下链接在电脑浏览器中打开：\n${importUrl}`,
-        confirmText: "关闭",
+        content: `请复制以下链接在电脑浏览器中打开：\n\n${importUrl}`,
+        confirmText: "复制链接",
         showCancel: true,
-        cancelText: "重试复制",
+        cancelText: "关闭",
         confirmColor: "#4ECDB6",
         success: (res) => {
-          if (res.cancel) {
-            // 用户点击重试，再次尝试复制
+          if (res.confirm) {
+            // 用户点击复制链接
             uni.setClipboardData({
               data: importUrl,
               success: () => {
                 uni.showToast({
                   title: "复制成功",
                   icon: "success",
+                });
+              },
+              fail: () => {
+                uni.showToast({
+                  title: "复制失败，请手动复制",
+                  icon: "none",
                 });
               },
             });
