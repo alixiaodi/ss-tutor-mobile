@@ -143,29 +143,16 @@ export default {
               });
             },
             fail: () => {
-              // 复制失败时显示链接供手动复制
-              uni.showModal({
-                title: "导入题库",
-                content: `请复制以下链接在电脑浏览器中打开：\n${importUrl}`,
-                confirmText: "关闭",
-                showCancel: true,
-                cancelText: "重试复制",
-                confirmColor: "#4ECDB6",
-                success: (res) => {
-                  if (res.cancel) {
-                    // 用户点击重试，再次尝试复制
-                    uni.setClipboardData({
-                      data: importUrl,
-                      success: () => {
-                        uni.showToast({
-                          title: "复制成功",
-                          icon: "success",
-                        });
-                      },
-                    });
-                  }
-                },
-              });
+              this.showManualCopyModal(importUrl);
+            },
+            complete: (result) => {
+              // 如果既没有触发success也没有触发fail，在complete中处理
+              if (
+                !result ||
+                (!result.errMsg?.includes("ok") && !result.errMsg?.includes("fail"))
+              ) {
+                this.showManualCopyModal(importUrl);
+              }
             },
           });
         })
@@ -176,6 +163,32 @@ export default {
             icon: "none",
           });
         });
+    },
+
+    // 显示手动复制模态框
+    showManualCopyModal(importUrl) {
+      uni.showModal({
+        title: "导入题库",
+        content: `请复制以下链接在电脑浏览器中打开：\n${importUrl}`,
+        confirmText: "关闭",
+        showCancel: true,
+        cancelText: "重试复制",
+        confirmColor: "#4ECDB6",
+        success: (res) => {
+          if (res.cancel) {
+            // 用户点击重试，再次尝试复制
+            uni.setClipboardData({
+              data: importUrl,
+              success: () => {
+                uni.showToast({
+                  title: "复制成功",
+                  icon: "success",
+                });
+              },
+            });
+          }
+        },
+      });
     },
     // 查看题库详情
     async viewBankDetail(bankId) {
