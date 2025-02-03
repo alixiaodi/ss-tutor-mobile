@@ -124,11 +124,12 @@ export default {
         });
         return;
       }
-      // 调用生成导入链接API
+
+      // 调用接口获取导入链接
       MyQuestionsApi.generateImportLink(this.subjectCode)
         .then((res) => {
           const importUrl = res.data;
-          // 复制链接到剪贴板
+          // 尝试复制到剪贴板
           uni.setClipboardData({
             data: importUrl,
             success: () => {
@@ -139,6 +140,31 @@ export default {
                 confirmText: "我知道了",
                 showCancel: false,
                 confirmColor: "#4ECDB6",
+              });
+            },
+            fail: () => {
+              // 复制失败时显示链接供手动复制
+              uni.showModal({
+                title: "导入题库",
+                content: `请复制以下链接在电脑浏览器中打开：\n${importUrl}`,
+                confirmText: "关闭",
+                showCancel: true,
+                cancelText: "重试复制",
+                confirmColor: "#4ECDB6",
+                success: (res) => {
+                  if (res.cancel) {
+                    // 用户点击重试，再次尝试复制
+                    uni.setClipboardData({
+                      data: importUrl,
+                      success: () => {
+                        uni.showToast({
+                          title: "复制成功",
+                          icon: "success",
+                        });
+                      },
+                    });
+                  }
+                },
               });
             },
           });
