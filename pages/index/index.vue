@@ -243,11 +243,7 @@ export default {
       });
     },
     navigateTo(url) {
-      if (
-        url === "/pages/ai-predict/index" ||
-        url === "/pages/premium-video/index" ||
-        url === "/pages/my-questions/index"
-      ) {
+      if (url === "/pages/ai-predict/index" || url === "/pages/premium-video/index") {
         // 显示开发中提示
         uni.showToast({
           title: "功能开发中...",
