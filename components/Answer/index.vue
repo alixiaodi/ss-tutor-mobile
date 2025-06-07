@@ -1248,14 +1248,16 @@ export default {
     // 转换选项
     transformOptions(optionsStr) {
       try {
+        if (!optionsStr) return [];
         const options = JSON.parse(optionsStr);
         return Object.entries(options)
-          .filter(([_, text]) => text.trim()) // 过滤掉空选项
+          .filter(([key, text]) => key && text && text.trim()) // 修改这里，过滤掉null和空字符串
           .map(([value, text]) => ({
             value: value.toUpperCase(),
             text: text.trim(),
           }));
       } catch (e) {
+        console.error("转换选项出错:", e);
         return [];
       }
     },
