@@ -16,5 +16,9 @@
             "前端组件",
             "通用组件"
         ]
+    },
+    "dependencies": {
+        "js-cookie": "^3.0.5",
+        "markdown-it": "^14.1.0"
     }
 }
