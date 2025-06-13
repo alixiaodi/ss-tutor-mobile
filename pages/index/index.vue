@@ -1,19 +1,29 @@
 <template>
   <view class="index-content">
-    <view class="header">
-      <u-row
-        customStyle="margin: 0; background: linear-gradient(to bottom, #2BB5A0, #4ECDB6); border-radius: 0 0 30px 30px; padding: 20px; padding-top: calc(var(--status-bar-height) + 24px); padding-bottom: 90px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);"
-      >
-        <u-col span="6">
-          <span @click="selectSubject" class="subject-selector" style="cursor: pointer">
-            <text class="subject-text">{{ examName ? examName : "请选择" }}</text>
-            <image src="/static/svg/exchange.svg" class="selector-icon"></image>
-          </span>
-        </u-col>
-        <u-col span="6">
-          <span style="text-align: right"> </span>
-        </u-col>
-      </u-row>
+    <view class="game-header">
+      <!-- Left side: Player Info -->
+      <view class="player-info" @click="selectSubject">
+        <image
+          src="/static/img/avatar.png"
+          class="player-avatar"
+        ></image>
+        <view class="player-stats">
+          <text class="player-level">{{
+            examName ? examName : "选择挑战"
+          }}</text>
+          <view class="xp-bar">
+            <view class="xp-progress" style="width: 60%"></view>
+          </view>
+        </view>
+      </view>
+
+      <!-- Right side: Daily Quest -->
+      <view class="daily-quest" @click="handleDailyQuestClick">
+        <view class="quest-icon-wrapper">
+          <image src="/static/img/quest_icon.png" class="quest-icon"></image>
+        </view>
+        <text class="quest-text">今日任务</text>
+      </view>
     </view>
 
     <!-- 调整位置的 tabs -->
@@ -25,9 +35,9 @@
           @change="handleSelect"
           scrollable
           keyName="subjectName"
-          activeStyle="color: #4ECDB6; font-weight: bold; transform: scale(1.05);"
+          activeStyle="color: #F39B78; font-weight: bold; transform: scale(1.05);"
           inactiveStyle="color: #666;"
-          lineColor="#4ECDB6"
+          lineColor="#F39B78"
           itemStyle="padding-left: 15px; padding-right: 15px; padding-bottom: 8px; white-space: nowrap;"
           :lineHeight="3"
           :lineWidth="30"
@@ -60,7 +70,7 @@
               <text class="group-title">刷题模式</text>
               <view class="group-content">
                 <view
-                  class="module-card"
+                  class="module-card card-2x1"
                   @click="navigateTo('/pages/stage-practice/index')"
                 >
                   <view class="step-badge">1</view>
@@ -68,9 +78,15 @@
                     src="/static/icons/stage_practice.png"
                     class="module-icon"
                   ></image>
-                  <text class="module-title">阶段练习</text>
+                  <view class="text-content">
+                    <text class="module-title">阶段练习</text>
+                    <text class="module-desc">循序渐进，攻克考点</text>
+                  </view>
                 </view>
-                <view class="module-card" @click="navigateTo('/pages/past-papers/index')">
+                <view
+                  class="module-card card-1x1"
+                  @click="navigateTo('/pages/past-papers/index')"
+                >
                   <view class="step-badge">2</view>
                   <image
                     src="/static/icons/papers.png"
@@ -80,7 +96,7 @@
                   <text class="module-title">历年真题</text>
                 </view>
                 <view
-                  class="module-card"
+                  class="module-card card-1x1"
                   @click="navigateTo('/pages/year-analysis/index')"
                 >
                   <view class="step-badge">3</view>
@@ -100,15 +116,27 @@
             <view class="module-group">
               <text class="group-title">AI辅助</text>
               <view class="group-content">
-                <view class="module-card" @click="navigateTo('/pages/ai-tutor/index')">
+                <view
+                  class="module-card card-2x1"
+                  @click="navigateTo('/pages/ai-tutor/index')"
+                >
                   <image src="/static/icons/tutor.png" class="module-icon"></image>
-                  <text class="module-title">AI导师</text>
+                  <view class="text-content">
+                    <text class="module-title">AI导师</text>
+                    <text class="module-desc">贴身辅导，随时提问</text>
+                  </view>
                 </view>
-                <view class="module-card" @click="navigateTo(`/pages/mock-exam/index`)">
+                <view
+                  class="module-card card-1x1"
+                  @click="navigateTo(`/pages/mock-exam/index`)"
+                >
                   <image src="/static/icons/exam.png" class="module-icon"></image>
                   <text class="module-title">AI模拟考试</text>
                 </view>
-                <view class="module-card" @click="navigateTo('/pages/ai-predict/index')">
+                <view
+                  class="module-card card-1x1"
+                  @click="navigateTo('/pages/ai-predict/index')"
+                >
                   <image src="/static/icons/predict.png" class="module-icon"></image>
                   <text class="module-title">AI押题</text>
                 </view>
@@ -120,7 +148,7 @@
               <text class="group-title">学习资源</text>
               <view class="group-content">
                 <view
-                  class="module-card"
+                  class="module-card card-1x1"
                   @click="navigateTo('/pages/premium-video/index')"
                 >
                   <image
@@ -130,10 +158,13 @@
                   <text class="module-title">精品视频</text>
                 </view>
                 <view
-                  class="module-card"
+                  class="module-card card-1x1"
                   @click="navigateTo('/pages/my-questions/index')"
                 >
-                  <image src="/static/icons/my_questions.png" class="module-icon"></image>
+                  <image
+                    src="/static/icons/my_questions.png"
+                    class="module-icon"
+                  ></image>
                   <text class="module-title">我的题库</text>
                 </view>
               </view>
@@ -146,7 +177,7 @@
     <!-- 引导提示 -->
     <u-popup :show="!examName && !isLoading" mode="top" :mask="false" :closeable="false">
       <view class="guide-tip" @click="selectSubject">
-        <u-icon name="arrow-up" color="#4ECDB6" size="20"></u-icon>
+        <u-icon name="arrow-up" color="#F39B78" size="20"></u-icon>
         <text>请选择考试类型</text>
       </view>
     </u-popup>
@@ -220,6 +251,13 @@ export default {
     selectSubject() {
       uni.navigateTo({
         url: "/pages/exam/exam",
+      });
+    },
+    handleDailyQuestClick() {
+      uni.showToast({
+        title: "功能开发中...",
+        icon: "none",
+        duration: 2000,
       });
     },
     handleSelect(index) {
@@ -353,51 +391,107 @@ export default {
   top: 0;
 }
 
-.subject-selector {
-  text-align: left;
-  position: absolute;
-  /* #ifdef APP-PLUS */
-  top: calc(var(--status-bar-height) + 12px);
-  /* #endif */
-  /* #ifndef APP-PLUS */
-  top: calc(var(--status-bar-height) + 18px);
-  /* #endif */
-  padding-left: 15px;
-  left: 0;
-  color: #ffffff;
+// New gamified header styles
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: calc(var(--status-bar-height) + 10px) 15px 25px;
+  background: linear-gradient(125deg, #f37335, #fdc830);
+  border-bottom: 3px solid #d3642d;
+  position: relative;
+}
+
+.player-info {
   display: flex;
   align-items: center;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  gap: 12px;
+  transition: opacity 0.2s ease;
 
-  // 添加悬停效果
   &:active {
     opacity: 0.8;
   }
 }
 
-.subject-text {
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: 0.5px;
+.player-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
-.selector-icon {
-  width: 40rpx;
-  height: 40rpx;
-  margin-left: 12rpx;
-  filter: brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
-  transition: transform 0.3s ease;
+.player-stats {
+  display: flex;
+  flex-direction: column;
+}
 
-  // 添加旋转动画
+.player-level {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.xp-bar {
+  width: 120px;
+  height: 10px;
+  background-color: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  margin-top: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.xp-progress {
+  height: 100%;
+  background: linear-gradient(to right, #9ef01a, #70e000);
+  border-radius: 10px;
+  box-shadow: inset 0 -2px 2px rgba(0, 0, 0, 0.15);
+}
+
+.daily-quest {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to bottom, #dc2f02, #9d0208);
+  padding: 8px 12px;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border: 2px solid #f37335;
+  gap: 6px;
+  transition: all 0.2s ease-in-out;
+
   &:active {
-    transform: rotate(180deg);
+    transform: scale(0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 }
 
-.header {
-  position: relative;
-  z-index: 1;
-  margin-bottom: 5px;
+.quest-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.quest-icon {
+  width: 20px;
+  height: 20px;
+  filter: drop-shadow(0 0 2px #fff);
+}
+
+.quest-text {
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.25;
+  width: 30px;
+  text-align: center;
 }
 
 // 优化内容容器
@@ -410,7 +504,7 @@ export default {
   position: relative;
   z-index: 2;
   background: rgba(255, 255, 255, 0.98);
-  margin-top: -60px;
+  margin-top: -15px;
   border-radius: 18px;
   padding: 8px 15px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -426,7 +520,7 @@ export default {
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(78, 205, 182, 0.6);
+    background: rgba(243, 155, 120, 0.6);
     border-radius: 1.5px;
   }
 
@@ -483,7 +577,7 @@ export default {
     transform: translateY(-50%);
     width: 3px;
     height: 16px;
-    background: linear-gradient(to bottom, #2bb5a0, #4ecdb6);
+    background: linear-gradient(to bottom, #F39B78, #FBCBA2);
     border-radius: 3px;
   }
 }
@@ -491,7 +585,8 @@ export default {
 .group-content {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  grid-auto-rows: 110px;
+  gap: 15px;
 }
 
 // 修改原有的grid-container样式
@@ -503,17 +598,15 @@ export default {
 .module-card {
   background: #ffffff;
   border-radius: 20px;
-  padding: 20px 15px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
-  height: 120px;
   transition: all 0.3s ease;
   border: 1px solid rgba(0, 0, 0, 0.04);
   position: relative;
   overflow: hidden;
+  padding: 15px;
 
   // 添加悬停效果
   &:active {
@@ -532,32 +625,75 @@ export default {
     height: 100%;
     background: radial-gradient(
       circle at top right,
-      rgba(78, 205, 182, 0.03) 0%,
+      rgba(243, 155, 120, 0.03) 0%,
       transparent 70%
     );
     pointer-events: none;
   }
 }
 
+.card-1x1 {
+  flex-direction: column;
+}
+
+.card-1x1 .module-icon {
+  margin-bottom: 12px;
+  margin-right: 0;
+}
+
+.card-1x1 .module-title {
+  text-align: center;
+}
+
+.card-2x1 {
+  grid-column: span 2;
+  flex-direction: row;
+  justify-content: flex-start;
+  padding: 0 25px;
+}
+
+.card-2x1 .module-icon {
+  margin-right: 20px;
+  margin-bottom: 0;
+  width: 48px;
+  height: 48px;
+}
+
+.card-2x1 .text-content {
+  align-items: flex-start;
+}
+
+.card-2x1 .module-title {
+  font-size: 16px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.text-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.module-desc {
+  font-size: 12px;
+  color: #999;
+  margin-top: 6px;
+}
+
 .module-icon {
   width: 42px;
   height: 42px;
-  margin-bottom: 12px;
   opacity: 0.9;
   position: relative;
   z-index: 1;
   transition: transform 0.3s ease;
-
-  &:active {
-    transform: scale(1.05);
-  }
 }
 
 .module-title {
   font-size: 15px;
   color: #2c3e50;
   font-weight: 600;
-  text-align: center;
   letter-spacing: 0.5px;
   position: relative;
   z-index: 1;
@@ -574,8 +710,8 @@ export default {
   position: fixed;
   top: calc(var(--status-bar-height) + 70px);
   left: 20px;
-  box-shadow: 0 4px 15px rgba(78, 205, 182, 0.15);
-  border: 1.5px solid #4ecdb6;
+  box-shadow: 0 4px 15px rgba(243, 155, 120, 0.15);
+  border: 1.5px solid #F39B78;
   z-index: 999;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -703,7 +839,7 @@ export default {
   position: absolute;
   top: 10px;
   left: 10px;
-  background: linear-gradient(135deg, #2bb5a0 0%, #4ecdb6 100%);
+  background: linear-gradient(135deg, #F39B78 0%, #FBCBA2 100%);
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -713,7 +849,7 @@ export default {
   color: #ffffff;
   font-size: 14px;
   font-weight: bold;
-  box-shadow: 0 2px 6px rgba(43, 181, 160, 0.3);
+  box-shadow: 0 2px 6px rgba(243, 155, 120, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.3);
   z-index: 2;
 }
