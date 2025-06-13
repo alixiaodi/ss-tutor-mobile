@@ -42,6 +42,17 @@ export const actions = {
     })
   },
 
+  // 邮箱验证码登录
+  LoginByEmail({ commit }, data) {
+    return new Promise((resolve, reject) => {
+      LoginApi.emailLogin(data, { custom: { catch: true } }).then(response => {
+          const result = response;
+          loginSuccess(commit, result)
+          resolve(response)
+        }).catch(reject)
+    })
+  },
+
   // 用户信息
   Info({ commit, state }) {
     return new Promise((resolve, reject) => {

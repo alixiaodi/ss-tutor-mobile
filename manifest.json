@@ -1,5 +1,5 @@
 {
-	"sassImplementationName":"node-sass",
+    "sassImplementationName" : "node-sass",
     "name" : "智考导师",
     "appid" : "__UNI__9FA7BC8",
     "description" : "",
