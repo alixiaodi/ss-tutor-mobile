@@ -1,8 +1,8 @@
 <template>
-  <view>
-    <Navbar title="选择考试" bgColor="#fff" :hideBtn="false" :h5Show="true"></Navbar>
+  <view class="exam-container">
+    <Navbar title="选择考试" bgColor="#F48C42" :hideBtn="false" :h5Show="true"></Navbar>
     <u-row>
-      <u-col span="4" style="background-color: #f5f5f5">
+      <u-col span="4" style="background-color: #ffffff">
         <u-list>
           <scroll-view scroll-y style="height: calc(100vh - 100px)">
             <u-list-item v-for="(item, index) in subjectList" :key="index">
@@ -10,11 +10,15 @@
                 :title="item.name"
                 @click="selectItem(item)"
                 :customStyle="{
-                  backgroundColor: '#f5f5f5',
-                  borderBottom: '1px solid #eee',
+                  backgroundColor:
+                    selectedExamType === item.id
+                      ? 'rgba(244, 140, 66, 0.1)'
+                      : 'transparent',
+                  borderBottom: '1px solid #f0f0f0',
                 }"
                 :titleStyle="{
-                  color: selectedExamType === item.id ? '#4CAF50' : '#333',
+                  color: selectedExamType === item.id ? '#F48C42' : '#333',
+                  fontWeight: selectedExamType === item.id ? 'bold' : 'normal',
                 }"
               >
               </u-cell>
@@ -27,9 +31,10 @@
           <template v-if="unselectedList && unselectedList.length > 0">
             <u-tag
               :text="item.name"
-              plain
               size="medium"
-              :type="item.isSelected ? 'success' : 'primary'"
+              :bgColor="item.isSelected ? 'rgba(244, 140, 66, 0.1)' : '#fff'"
+              :color="item.isSelected ? '#F48C42' : '#333'"
+              :borderColor="item.isSelected ? '#f48c42' : '#eee'"
               v-for="(item, index) in unselectedList"
               :key="index"
               style="
@@ -53,10 +58,10 @@
                 padding: 40rpx;
               "
             >
-              <u-icon name="info-circle" color="#999" size="48"></u-icon>
+              <u-icon name="info-circle" color="#c0c4cc" size="48"></u-icon>
               <text
                 class="empty-text"
-                style="margin-top: 20rpx; color: #999; font-size: 28rpx"
+                style="margin-top: 20rpx; color: #909399; font-size: 28rpx"
                 >暂无可选考试科目</text
               >
             </view>
@@ -215,4 +220,9 @@ export default {
 };
 </script>
 
-<style lang="scss"></style>
+<style lang="scss">
+.exam-container {
+  background-color: #fff7f0;
+  min-height: 100vh;
+}
+</style>

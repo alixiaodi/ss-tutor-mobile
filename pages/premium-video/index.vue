@@ -3,7 +3,7 @@
     <u-navbar
       title="精品视频"
       :autoBack="true"
-      bgColor="#4ECDB6"
+      bgColor="#f48c42"
       titleStyle="color: #ffffff; font-weight: 500;"
       :fixed="true"
       :placeholder="true"

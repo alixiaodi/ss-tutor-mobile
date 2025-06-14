@@ -2,7 +2,7 @@
   <view class="my-questions">
     <Navbar
       title="我的题库"
-      bgColor="#4ECDB6"
+      bgColor="#f48c42"
       :hideBtn="false"
       :h5Show="true"
       titleStyle="color: #ffffff; font-weight: 600;"
@@ -23,12 +23,12 @@
         :customStyle="{
           width: '100%',
           height: '48px',
-          background: 'linear-gradient(135deg, #4ECDB6, #45BFA3)',
+          background: '#f48c42',
           borderRadius: '12px',
           border: 'none',
           fontSize: '16px',
           fontWeight: '600',
-          boxShadow: '0 4px 12px rgba(78, 205, 182, 0.25)',
+          boxShadow: '0 4px 12px rgba(244, 140, 66, 0.25)',
         }"
       ></u-button>
     </view>
@@ -146,7 +146,7 @@ export default {
                     "请在电脑浏览器中打开链接，上传Excel格式的题库文件。\n\n支持.xlsx和.xls格式",
                   confirmText: "我知道了",
                   showCancel: false,
-                  confirmColor: "#4ECDB6",
+                  confirmColor: "#f48c42",
                 });
               },
               fail: () => {
@@ -172,7 +172,7 @@ export default {
         confirmText: "复制链接",
         showCancel: true,
         cancelText: "关闭",
-        confirmColor: "#4ECDB6",
+        confirmColor: "#f48c42",
         success: (res) => {
           if (res.confirm) {
             // 用户点击复制链接
@@ -306,7 +306,7 @@ export default {
     }
 
     &.bank-item-active {
-      background-color: #f0faf8;
+      background-color: #fff8f2;
 
       &::before {
         content: "";
@@ -315,7 +315,7 @@ export default {
         top: 0;
         bottom: 0;
         width: 8rpx;
-        background-color: #4ecdb6;
+        background-color: #f48c42;
       }
     }
 
@@ -344,8 +344,8 @@ export default {
 
       .question-count {
         font-size: 13px;
-        color: #4ecdb6;
-        background: rgba(78, 205, 182, 0.1);
+        color: #f48c42;
+        background: rgba(244, 140, 66, 0.1);
         padding: 2px 8px;
         border-radius: 10px;
       }
