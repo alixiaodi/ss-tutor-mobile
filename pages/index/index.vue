@@ -423,6 +423,7 @@ export default {
 
 .player-level-container {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
 }

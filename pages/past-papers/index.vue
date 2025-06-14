@@ -59,10 +59,22 @@ export default {
       this.subjectCode = options.subjectCode;
       if (options.from === "index") {
         this.fromIndex = true;
+        this.hasShownPrompt = false; // 重置提示状态
       }
     }
   },
   async onShow() {
+    // 判断是否通过页面栈返回到本页面
+    const pages = getCurrentPages();
+    const isFromInner =
+      pages.length > 1 &&
+      pages[pages.length - 2].route &&
+      pages[pages.length - 2].route.includes("past-papers");
+
+    if (isFromInner) {
+      this.fromIndex = false; // 如果是从内部页面返回，设置fromIndex为false
+    }
+
     if (this.subjectCode) {
       await this.fetchExamData();
       await this.getLastAnswerRecord();
