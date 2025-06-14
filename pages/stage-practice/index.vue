@@ -53,7 +53,7 @@
               activeColor="#f48c42"
             ></u-line-progress>
           </view>
-          <view class="practice-button">
+          <view class="practice-buttons">
             <u-button
               type="primary"
               text="开始练习"
@@ -64,8 +64,23 @@
                 borderRadius: '16px',
                 border: 'none',
                 padding: '0 20px',
+                marginRight: '10px',
               }"
               @click="startPractice(item)"
+            ></u-button>
+            <u-button
+              type="info"
+              text="重新练习"
+              size="mini"
+              :customStyle="{
+                height: '32px',
+                background: '#ffffff',
+                color: '#f48c42',
+                borderRadius: '16px',
+                border: '1px solid #f48c42',
+                padding: '0 20px',
+              }"
+              @click="restartPractice(item)"
             ></u-button>
           </view>
         </view>
@@ -205,6 +220,44 @@ export default {
           icon: "none",
         });
       }
+    },
+
+    // 重新练习（不考虑之前的记录，直接创建新的答题记录）
+    restartPractice(item) {
+      uni.showModal({
+        title: "提示",
+        content: "确定要重新开始练习吗？将会创建新的记录。",
+        success: (res) => {
+          if (res.confirm) {
+            uni.showLoading({
+              title: "处理中...",
+              mask: true,
+            });
+            // 先调用重置练习接口
+            StageContentsApi.restartPractice(item.id)
+              .then((result) => {
+                if (result.code === 200) {
+                  // 重置成功后创建新答题记录
+                  this.createNewAnswer(item);
+                } else {
+                  uni.hideLoading();
+                  uni.showToast({
+                    title: result.msg || "重置练习失败",
+                    icon: "none",
+                  });
+                }
+              })
+              .catch((error) => {
+                uni.hideLoading();
+                console.error("重置练习失败:", error);
+                uni.showToast({
+                  title: "重置练习失败",
+                  icon: "none",
+                });
+              });
+          }
+        },
+      });
     },
 
     // 创建新的答题记录
@@ -384,7 +437,7 @@ export default {
     }
   }
 
-  .practice-button {
+  .practice-buttons {
     display: flex;
     justify-content: flex-end;
     margin-top: 16px;

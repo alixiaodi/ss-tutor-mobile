@@ -5,3 +5,6 @@ export const getStageContents = (subjectCode) => request.get(`/fStageContents/tr
 
 // 获取最后一次答题记录
 export const getLastAnswerRecord = (paperId) => request.get(`/fStageContents/lastAnswer/${paperId}`);
+
+// 重新练习
+export const restartPractice = (stageId) => request.delete(`/fStageContents/rePractice/${stageId}`);

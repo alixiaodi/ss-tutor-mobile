@@ -179,11 +179,7 @@ export default {
       hasSignedToday: false,
       resetPassword: false,
       showVipPopup: false,
-      disabledFeatures: [
-        "/pages/study/history",
-        "/pages/exam/history",
-        "/pages/wrong/index",
-      ],
+      disabledFeatures: ["/pages/study/history", "/pages/exam/history"],
     };
   },
   computed: {
@@ -255,7 +251,6 @@ export default {
       const developingFeatures = {
         "/pages/study/history": "学习记录功能正在开发中，敬请期待！",
         "/pages/exam/history": "考试记录统计功能即将上线，敬请期待！",
-        "/pages/wrong/index": "错题本功能正在优化中，即将与您见面！",
       };
 
       if (developingFeatures[url]) {
@@ -405,7 +400,8 @@ export default {
       this.showVipPopup = true;
     },
     isFeatureDisabled(path) {
-      return this.disabledFeatures.includes(path);
+      //  TODO return this.disabledFeatures.includes(path);
+      return true;
     },
     handleSettings() {
       uni.navigateTo({

@@ -8,6 +8,13 @@
 			}
 		},
 		{
+			"path": "pages/wrong/index",
+			"style": {
+				"navigationBarTitleText": "错题本",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/index/index",
 			"style": {
 				"navigationBarTitleText": "首页",
