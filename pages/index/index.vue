@@ -3,14 +3,12 @@
     <view class="game-header">
       <!-- Left side: Player Info -->
       <view class="player-info" @click="selectSubject">
-        <image
-          src="/static/img/avatar.png"
-          class="player-avatar"
-        ></image>
+        <image src="/static/img/avatar.png" class="player-avatar"></image>
         <view class="player-stats">
-          <text class="player-level">{{
-            examName ? examName : "选择挑战"
-          }}</text>
+          <view class="player-level-container">
+            <text class="player-level">{{ examName ? examName : "选择挑战" }}</text>
+            <u-icon name="arrow-down" size="14" color="#fff" class="select-icon"></u-icon>
+          </view>
           <view class="xp-bar">
             <view class="xp-progress" style="width: 60%"></view>
           </view>
@@ -161,10 +159,7 @@
                   class="module-card card-1x1"
                   @click="navigateTo('/pages/my-questions/index')"
                 >
-                  <image
-                    src="/static/icons/my_questions.png"
-                    class="module-icon"
-                  ></image>
+                  <image src="/static/icons/my_questions.png" class="module-icon"></image>
                   <text class="module-title">我的题库</text>
                 </view>
               </view>
@@ -426,11 +421,21 @@ export default {
   flex-direction: column;
 }
 
+.player-level-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .player-level {
   color: #fff;
   font-size: 18px;
   font-weight: 700;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.select-icon {
+  margin-top: 2px;
 }
 
 .xp-bar {
@@ -577,7 +582,7 @@ export default {
     transform: translateY(-50%);
     width: 3px;
     height: 16px;
-    background: linear-gradient(to bottom, #F39B78, #FBCBA2);
+    background: linear-gradient(to bottom, #f39b78, #fbcba2);
     border-radius: 3px;
   }
 }
@@ -711,7 +716,7 @@ export default {
   top: calc(var(--status-bar-height) + 70px);
   left: 20px;
   box-shadow: 0 4px 15px rgba(243, 155, 120, 0.15);
-  border: 1.5px solid #F39B78;
+  border: 1.5px solid #f39b78;
   z-index: 999;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -839,7 +844,7 @@ export default {
   position: absolute;
   top: 10px;
   left: 10px;
-  background: linear-gradient(135deg, #F39B78 0%, #FBCBA2 100%);
+  background: linear-gradient(135deg, #f39b78 0%, #fbcba2 100%);
   width: 22px;
   height: 22px;
   border-radius: 50%;

@@ -2,7 +2,7 @@
   <view class="detail-container">
     <Navbar
       :title="'题目对比详情'"
-      bgColor="#4ECDB6"
+      bgColor="#f48c42"
       :hideBtn="false"
       :h5Show="true"
       titleStyle="color: #ffffff; font-weight: 500;"

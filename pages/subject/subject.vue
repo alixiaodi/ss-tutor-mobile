@@ -1,6 +1,6 @@
 <template>
   <view class="subject-container">
-    <Navbar title="选择科目" bgColor="#fff" :hideBtn="false" :h5Show="true"></Navbar>
+    <Navbar title="选择科目" bgColor="#F48C42" :hideBtn="false" :h5Show="true"></Navbar>
     <!-- 我的科目区域 -->
     <view class="my-subjects">
       <view class="section-title"> 我的科目 </view>
@@ -12,12 +12,7 @@
           class="subject-item selected"
         >
           <text>{{ subject.name }}</text>
-          <u-icon
-            name="close"
-            size="20"
-            color="#999"
-            @click="removeSubject(index)"
-          ></u-icon>
+          <u-icon name="close" size="20" @click="removeSubject(index)"></u-icon>
         </view>
       </view>
     </view>
@@ -32,7 +27,7 @@
           class="subject-item"
         >
           <text>{{ subject.name }}</text>
-          <u-icon name="plus" size="20" color="#999" @click="addSubject(index)"></u-icon>
+          <u-icon name="plus" size="20" @click="addSubject(index)"></u-icon>
         </view>
       </view>
     </view>
@@ -48,8 +43,10 @@
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#32baa5',
+          backgroundColor: '#F48C42',
           color: '#ffffff',
+          borderRadius: '50px',
+          border: 'none',
         }"
         @click="confirmSelection"
       ></u-button>
@@ -155,12 +152,13 @@ export default {
 <style lang="scss" scoped>
 .subject-container {
   min-height: 100vh;
-  background-color: #fff;
+  background-color: #fff7f0;
   padding: 0 20rpx;
+  box-sizing: border-box;
 
   .section-title {
     font-size: 28rpx;
-    color: #333;
+    color: #666;
     margin: 30rpx 0 20rpx 0;
     font-weight: bold;
   }
@@ -184,10 +182,14 @@ export default {
       border: 1px solid #eee;
       position: relative;
       box-sizing: border-box;
+      transition: all 0.2s;
 
       &.selected {
-        background-color: rgba(50, 186, 165, 0.1);
-        border: 1px solid #32baa5;
+        background-color: rgba(244, 140, 66, 0.1);
+        border: 1px solid #f48c42;
+        text {
+          color: #f48c42;
+        }
       }
 
       text {
@@ -198,7 +200,7 @@ export default {
       .u-icon {
         position: absolute;
         right: 15rpx;
-        color: #32baa5;
+        color: #f48c42;
       }
     }
   }

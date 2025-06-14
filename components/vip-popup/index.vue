@@ -16,15 +16,15 @@
         <view class="vip-benefits">
           <view class="benefit-title">VIP特权</view>
           <view class="benefit-item">
-            <u-icon name="checkmark-circle" color="#4ECDB6" size="16"></u-icon>
+            <u-icon name="checkmark-circle" color="#f48c42" size="16"></u-icon>
             <text>无限制使用AI导师</text>
           </view>
           <view class="benefit-item">
-            <u-icon name="checkmark-circle" color="#4ECDB6" size="16"></u-icon>
+            <u-icon name="checkmark-circle" color="#f48c42" size="16"></u-icon>
             <text>无限制生成AI试卷</text>
           </view>
           <view class="benefit-item">
-            <u-icon name="checkmark-circle" color="#4ECDB6" size="16"></u-icon>
+            <u-icon name="checkmark-circle" color="#f48c42" size="16"></u-icon>
             <text>无限制查看题目记忆方法</text>
           </view>
         </view>

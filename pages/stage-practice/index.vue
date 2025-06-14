@@ -2,7 +2,7 @@
   <view class="stage-practice">
     <Navbar
       title="阶段练习"
-      bgColor="#4ECDB6"
+      bgColor="#f48c42"
       :hideBtn="false"
       :h5Show="true"
       titleStyle="color: #ffffff; font-weight: 500;"
@@ -15,9 +15,9 @@
           :list="stageList"
           :current="currentStage"
           @change="handleStageChange"
-          activeStyle="color: #4ECDB6; font-weight: bold;"
+          activeStyle="color: #f48c42; font-weight: bold;"
           inactiveStyle="color: #666;"
-          lineColor="#4ECDB6"
+          lineColor="#f48c42"
           :lineWidth="20"
           :scrollable="true"
           :scrollWithAnimation="true"
@@ -50,7 +50,7 @@
               :percentage="item.progressPercent"
               height="6"
               :showText="false"
-              activeColor="#4ECDB6"
+              activeColor="#f48c42"
             ></u-line-progress>
           </view>
           <view class="practice-button">
@@ -60,7 +60,7 @@
               size="mini"
               :customStyle="{
                 height: '32px',
-                background: 'linear-gradient(to right, #4ECDB6, #45BFA3)',
+                background: '#f48c42',
                 borderRadius: '16px',
                 border: 'none',
                 padding: '0 20px',
@@ -302,10 +302,10 @@ export default {
     align-items: center;
     justify-content: center;
     padding: 0 48rpx;
-    background: linear-gradient(90deg, #4ecdb6 0%, #44b6a1 100%);
+    background: linear-gradient(90deg, #f9d499 0%, #e6b56d 100%);
     border-radius: 44rpx;
-    box-shadow: 0 8rpx 16rpx rgba(78, 205, 182, 0.2);
-    color: #ffffff;
+    box-shadow: 0 8rpx 16rpx rgba(230, 181, 109, 0.2);
+    color: #543a1a;
     font-size: 32rpx;
     font-weight: 600;
     letter-spacing: 1px;
@@ -408,10 +408,10 @@ export default {
     align-items: center;
     justify-content: center;
     padding: 0 48rpx;
-    background: linear-gradient(90deg, #4ecdb6 0%, #44b6a1 100%);
+    background: linear-gradient(90deg, #f9d499 0%, #e6b56d 100%);
     border-radius: 44rpx;
-    box-shadow: 0 8rpx 16rpx rgba(78, 205, 182, 0.2);
-    color: #ffffff;
+    box-shadow: 0 8rpx 16rpx rgba(230, 181, 109, 0.2);
+    color: #543a1a;
     font-size: 32rpx;
     font-weight: 600;
     letter-spacing: 1px;

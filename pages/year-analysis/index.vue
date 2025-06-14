@@ -2,7 +2,7 @@
   <view class="analysis-container">
     <Navbar
       title="历年真题分析"
-      bgColor="#4ECDB6"
+      bgColor="#f48c42"
       :hideBtn="false"
       :h5Show="true"
       titleStyle="color: #ffffff; font-weight: 500;"
@@ -12,7 +12,7 @@
       <!-- 统计分析入口 -->
       <view class="analysis-entry" @click="goToAnalysis">
         <view class="entry-left">
-          <u-icon name="list-dot" size="32" color="#4ECDB6"></u-icon>
+          <u-icon name="list-dot" size="32" color="#f48c42"></u-icon>
           <text>考点统计</text>
         </view>
         <u-icon name="arrow-right" color="#999" size="28"></u-icon>

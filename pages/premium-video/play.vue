@@ -3,7 +3,7 @@
     <u-navbar
       :title="videoInfo.title"
       :autoBack="true"
-      bgColor="#4ECDB6"
+      bgColor="#f48c42"
       titleStyle="color: #ffffff; font-weight: 500;"
     ></u-navbar>
     

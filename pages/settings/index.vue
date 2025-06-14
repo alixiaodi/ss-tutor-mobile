@@ -2,7 +2,7 @@
   <view class="settings-container">
     <Navbar
       title="系统配置"
-      bgColor="#4ECDB6"
+      bgColor="#f48c42"
       :hideBtn="false"
       :h5Show="true"
       titleStyle="color: #ffffff; font-weight: 500;"
@@ -23,7 +23,7 @@
                 slot="icon"
                 name="volume"
                 size="32rpx"
-                :color="soundEnabled ? '#4ECDB6' : '#909399'"
+                :color="soundEnabled ? '#f48c42' : '#909399'"
               ></u-icon>
             </template>
           </u-cell>

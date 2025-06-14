@@ -1,7 +1,7 @@
 <template>
   <view>
     <view class="settings-btn" @click="handleSettings">
-      <u-icon name="setting" color="#2979ff" size="44rpx"></u-icon>
+      <u-icon name="setting" color="#f48c42" size="44rpx"></u-icon>
     </view>
     <view class="profile-top">
       <view class="user-info">
@@ -48,7 +48,7 @@
         >
           <u-icon
             name="file-text"
-            :color="isFeatureDisabled('/pages/study/history') ? '#c8c9cc' : '#2979ff'"
+            :color="isFeatureDisabled('/pages/study/history') ? '#c8c9cc' : '#f48c42'"
             size="60rpx"
           ></u-icon>
           <text
@@ -67,7 +67,7 @@
         >
           <u-icon
             name="calendar"
-            :color="isFeatureDisabled('/pages/exam/history') ? '#c8c9cc' : '#2979ff'"
+            :color="isFeatureDisabled('/pages/exam/history') ? '#c8c9cc' : '#f48c42'"
             size="60rpx"
           ></u-icon>
           <text
@@ -86,7 +86,7 @@
         >
           <u-icon
             name="bookmark"
-            :color="isFeatureDisabled('/pages/wrong/index') ? '#c8c9cc' : '#2979ff'"
+            :color="isFeatureDisabled('/pages/wrong/index') ? '#c8c9cc' : '#f48c42'"
             size="60rpx"
           ></u-icon>
           <text
@@ -99,7 +99,7 @@
           >
         </u-grid-item>
         <u-grid-item @click="navigateTo('/pages/collect/index')">
-          <u-icon name="star" color="#2979ff" size="60rpx"></u-icon>
+          <u-icon name="star" color="#f48c42" size="60rpx"></u-icon>
           <text class="btn-text">我的收藏</text>
         </u-grid-item>
       </u-grid>
@@ -420,8 +420,8 @@ export default {
 .profile-top {
   background: linear-gradient(
     180deg,
-    rgba(51, 177, 158, 0.15) 0%,
-    rgba(51, 177, 158, 0.05) 100%
+    rgba(244, 140, 66, 0.15) 0%,
+    rgba(244, 140, 66, 0.05) 100%
   );
   padding-top: 30rpx;
   position: relative;
@@ -431,7 +431,7 @@ export default {
 .profile-rule {
   height: 110rpx;
   padding: 0 40rpx;
-  background: linear-gradient(120deg, #38bea8 0%, #2da192 100%);
+  background: linear-gradient(120deg, #f5a623 0%, #f48c42 100%);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -497,7 +497,7 @@ export default {
     background: rgba(255, 255, 255, 0.95);
     padding: 24rpx;
     border-radius: 50%;
-    box-shadow: 0 8rpx 24rpx rgba(51, 177, 158, 0.2), 0 2rpx 8rpx rgba(51, 177, 158, 0.1);
+    box-shadow: 0 8rpx 24rpx rgba(244, 140, 66, 0.2), 0 2rpx 8rpx rgba(244, 140, 66, 0.1);
     position: relative;
 
     &::after {
@@ -508,7 +508,7 @@ export default {
       right: -8rpx;
       bottom: -8rpx;
       border-radius: 50%;
-      border: 4rpx solid rgba(51, 177, 158, 0.15);
+      border: 4rpx solid rgba(244, 140, 66, 0.15);
       z-index: -1;
     }
   }
@@ -533,7 +533,7 @@ export default {
   }
 
   :deep(.u-avatar) {
-    border: 6rpx solid #33b19e;
+    border: 6rpx solid #f48c42;
     padding: 4rpx;
     transition: transform 0.3s ease;
 
@@ -619,7 +619,7 @@ export default {
 
 :deep(.u-button) {
   &--plain {
-    border-color: #2979ff;
+    border-color: #f48c42;
     transition: all 0.3s ease;
 
     &:active {
@@ -649,7 +649,7 @@ export default {
     .item-value {
       font-size: 40rpx;
       font-weight: bold;
-      color: #2979ff;
+      color: #f48c42;
       margin-bottom: 8rpx;
     }
 
