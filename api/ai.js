@@ -2,7 +2,7 @@ import request from '@/config/request.js';
 const { environment } = require('@/config/environment.js');
 
 // 获取验证码
-export const judge = (id, userAnswer, answerId) => request.post(`/ai/judge/${id}?userAnswer=${userAnswer}&answerId=${answerId}`, null)
+export const judge = (id, userAnswer, answerId) => request.post(`/ai/judge/${id}?userAnswer=${userAnswer}&answerId=${answerId}`, null, { timeout: 60000 })
 
 export const getMemory = (id) => request.get(`/ai/getMemory/${id}`, null, { timeout: 180000 })
 // 获取可生成模拟试卷的次数
