@@ -1,0 +1,52 @@
+# Vuex状态管理规范
+
+## 文件结构
+- [store/index.js](mdc:store/index.js) - 主store文件
+- [store/mutation-types.js](mdc:store/mutation-types.js) - 常量定义
+- `store/modules/` - 模块化状态管理
+
+## 模块组织
+按功能模块划分：
+- `user.js` - 用户相关状态
+- `system.js` - 系统配置状态
+
+## 状态设计原则
+- 只存储全局共享的状态
+- 本地状态使用组件data
+- 避免过度使用全局状态
+
+## 命名规范
+- State: 使用camelCase
+- Getters: 使用camelCase，以get开头
+- Mutations: 使用UPPER_SNAKE_CASE
+- Actions: 使用camelCase
+
+## 使用示例
+```javascript
+// 在组件中使用
+import { mapState, mapGetters, mapActions } from 'vuex'
+
+export default {
+  computed: {
+    ...mapState('user', ['userInfo']),
+    ...mapGetters('user', ['isLoggedIn'])
+  },
+  methods: {
+    ...mapActions('user', ['login', 'logout'])
+  }
+}
+```
+
+## 异步操作
+- 使用actions处理异步操作
+- 在actions中调用mutations更新状态
+- 处理加载状态和错误状态
+
+## 持久化
+- 敏感数据不存储在localStorage
+- 使用uni-app的Storage API
+- 考虑数据加密存储
+description:
+globs:
+alwaysApply: false
+---

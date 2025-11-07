@@ -1,6 +1,12 @@
 <template>
   <view class="container">
-    <u-navbar title="错题本" :autoBack="true" fixed placeholder></u-navbar>
+    <Navbar
+      title="错题本"
+      bgColor="#f48c42"
+      :hideBtn="false"
+      :h5Show="true"
+      titleStyle="color: #ffffff; font-weight: 500;"
+    ></Navbar>
 
     <!-- 科目筛选 -->
     <view class="filter-bar">
@@ -8,12 +14,18 @@
         :list="subjectList"
         :current="currentTab"
         @change="changeTab"
+        scrollable
+        keyName="subjectName"
         lineColor="#4A90E2"
+        :lineHeight="3"
+        :lineWidth="30"
         :activeStyle="{ color: '#303133', fontWeight: 'bold' }"
         :inactiveStyle="{ color: '#606266' }"
+        itemStyle="padding-left: 15px; padding-right: 15px; padding-bottom: 8px; white-space: nowrap;"
       ></u-tabs>
     </view>
 
+    <view class="content-wrapper">
     <view class="empty-state" v-if="filteredWrongQuestions.length === 0">
       <u-empty mode="data" icon="error-circle" text="暂无错题记录"></u-empty>
       <view class="tips">当前科目下没有错题哦~</view>
@@ -55,11 +67,18 @@
       :status="loadMoreStatus"
       v-if="filteredWrongQuestions.length > 0 && wrongQuestions.length < total"
     />
+    </view>
   </view>
 </template>
 
 <script>
+import * as SubjectApi from "@/api/subjectUser";
+import Navbar from "@/components/navbar/Navbar";
+
 export default {
+  components: {
+    Navbar,
+  },
   data() {
     return {
       wrongQuestions: [],
@@ -74,14 +93,7 @@ export default {
         4: "填空题",
         5: "简答题",
       },
-      subjectList: [
-        { name: "全部" },
-        { name: "物理" },
-        { name: "化学" },
-        { name: "数学" },
-        { name: "生物" },
-        { name: "电子技术" },
-      ],
+      subjectList: [{ subjectName: "全部" }],
       currentTab: 0,
     };
   },
@@ -90,11 +102,12 @@ export default {
       if (this.currentTab === 0) {
         return this.wrongQuestions;
       }
-      const currentSubject = this.subjectList[this.currentTab].name;
+      const currentSubject = this.subjectList[this.currentTab].subjectName;
       return this.wrongQuestions.filter((q) => q.subjectName === currentSubject);
     },
   },
   onLoad() {
+    this.loadSubjectData();
     this.getWrongQuestions();
   },
   onReachBottom() {
@@ -106,6 +119,20 @@ export default {
     }
   },
   methods: {
+    loadSubjectData() {
+      SubjectApi.getSubject()
+        .then((res) => {
+          if (res.data && res.data.subjects) {
+            // 在科目列表前添加"全部"选项
+            this.subjectList = [{ subjectName: "全部" }, ...res.data.subjects];
+            // 确保默认选中第一个（全部）
+            this.currentTab = 0;
+          }
+        })
+        .catch((error) => {
+          console.error("获取科目列表失败", error);
+        });
+    },
     changeTab(item) {
       this.currentTab = item.index;
     },
@@ -265,7 +292,16 @@ export default {
 }
 
 .filter-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
   background-color: #fff;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  padding: 20rpx 0;
+}
+
+.content-wrapper {
+  min-height: calc(100vh - 88px);
 }
 
 .empty-state {

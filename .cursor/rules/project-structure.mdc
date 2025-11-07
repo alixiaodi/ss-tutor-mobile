@@ -1,0 +1,36 @@
+# SS导师应用项目结构指南
+
+这是一个基于uni-app的跨平台教育应用，支持H5、微信小程序和APP。
+
+## 核心文件
+- [main.js](mdc:main.js) - 应用入口文件，包含登录状态检查和路由拦截
+- [App.vue](mdc:App.vue) - 根组件
+- [pages.json](mdc:pages.json) - 页面路由配置
+- [manifest.json](mdc:manifest.json) - 应用配置文件
+- [package.json](mdc:package.json) - 项目依赖配置
+
+## 目录结构
+- `api/` - 后端API接口封装
+- `components/` - 可复用组件
+- `config/` - 配置文件（请求拦截器、环境配置等）
+- `pages/` - 页面文件
+- `store/` - Vuex状态管理
+- `static/` - 静态资源（图片、音频等）
+- `utils/` - 工具函数
+
+## 技术栈
+- uni-app框架
+- Vue.js 2.x
+- uView UI组件库
+- Vuex状态管理
+- js-cookie（H5端token存储）
+
+## 平台兼容性
+使用条件编译处理不同平台的差异：
+- `#ifdef H5` - H5端
+- `#ifdef MP-WEIXIN` - 微信小程序
+- `#ifdef APP-PLUS` - APP端
+description:
+globs:
+alwaysApply: false
+---

@@ -577,7 +577,54 @@
         </view>
       </view>
     </view>
+
+    <!-- 提交确认弹窗 -->
+    <view class="custom-modal" v-if="showSubmitConfirm" @click="cancelSubmit" style="backdrop-filter: blur(8rpx);">
+      <view
+        class="modal-content"
+        @click.stop
+        style="border-radius: 24rpx; box-shadow: 0 28rpx 48rpx rgba(14, 30, 64, 0.22); overflow: hidden;"
+      >
+        <view class="modal-header" style="padding: 32rpx 32rpx 24rpx;">
+          <view style="display: flex; align-items: center; justify-content: center; column-gap: 20rpx;">
+            <view
+              style="width: 72rpx; height: 72rpx; border-radius: 50%; background: rgba(24, 144, 255, 0.12); display: flex; align-items: center; justify-content: center;"
+            >
+              <text style="font-size: 40rpx; color: #1890ff; font-weight: 600;">!</text>
+            </view>
+            <view style="display: flex; flex-direction: column; row-gap: 6rpx; align-items: flex-start;">
+              <text class="modal-title" style="font-size: 34rpx;">提示</text>
+              <text style="font-size: 26rpx; color: #999;">提交后答题结果将无法更改</text>
+            </view>
+          </view>
+        </view>
+        <view class="modal-body" style="padding: 0 32rpx 32rpx;">
+          <view
+            style="background: #f7f9fc; border-radius: 18rpx; padding: 26rpx; color: #4c6079; line-height: 1.7;"
+          >
+            <rich-text :nodes="submitConfirmContent"></rich-text>
+          </view>
+        </view>
+        <view class="modal-footer" style="padding: 0 32rpx 36rpx; column-gap: 20rpx; border-top: none;">
+          <view
+            class="btn cancel"
+            @click="cancelSubmit"
+            style="border: 1rpx solid #d9d9d9; border-radius: 14rpx; height: 88rpx; display: flex; align-items: center; justify-content: center; color: #4c6079; background: #fff;"
+          >
+            取消
+          </view>
+          <view
+            class="btn confirm"
+            @click="confirmSubmit"
+            style="border-radius: 14rpx; height: 88rpx; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1890ff, #40a9ff); box-shadow: 0 14rpx 28rpx rgba(24, 144, 255, 0.35); color: #fff;"
+          >
+            确定
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
+
 </template>
 
 <script>
@@ -648,6 +695,8 @@ export default {
       progressWidth: 100,
       autoCloseTimer: null,
       progressTimer: null,
+      showSubmitConfirm: false, // 添加-控制提交确认弹窗
+      submitConfirmContent: "", // 添加-提交确认弹窗内容
     };
   },
 
@@ -865,84 +914,94 @@ export default {
 
       // 使用 $set 更新数组
       this.$set(this.answers, index, value);
-
-      // 上传答案
-      AnswerQuestionsApi.uploadAnswer({
-        answerQuestionsId: this.answerId,
-        answer: value,
-        questionNumber: this.questions[index].id,
-      });
     },
 
     submitExam() {
-      // 添加确认提示
-      uni.showModal({
-        title: "提示",
-        content:
-          this.mode === "5" ? "确认保存答案吗？" : "确认提交答卷吗？提交后将无法修改答案",
-        success: async (res) => {
-          if (res.confirm) {
-            // 显示加载提示
-            uni.showLoading({
-              title: "正在提交...",
-              mask: true,
-            });
+      // 检查是否有非选择题
+      const hasNonChoiceQuestions = this.questions.some(
+        (q) => q.type === "blank" || q.type === "essay"
+      );
 
-            // 先上传当前题目的答案
-            const currentQuestion = this.questions[this.currentQuestion];
-            const currentAnswer = this.answers[this.currentQuestion];
+      // 构建提示内容
+      let content =
+        this.mode === "5"
+          ? "确认保存答案吗？"
+          : "确认提交答卷吗？提交后将无法修改答案";
 
-            if (currentAnswer) {
-              try {
-                await AnswerQuestionsApi.uploadAnswer({
-                  answerQuestionsId: this.answerId,
-                  answer: Array.isArray(currentAnswer)
-                    ? currentAnswer.join(",")
-                    : currentAnswer,
-                  questionNumber: currentQuestion.id,
-                });
-              } catch (error) {
-                console.error("上传当前答案失败:", error);
-              }
-            }
+      if (hasNonChoiceQuestions) {
+        content +=
+          '<br/><br/><span style="color: #ff4d4f; font-weight: bold;">非选择题，请自行点击"完成作答"后才会统计分数，否则均为0分</span>';
+      }
 
-            // 原有的提交逻辑
-            console.log("提交的答案：", this.answerId);
-            const data = this.answers.map((answer, index) => ({
-              answerQuestionsId: this.answerId,
-              answer: Array.isArray(answer) ? answer.join(",") : answer,
-              questionNumber: this.questions[index].id,
-              questionType: this.questions[index].type,
-              usedTime: this.usedTime,
-            }));
-
-            AnswerQuestionsApi.submit(this.answerId, data)
-              .then((res) => {
-                // 隐藏加载提示
-                uni.hideLoading();
-
-                uni.showToast({
-                  title: "提交成功",
-                  icon: "success",
-                  duration: 2000,
-                });
-                console.log("返回上一页");
-                uni.navigateBack();
-              })
-              .catch((err) => {
-                // 发生错误时隐藏加载提示
-                uni.hideLoading();
-
-                uni.showToast({
-                  title: "提交失败，请重试",
-                  icon: "none",
-                  duration: 2000,
-                });
-              });
-          }
-        },
-      });
+      this.submitConfirmContent = content;
+      this.showSubmitConfirm = true;
     },
+
+    cancelSubmit() {
+      this.showSubmitConfirm = false;
+    },
+
+    async confirmSubmit() {
+      this.showSubmitConfirm = false;
+      // 显示加载提示
+      uni.showLoading({
+        title: "正在提交...",
+        mask: true,
+      });
+
+      // 先上传当前题目的答案
+      const currentQuestion = this.questions[this.currentQuestion];
+      const currentAnswer = this.answers[this.currentQuestion];
+
+      if (currentAnswer) {
+        try {
+          await AnswerQuestionsApi.uploadAnswer({
+            answerQuestionsId: this.answerId,
+            answer: Array.isArray(currentAnswer)
+              ? currentAnswer.join(",")
+              : currentAnswer,
+            questionNumber: currentQuestion.id,
+          });
+        } catch (error) {
+          console.error("上传当前答案失败:", error);
+        }
+      }
+
+      // 原有的提交逻辑
+      console.log("提交的答案：", this.answerId);
+      const data = this.answers.map((answer, index) => ({
+        answerQuestionsId: this.answerId,
+        answer: Array.isArray(answer) ? answer.join(",") : answer,
+        questionNumber: this.questions[index].id,
+        questionType: this.questions[index].type,
+        usedTime: this.usedTime,
+      }));
+
+      AnswerQuestionsApi.submit(this.answerId, data)
+        .then((res) => {
+          // 隐藏加载提示
+          uni.hideLoading();
+
+          uni.showToast({
+            title: "提交成功",
+            icon: "success",
+            duration: 2000,
+          });
+          console.log("返回上一页");
+          uni.navigateBack();
+        })
+        .catch((err) => {
+          // 发生错误时隐藏加载提示
+          uni.hideLoading();
+
+          uni.showToast({
+            title: "提交失败，请重试",
+            icon: "none",
+            duration: 2000,
+          });
+        });
+    },
+
     handlePageChange(e) {
       const oldQuestion = this.currentQuestion;
       const newQuestion = e.detail.current;
@@ -4315,5 +4374,69 @@ export default {
   color: #fff;
   line-height: 28rpx;
   display: block;
+}
+
+/* 自定义弹窗样式 */
+.custom-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  width: 80%;
+  max-width: 600rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 24rpx 32rpx;
+  border-bottom: 1rpx solid #eee;
+  text-align: center;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-body {
+  padding: 32rpx;
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+}
+
+.modal-footer {
+  display: flex;
+  border-top: 1rpx solid #eee;
+}
+
+.modal-footer .btn {
+  flex: 1;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 500;
+}
+
+.modal-footer .btn.cancel {
+  color: #666;
+}
+
+.modal-footer .btn.confirm {
+  color: #fff;
+  background-color: #1890ff;
 }
 </style>

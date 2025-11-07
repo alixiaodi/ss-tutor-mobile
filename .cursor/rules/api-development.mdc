@@ -1,0 +1,56 @@
+# API开发规范
+
+## 文件组织
+- 按功能模块组织API文件
+- 使用统一的请求封装：[config/request.js](mdc:config/request.js)
+- 每个API文件对应一个业务模块
+
+## 请求方法
+使用封装的request对象：
+```javascript
+import request from '@/config/request.js'
+
+// GET请求
+request.get('/api/endpoint', { param: 'value' })
+
+// POST请求
+request.post('/api/endpoint', { data: 'value' })
+
+// PUT请求
+request.put('/api/endpoint', { data: 'value' })
+
+// DELETE请求
+request.delete('/api/endpoint')
+```
+
+## 配置选项
+request方法支持自定义配置：
+```javascript
+request.get('/api/endpoint', params, {
+  custom: {
+    auth: true,    // 是否需要认证
+    toast: true,   // 是否显示提示
+    catch: true,   // 是否捕获错误
+    loading: true  // 是否显示加载
+  }
+})
+```
+
+## 错误处理
+- 统一在请求拦截器中处理错误
+- 使用try-catch包装异步操作
+- 提供用户友好的错误提示
+
+## 数据格式
+- 请求参数使用对象格式
+- 响应数据统一处理
+- 使用TypeScript类型定义（如果适用）
+
+## 认证机制
+- Token存储在Cookie（H5）或Storage（小程序/APP）
+- 自动在请求头中添加认证信息
+- 处理token过期和刷新逻辑
+description:
+globs:
+alwaysApply: false
+---

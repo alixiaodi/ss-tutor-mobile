@@ -82,21 +82,13 @@
         <u-grid-item
           @click="navigateTo('/pages/wrong/index')"
           class="grid-item"
-          :class="{ disabled: isFeatureDisabled('/pages/wrong/index') }"
         >
           <u-icon
             name="bookmark"
-            :color="isFeatureDisabled('/pages/wrong/index') ? '#c8c9cc' : '#f48c42'"
+            color="#f48c42"
             size="60rpx"
           ></u-icon>
-          <text
-            class="btn-text"
-            :class="{ 'disabled-text': isFeatureDisabled('/pages/wrong/index') }"
-            >错题本</text
-          >
-          <text v-if="isFeatureDisabled('/pages/wrong/index')" class="developing-tag"
-            >开发中</text
-          >
+          <text class="btn-text">错题本</text>
         </u-grid-item>
         <u-grid-item @click="navigateTo('/pages/collect/index')">
           <u-icon name="star" color="#f48c42" size="60rpx"></u-icon>

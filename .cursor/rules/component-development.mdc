@@ -1,0 +1,65 @@
+# 组件开发规范
+
+## 组件分类
+- 业务组件：`components/Answer/`、`components/vip-popup/`
+- 通用组件：`components/button/`、`components/navbar/`
+- 第三方组件：`components/f-md/`、`components/cmder-MDParserHighlight/`
+
+## 组件设计原则
+- 单一职责：每个组件只负责一个功能
+- 可复用性：设计通用的props接口
+- 可维护性：清晰的代码结构和注释
+
+## Props设计
+```javascript
+props: {
+  // 必填属性
+  title: {
+    type: String,
+    required: true
+  },
+  // 可选属性，带默认值
+  size: {
+    type: String,
+    default: 'medium',
+    validator: value => ['small', 'medium', 'large'].includes(value)
+  }
+}
+```
+
+## 事件设计
+```javascript
+// 子组件触发事件
+this.$emit('change', newValue)
+
+// 父组件监听事件
+<MyComponent @change="handleChange" />
+```
+
+## 插槽使用
+```vue
+<!-- 默认插槽 -->
+<slot />
+
+<!-- 具名插槽 -->
+<slot name="header" />
+
+<!-- 作用域插槽 -->
+<slot name="item" :item="item" />
+```
+
+## 样式规范
+- 使用scoped避免样式污染
+- 使用CSS变量定义主题色
+- 响应式设计使用rpx单位
+- 支持自定义主题
+
+## 文档要求
+- 组件顶部添加功能说明
+- 注释重要的业务逻辑
+- 提供使用示例
+- 说明props和events
+description:
+globs:
+alwaysApply: false
+---
