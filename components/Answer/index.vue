@@ -916,6 +916,31 @@ export default {
       this.$set(this.answers, index, value);
     },
 
+    // 主观题（填空/简答）在离开当前题时需要手动触发保存
+    saveSubjectiveAnswer(questionIndex) {
+      const question = this.questions[questionIndex];
+      if (!question || !["blank", "essay"].includes(question.type)) {
+        return Promise.resolve();
+      }
+
+      const answer = this.answers[questionIndex];
+      const formattedAnswer =
+        question.type === "blank" && Array.isArray(answer) ? answer.join(",") : answer;
+
+      return AnswerQuestionsApi.uploadAnswer({
+        answerQuestionsId: this.answerId,
+        answer: formattedAnswer,
+        questionNumber: question.id,
+      })
+        .then((res) => {
+          console.log("上传答案结果:", res);
+          return res;
+        })
+        .catch((error) => {
+          console.error("上传答案失败:", error);
+        });
+    },
+
     submitExam() {
       // 检查是否有非选择题
       const hasNonChoiceQuestions = this.questions.some(
@@ -1025,29 +1050,7 @@ export default {
           answers: this.answers,
         });
 
-        if (currentQuestion?.type === "blank" || currentQuestion?.type === "essay") {
-          console.log("提交答案:", {
-            questionId: currentQuestion.id,
-            answer: answer,
-            answerId: this.answerId,
-          });
-
-          // 根据题目类型处理答案格式
-          let formattedAnswer = answer;
-          if (currentQuestion.type === "blank" && Array.isArray(answer)) {
-            formattedAnswer = answer.join(",");
-          } else if (currentQuestion.type === "essay") {
-            formattedAnswer = answer;
-          }
-
-          AnswerQuestionsApi.uploadAnswer({
-            answerQuestionsId: this.answerId,
-            answer: formattedAnswer,
-            questionNumber: currentQuestion.id,
-          }).then((res) => {
-            console.log("上传答案结果:", res);
-          });
-        }
+        this.saveSubjectiveAnswer(oldQuestion);
       }
 
       // 更新当前题目索引并设置答案显示状态
@@ -1115,8 +1118,10 @@ export default {
         confirmText: "保存",
         success: (res) => {
           if (res.confirm) {
-            // 用户选择保存，直接返回
-            history.back();
+            // 用户选择保存时，先保存当前正在编辑的主观题答案
+            this.saveSubjectiveAnswer(this.currentQuestion).finally(() => {
+              history.back();
+            });
           } else {
             // 用户选择不保存，显示二次确认
             uni.showModal({
