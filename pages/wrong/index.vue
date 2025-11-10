@@ -38,21 +38,19 @@
         :key="item.id"
         @click="viewQuestion(item)"
       >
+        <view class="question-meta" v-if="Number(item.wrongCount) > 0">
+          <view class="wrong-count-chip">
+            错 {{ item.wrongCount }} 次
+          </view>
+        </view>
         <view class="question-body">
-          <view class="question-type-badge">{{
-            getQuestionTypeName(item.questionType).charAt(0)
-          }}</view>
           <rich-text :nodes="item.questionName" class="question-content"></rich-text>
         </view>
         <view class="question-footer">
-          <view class="info-tags">
-            <view class="tag-item subject-tag">{{ item.subjectName || "未知科目" }}</view>
-            <view class="tag-item time-tag">{{ formatTime(item.createTime) }}</view>
-          </view>
           <view class="action-buttons">
             <view class="action-btn" @click.stop="viewAnalysis(item)">
               <u-icon name="eye" size="18"></u-icon>
-              <text>解析</text>
+              <text>详情</text>
             </view>
             <view class="action-btn remove-btn" @click.stop="removeFromWrong(item.id)">
               <u-icon name="trash" size="18"></u-icon>
@@ -61,6 +59,14 @@
           </view>
         </view>
       </view>
+    </view>
+    <view
+      class="scroll-top-btn"
+      v-if="showScrollTop"
+      @click.stop="scrollToTop"
+    >
+      <u-icon name="arrow-up" size="20" color="#fff"></u-icon>
+      <text>回到顶部</text>
     </view>
 
     <u-loadmore
@@ -73,6 +79,7 @@
 
 <script>
 import * as SubjectApi from "@/api/subjectUser";
+import * as WrongQuestionApi from "@/api/wrongQuestion";
 import Navbar from "@/components/navbar/Navbar";
 
 export default {
@@ -93,13 +100,14 @@ export default {
         4: "填空题",
         5: "简答题",
       },
-      subjectList: [{ subjectName: "全部" }],
+      subjectList: [],
       currentTab: 0,
+      showScrollTop: false,
     };
   },
   computed: {
     filteredWrongQuestions() {
-      if (this.currentTab === 0) {
+      if (!this.subjectList.length || !this.subjectList[this.currentTab]) {
         return this.wrongQuestions;
       }
       const currentSubject = this.subjectList[this.currentTab].subjectName;
@@ -108,7 +116,6 @@ export default {
   },
   onLoad() {
     this.loadSubjectData();
-    this.getWrongQuestions();
   },
   onReachBottom() {
     if (this.wrongQuestions.length < this.total) {
@@ -118,134 +125,101 @@ export default {
       this.loadMoreStatus = "nomore";
     }
   },
+  onPageScroll(e) {
+    this.showScrollTop = e.scrollTop > 200;
+  },
   methods: {
-    loadSubjectData() {
-      SubjectApi.getSubject()
-        .then((res) => {
-          if (res.data && res.data.subjects) {
-            // 在科目列表前添加"全部"选项
-            this.subjectList = [{ subjectName: "全部" }, ...res.data.subjects];
-            // 确保默认选中第一个（全部）
+    async loadSubjectData() {
+      try {
+        const res = await SubjectApi.getSubject();
+        if (res.data && res.data.subjects) {
+          this.subjectList = res.data.subjects;
+          if (this.subjectList.length) {
             this.currentTab = 0;
+            this.resetWrongQuestionState();
+            await this.getWrongQuestions();
           }
-        })
-        .catch((error) => {
-          console.error("获取科目列表失败", error);
-        });
+        }
+      } catch (error) {
+        console.error("获取科目列表失败", error);
+      }
+    },
+    resetWrongQuestionState() {
+      this.page = 1;
+      this.total = 0;
+      this.wrongQuestions = [];
+      this.loadMoreStatus = "loading";
     },
     changeTab(item) {
       this.currentTab = item.index;
+      this.resetWrongQuestionState();
+      this.getWrongQuestions();
     },
     async getWrongQuestions() {
       try {
         if (this.loadMoreStatus === "nomore") return;
+        const currentSubject = this.subjectList[this.currentTab];
+        if (!currentSubject || !currentSubject.subjectCode) {
+          this.wrongQuestions = [];
+          this.total = 0;
+          this.loadMoreStatus = "nomore";
+          return;
+        }
+
         uni.showLoading({ title: "加载中..." });
         this.loadMoreStatus = "loading";
 
-        // 使用演示数据替代API调用
-        setTimeout(() => {
-          const demoData = {
-            code: 200,
-            rows: [
-              {
-                id: 1001,
-                questionType: 1,
-                questionName: "下列关于力的描述中，正确的是（ ）",
-                subjectName: "物理",
-                createTime: new Date().getTime() - 24 * 60 * 60 * 1000,
-              },
-              {
-                id: 1002,
-                questionType: 2,
-                questionName: "下列元素中，属于非金属元素的是（ ）",
-                subjectName: "化学",
-                createTime: new Date().getTime() - 2 * 24 * 60 * 60 * 1000,
-              },
-              {
-                id: 1003,
-                questionType: 3,
-                questionName: "牛顿第一定律又称为惯性定律。（ ）",
-                subjectName: "物理",
-                createTime: new Date().getTime() - 3 * 24 * 60 * 60 * 1000,
-              },
-              {
-                id: 1004,
-                questionType: 4,
-                questionName: "在△ABC中，角A=30°，角B=60°，则角C=________。",
-                subjectName: "数学",
-                createTime: new Date().getTime() - 5 * 24 * 60 * 60 * 1000,
-              },
-              {
-                id: 1005,
-                questionType: 5,
-                questionName: "简述光合作用的过程及其重要性。",
-                subjectName: "生物",
-                createTime: new Date().getTime() - 7 * 24 * 60 * 60 * 1000,
-              },
-              {
-                id: 1006,
-                questionType: 1,
-                questionName:
-                  '<p>已知：log<sub>a</sub>b=m，log<sub>b</sub>c=n，求log<sub>a</sub>c的值。</p>',
-                subjectName: "数学",
-                createTime: new Date().getTime() - 8 * 24 * 60 * 60 * 1000,
-              },
-              {
-                id: 1007,
-                questionType: 2,
-                questionName: "下列关于等效电路的说法中，正确的有（ ）",
-                subjectName: "电子技术",
-                createTime: new Date().getTime() - 10 * 24 * 60 * 60 * 1000,
-              },
-              {
-                id: 1008,
-                questionType: 3,
-                questionName: "在理想气体状态方程中，压强与体积成正比。（ ）",
-                subjectName: "化学",
-                createTime: new Date().getTime() - 12 * 24 * 60 * 60 * 1000,
-              },
-            ],
-            total: 15,
-          };
+        const params = {
+          pageNum: this.page,
+          pageSize: this.limit,
+          subjectCode: currentSubject.subjectCode,
+        };
 
-          const newQuestions = this.page > 1 ? demoData.rows.slice(0, 7) : demoData.rows;
+        const res = await WrongQuestionApi.getWrongQuestionList(params);
+        const listSource = Array.isArray(res.rows)
+          ? res.rows
+          : Array.isArray(res.data)
+          ? res.data
+          : [];
+        const list = listSource.map((item) => ({
+          ...item,
+          subjectName: item.subjectName || currentSubject.subjectName || "",
+        }));
 
-          if (this.page === 1) {
-            this.wrongQuestions = newQuestions;
-          } else {
-            this.wrongQuestions = [...this.wrongQuestions, ...newQuestions];
-          }
+        if (this.page === 1) {
+          this.wrongQuestions = list;
+        } else {
+          this.wrongQuestions = [...this.wrongQuestions, ...list];
+        }
 
-          this.total = demoData.total;
+        this.total =
+          typeof res.total === "number"
+            ? res.total
+            : Array.isArray(res.data)
+            ? res.data.length
+            : this.wrongQuestions.length;
 
-          if (this.wrongQuestions.length >= this.total) {
-            this.loadMoreStatus = "nomore";
-          } else {
-            this.loadMoreStatus = "loadmore";
-          }
-
-          uni.hideLoading();
-        }, 500);
+        if (this.wrongQuestions.length >= this.total || list.length < this.limit) {
+          this.loadMoreStatus = "nomore";
+        } else {
+          this.loadMoreStatus = "loadmore";
+        }
       } catch (error) {
         console.error("获取错题列表失败", error);
         uni.showToast({
           title: "获取错题列表失败",
           icon: "none",
         });
+        if (this.page > 1) {
+          this.page -= 1;
+        }
         this.loadMoreStatus = "loadmore";
+      } finally {
         uni.hideLoading();
       }
     },
     getQuestionTypeName(type) {
       return this.questionTypeMap[type] || "未知";
-    },
-    formatTime(time) {
-      if (!time) return "";
-      const date = new Date(time);
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-        2,
-        "0"
-      )}-${String(date.getDate()).padStart(2, "0")}`;
     },
     viewQuestion(question) {
       // 实际应跳转到题目详情页
@@ -254,6 +228,12 @@ export default {
     viewAnalysis(question) {
       // 实际应跳转到解析页
       console.log("View analysis", question.id);
+    },
+    scrollToTop() {
+      uni.pageScrollTo({
+        scrollTop: 0,
+        duration: 300,
+      });
     },
     async removeFromWrong(id) {
       if (!id) return;
@@ -324,7 +304,7 @@ export default {
   border-radius: 16rpx;
   padding: 24rpx;
   margin-bottom: 24rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.06);
   transition: all 0.2s ease-in-out;
 
   &:active {
@@ -333,26 +313,29 @@ export default {
   }
 }
 
+.question-meta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 20rpx;
+  font-size: 24rpx;
+  color: #8c9aa3;
+}
+
+.wrong-count-chip {
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(244, 140, 66, 0.15);
+  color: #f48c42;
+  font-size: 24rpx;
+}
+
 .question-body {
   display: flex;
   align-items: flex-start;
   gap: 20rpx;
   padding-bottom: 20rpx;
   border-bottom: 1rpx solid #f0f0f0;
-}
-
-.question-type-badge {
-  flex-shrink: 0;
-  width: 48rpx;
-  height: 48rpx;
-  background-image: linear-gradient(135deg, #4a90e2 0%, #007aff 100%);
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 24rpx;
-  font-weight: bold;
 }
 
 .question-content {
@@ -369,30 +352,9 @@ export default {
 
 .question-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   padding-top: 20rpx;
-}
-
-.info-tags {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  font-size: 24rpx;
-
-  .tag-item {
-    padding: 6rpx 16rpx;
-    border-radius: 20rpx;
-  }
-
-  .subject-tag {
-    background-color: #eef2f8;
-    color: #4a90e2;
-  }
-
-  .time-tag {
-    color: #909399;
-  }
 }
 
 .action-buttons {
@@ -410,5 +372,21 @@ export default {
       color: #fa3534;
     }
   }
+}
+
+.scroll-top-btn {
+  position: fixed;
+  right: 32rpx;
+  bottom: 120rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background-image: linear-gradient(135deg, #4a90e2, #4285f4);
+  color: #fff;
+  padding: 20rpx 26rpx;
+  border-radius: 999rpx;
+  box-shadow: 0 12rpx 24rpx rgba(66, 133, 244, 0.35);
+  font-size: 26rpx;
+  z-index: 120;
 }
 </style>
