@@ -15,6 +15,13 @@
 			}
 		},
 		{
+			"path": "pages/wrong/detail",
+			"style": {
+				"navigationBarTitleText": "错题详情",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/index/index",
 			"style": {
 				"navigationBarTitleText": "首页",
@@ -147,6 +154,13 @@
 				"navigationBarTitleText": "AI导师",
 				"navigationStyle": "custom",
 				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/ai-question-bank/index",
+			"style": {
+				"navigationBarTitleText": "AI题库",
+				"navigationStyle": "custom"
 			}
 		},
 		{

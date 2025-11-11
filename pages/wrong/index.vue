@@ -176,7 +176,10 @@ export default {
         };
 
         const res = await WrongQuestionApi.getWrongQuestionList(params);
-        const listSource = Array.isArray(res.rows)
+        const pageData = res?.data && typeof res.data === "object" ? res.data : null;
+        const listSource = Array.isArray(pageData?.records)
+          ? pageData.records
+          : Array.isArray(res.rows)
           ? res.rows
           : Array.isArray(res.data)
           ? res.data
@@ -192,14 +195,23 @@ export default {
           this.wrongQuestions = [...this.wrongQuestions, ...list];
         }
 
-        this.total =
-          typeof res.total === "number"
+        const totalFromResponse =
+          typeof pageData?.total === "number"
+            ? pageData.total
+            : typeof res.total === "number"
             ? res.total
             : Array.isArray(res.data)
             ? res.data.length
             : this.wrongQuestions.length;
+        const pageSizeFromResponse =
+          typeof pageData?.size === "number" ? pageData.size : this.limit;
 
-        if (this.wrongQuestions.length >= this.total || list.length < this.limit) {
+        this.total = totalFromResponse;
+
+        if (
+          this.wrongQuestions.length >= this.total ||
+          list.length < pageSizeFromResponse
+        ) {
           this.loadMoreStatus = "nomore";
         } else {
           this.loadMoreStatus = "loadmore";
@@ -226,8 +238,29 @@ export default {
       console.log("View question", question.id);
     },
     viewAnalysis(question) {
-      // 实际应跳转到解析页
-      console.log("View analysis", question.id);
+      const query = [];
+      const detailId = question?.id || question?.questionId;
+      const questionId = question?.questionId || question?.id;
+      if (detailId) {
+        query.push(`id=${detailId}`);
+      }
+      if (questionId) {
+        query.push(`questionId=${questionId}`);
+      }
+      if (question?.questionName) {
+        query.push(`questionName=${encodeURIComponent(question.questionName)}`);
+      }
+      if (question?.questionAnswer) {
+        query.push(`questionAnswer=${encodeURIComponent(question.questionAnswer)}`);
+      }
+      if (question?.subjectName) {
+        query.push(`subjectName=${encodeURIComponent(question.subjectName)}`);
+      }
+
+      const queryString = query.length ? `?${query.join("&")}` : "";
+      uni.navigateTo({
+        url: `/pages/wrong/detail${queryString}`,
+      });
     },
     scrollToTop() {
       uni.pageScrollTo({

@@ -138,6 +138,16 @@
                   <image src="/static/icons/predict.png" class="module-icon"></image>
                   <text class="module-title">AI押题</text>
                 </view>
+                <view
+                  class="module-card card-2x1"
+                  @click="navigateTo('/pages/ai-question-bank/index')"
+                >
+                  <image src="/static/icons/my_questions.png" class="module-icon"></image>
+                  <view class="text-content">
+                    <text class="module-title">AI题库</text>
+                    <text class="module-desc">智能组卷，定制训练计划</text>
+                  </view>
+                </view>
               </view>
             </view>
 
@@ -297,6 +307,9 @@ export default {
         url = `${url}?subjectCode=${this.currentSubjectCode}`;
       }
       if (url === "/pages/my-questions/index") {
+        url = `${url}?subjectCode=${this.currentSubjectCode}`;
+      }
+      if (url === "/pages/ai-question-bank/index") {
         url = `${url}?subjectCode=${this.currentSubjectCode}`;
       }
       uni.navigateTo({ url });
