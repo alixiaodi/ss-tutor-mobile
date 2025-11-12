@@ -8,6 +8,17 @@
       titleStyle="color: #ffffff; font-weight: 500;"
     ></Navbar>
 
+    <view class="conversation-toolbar">
+      <view class="current-conversation">
+        <text class="label">当前对话：</text>
+        <text class="title">{{ currentConversationTitle }}</text>
+      </view>
+      <view class="history-btn" @click="openConversationDrawer">
+        <view class="history-icon"></view>
+        <text>对话管理</text>
+      </view>
+    </view>
+
     <view class="chat-wrapper">
       <ChatMessageList
         ref="messageList"
@@ -33,6 +44,15 @@
       <text>弹窗状态: {{ showVipPopup }}</text>
     </view>
 
+    <ConversationDrawer
+      :show="showConversationDrawer"
+      :conversations="conversations"
+      :current-id="currentConversationId"
+      @close="closeConversationDrawer"
+      @select="handleSelectConversation"
+      @create="startNewConversation"
+    />
+
     <vip-popup :show.sync="showVipPopup" @open="onPopupOpen" @close="onPopupClose" />
   </view>
 </template>
@@ -45,6 +65,7 @@ import * as userApi from "@/api/user.js";
 import * as aiApi from "@/api/ai.js";
 import ChatMessageList from "./components/ChatMessageList.vue";
 import ChatInputArea from "./components/ChatInputArea.vue";
+import ConversationDrawer from "./components/ConversationDrawer.vue";
 
 export default {
   components: {
@@ -52,11 +73,22 @@ export default {
     Navbar,
     ChatMessageList,
     ChatInputArea,
+    ConversationDrawer,
   },
   computed: {
     ...mapState({
       userInfo: (state) => state.user.userInfo,
     }),
+    currentConversation() {
+      return (
+        this.conversations.find(
+          (item) => item.id === this.currentConversationId
+        ) || null
+      );
+    },
+    currentConversationTitle() {
+      return (this.currentConversation && this.currentConversation.title) || "默认对话";
+    },
   },
   data() {
     return {
@@ -81,6 +113,11 @@ export default {
       showTemplatePopup: false,
       questionId: "",
       inputAreaHeight: 0,
+      conversations: [],
+      currentConversationId: "",
+      showConversationDrawer: false,
+      isRestoringConversation: false,
+      chatHistoryUnwatch: null,
     };
   },
   async onShow() {
@@ -92,6 +129,7 @@ export default {
   },
   onLoad(options) {
     this.questionId = options.questionId || "";
+    this.initializeConversations();
   },
   methods: {
     async getUserInfo() {
@@ -313,6 +351,158 @@ export default {
     updateInputAreaHeight(height = 0) {
       this.inputAreaHeight = height;
     },
+    initializeConversations() {
+      let stored = [];
+      try {
+        stored = uni.getStorageSync("aiTutorConversations") || [];
+      } catch (error) {
+        console.warn("读取对话历史失败", error);
+      }
+
+      if (!Array.isArray(stored) || !stored.length) {
+        const firstConversation = this.createConversation();
+        this.conversations = [firstConversation];
+        this.currentConversationId = firstConversation.id;
+        this.replaceChatHistoryFromConversation(firstConversation);
+        this.persistConversations();
+      } else {
+        this.conversations = stored;
+        this.currentConversationId = stored[0].id;
+        this.replaceChatHistoryFromConversation(stored[0]);
+      }
+
+      this.setupChatHistoryWatcher();
+    },
+    createConversation(title) {
+      const timestamp = Date.now();
+      const defaultTitle = title || `对话${(this.conversations.length || 0) + 1}`;
+      return {
+        id: `conv_${timestamp}`,
+        title: defaultTitle,
+        messages: this.getDefaultMessages(),
+        updatedAt: timestamp,
+      };
+    },
+    getDefaultMessages() {
+      return [
+        {
+          type: "ai",
+          content: "你好，我是你的AI导师，有什么我可以帮你的吗？",
+          status: 1,
+        },
+      ];
+    },
+    replaceChatHistoryFromConversation(conversation) {
+      const messages =
+        (conversation && conversation.messages && conversation.messages.length
+          ? conversation.messages
+          : this.getDefaultMessages());
+      this.isRestoringConversation = true;
+      this.chatHistory = this.cloneMessages(messages);
+      this.$nextTick(() => {
+        this.isRestoringConversation = false;
+        this.scrollToBottom();
+      });
+    },
+    cloneMessages(list) {
+      return JSON.parse(JSON.stringify(list || []));
+    },
+    setupChatHistoryWatcher() {
+      this.teardownChatHistoryWatcher();
+      this.chatHistoryUnwatch = this.$watch(
+        "chatHistory",
+        () => {
+          if (this.isRestoringConversation) return;
+          this.syncChatHistoryToConversation();
+        },
+        { deep: true }
+      );
+    },
+    teardownChatHistoryWatcher() {
+      if (typeof this.chatHistoryUnwatch === "function") {
+        this.chatHistoryUnwatch();
+        this.chatHistoryUnwatch = null;
+      }
+    },
+    syncChatHistoryToConversation() {
+      const index = this.conversations.findIndex(
+        (item) => item.id === this.currentConversationId
+      );
+      if (index === -1) return;
+
+      const updatedConversation = {
+        ...this.conversations[index],
+        messages: this.cloneMessages(this.chatHistory),
+        updatedAt: Date.now(),
+      };
+
+      const derivedTitle = this.deriveConversationTitle(
+        updatedConversation.title,
+        updatedConversation.messages
+      );
+      if (derivedTitle) {
+        updatedConversation.title = derivedTitle;
+      }
+
+      this.$set(this.conversations, index, updatedConversation);
+      this.persistConversations();
+    },
+    deriveConversationTitle(currentTitle, messages) {
+      const title = currentTitle || "";
+      const needUpdate =
+        !title.trim() || /^对话\d+$/.test(title.trim());
+      if (!needUpdate) return "";
+      const firstUserMessage = (messages || []).find(
+        (msg) => msg.type === "user" && msg.content && msg.content.trim()
+      );
+      if (!firstUserMessage) return "";
+      return firstUserMessage.content.trim().slice(0, 20);
+    },
+    persistConversations(list) {
+      const targetList = list || this.conversations;
+      try {
+        uni.setStorageSync("aiTutorConversations", targetList);
+      } catch (error) {
+        console.warn("保存对话历史失败", error);
+      }
+    },
+    openConversationDrawer() {
+      this.showConversationDrawer = true;
+    },
+    closeConversationDrawer() {
+      this.showConversationDrawer = false;
+    },
+    handleSelectConversation(conversation) {
+      if (!conversation || conversation.id === this.currentConversationId) {
+        this.closeConversationDrawer();
+        return;
+      }
+      if (this.isReceivingReply) {
+        uni.showToast({
+          title: "正在回复中，请稍后再切换",
+          icon: "none",
+        });
+        return;
+      }
+      this.currentConversationId = conversation.id;
+      this.replaceChatHistoryFromConversation(conversation);
+      this.closeConversationDrawer();
+    },
+    startNewConversation() {
+      if (this.isReceivingReply) {
+        uni.showToast({
+          title: "正在回复中，请稍后再试",
+          icon: "none",
+        });
+        return;
+      }
+      const newConversation = this.createConversation();
+      this.conversations = [newConversation, ...this.conversations];
+      this.currentConversationId = newConversation.id;
+      this.persistConversations();
+      this.replaceChatHistoryFromConversation(newConversation);
+      this.closeConversationDrawer();
+    },
   },
   onHide() {
     if (this.resetTimeInterval) {
@@ -323,6 +513,7 @@ export default {
     if (this.resetTimeInterval) {
       clearInterval(this.resetTimeInterval);
     }
+    this.teardownChatHistoryWatcher();
   },
 };
 </script>
@@ -333,6 +524,66 @@ export default {
   background-color: #f5f5f5;
   display: flex;
   flex-direction: column;
+
+  .conversation-toolbar {
+    padding: 12rpx 24rpx;
+    background-color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1rpx solid rgba(0, 0, 0, 0.05);
+
+    .current-conversation {
+      display: flex;
+      align-items: center;
+      font-size: 26rpx;
+
+      .label {
+        color: #999;
+        margin-right: 8rpx;
+      }
+
+      .title {
+        color: #333;
+        font-weight: 500;
+        max-width: 420rpx;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .history-btn {
+      font-size: 26rpx;
+      color: #f48c42;
+      padding: 8rpx 20rpx;
+      border: 1rpx solid rgba(244, 140, 66, 0.35);
+      border-radius: 24rpx;
+      display: flex;
+      align-items: center;
+      gap: 10rpx;
+      background-color: rgba(244, 140, 66, 0.08);
+
+      .history-icon {
+        width: 24rpx;
+        height: 24rpx;
+        border-radius: 50%;
+        border: 2rpx solid currentColor;
+        position: relative;
+
+        &:after {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 12rpx;
+          height: 2rpx;
+          background-color: currentColor;
+          transform: translate(-50%, -50%);
+        }
+      }
+    }
+  }
 
   .chat-wrapper {
     flex: 1;
