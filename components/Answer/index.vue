@@ -1773,11 +1773,18 @@ export default {
       // 获取当前题目信息
       const currentQuestion = this.questions[this.currentQuestion];
 
-      // 跳转到 AI 导师页面，并传递题号参数
+      // 提取题目内容（去除HTML标签）
+      let questionContent = currentQuestion.content || '';
+      // 移除HTML标签
+      questionContent = questionContent.replace(/<[^>]*>/g, '').trim();
+      // 截取前20个字符作为标题
+      const questionTitle = questionContent.substring(0, 20);
+
+      // 跳转到 AI 导师页面，并传递题号和题目内容参数
       uni.navigateTo({
         url: `/pages/ai-tutor/index?questionId=${currentQuestion.id}&questionNumber=${
           this.currentQuestion + 1
-        }`,
+        }&questionTitle=${encodeURIComponent(questionTitle)}`,
       });
     },
 

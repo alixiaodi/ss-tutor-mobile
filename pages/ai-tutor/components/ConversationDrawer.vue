@@ -7,33 +7,43 @@
         <text class="close-btn" @click="handleClose">X</text>
       </view>
       <scroll-view scroll-y class="conversation-list">
-        <view v-if="!sortedConversations.length" class="conversation-empty">
+        <view v-if="isLoading" class="conversation-loading">
+          <text>加载中...</text>
+        </view>
+        <view v-else-if="!sortedConversations.length" class="conversation-empty">
           <text>暂无对话记录，点击下方按钮开始新的交流</text>
         </view>
         <view
           v-for="item in sortedConversations"
           :key="item.id"
           :class="['conversation-item', item.id === currentId ? 'active' : '']"
-          @click="handleSelect(item)"
         >
-          <view class="conversation-left">
+          <view class="conversation-left" @click.stop="handleSelect(item)">
             <view class="conversation-title-row">
               <text class="conversation-title">
                 {{ item.title || "未命名对话" }}
               </text>
               <text v-if="item.id === currentId" class="current-tag">当前</text>
+              <view class="edit-title-btn" @click.stop="handleEditTitle(item)">
+                <text class="edit-icon">编辑</text>
+              </view>
             </view>
             <view class="conversation-preview">
               {{ getConversationPreview(item) }}
             </view>
           </view>
           <view class="conversation-right">
-            <text class="conversation-time">
-              {{ formatConversationTime(item.updatedAt) }}
-            </text>
-            <text class="conversation-count">
-              {{ getConversationMessageCount(item) }}条
-            </text>
+            <view class="conversation-info">
+              <text class="conversation-time">
+                {{ formatConversationTime(item.updatedAt) }}
+              </text>
+              <text class="conversation-count">
+                {{ getConversationMessageCount(item) }}条
+              </text>
+            </view>
+            <view class="delete-btn" @click.stop="handleDeleteClick(item)">
+              <text>删除</text>
+            </view>
           </view>
         </view>
       </scroll-view>
@@ -62,6 +72,10 @@ export default {
       type: String,
       default: "",
     },
+    isLoading: {
+      type: Boolean,
+      default: false,
+    },
   },
   computed: {
     sortedConversations() {
@@ -78,6 +92,32 @@ export default {
     },
     handleCreate() {
       this.$emit("create");
+    },
+    handleDeleteClick(conversation) {
+      uni.showModal({
+        title: "确认删除",
+        content: `确定要删除对话"${conversation.title || '未命名对话'}"吗？`,
+        confirmText: "删除",
+        confirmColor: "#ff4444",
+        success: (res) => {
+          if (res.confirm) {
+            this.$emit("delete", conversation);
+          }
+        },
+      });
+    },
+    handleEditTitle(conversation) {
+      uni.showModal({
+        title: "修改标题",
+        editable: true,
+        placeholderText: "请输入新标题",
+        content: conversation.title || "",
+        success: (res) => {
+          if (res.confirm && res.content && res.content.trim()) {
+            this.$emit("edit-title", conversation, res.content.trim());
+          }
+        },
+      });
     },
     formatConversationTime(timestamp) {
       if (!timestamp) return "刚刚";
@@ -194,7 +234,7 @@ export default {
             font-size: 30rpx;
             color: #333;
             font-weight: 500;
-            max-width: 400rpx;
+            max-width: 320rpx;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -206,6 +246,24 @@ export default {
             border-radius: 20rpx;
             background-color: rgba(244, 140, 66, 0.15);
             color: #f48c42;
+          }
+
+          .edit-title-btn {
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            .edit-icon {
+              font-size: 22rpx;
+              color: #999;
+              font-weight: 400;
+              transition: color 0.2s ease;
+            }
+            
+            &:active .edit-icon {
+              color: #333;
+            }
           }
 
           .conversation-preview {
@@ -221,13 +279,38 @@ export default {
           display: flex;
           flex-direction: column;
           align-items: flex-end;
-          font-size: 24rpx;
-          color: #999;
-          gap: 6rpx;
+          justify-content: space-between;
+          gap: 12rpx;
 
-          .conversation-count {
+          .conversation-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-size: 24rpx;
+            color: #999;
+            gap: 6rpx;
+
+            .conversation-time {
+              font-size: 24rpx;
+            }
+
+            .conversation-count {
+              font-size: 22rpx;
+              color: #bbb;
+            }
+          }
+
+          .delete-btn {
+            padding: 6rpx 16rpx;
+            background-color: rgba(255, 68, 68, 0.1);
+            border: 1rpx solid rgba(255, 68, 68, 0.3);
+            border-radius: 8rpx;
             font-size: 22rpx;
-            color: #bbb;
+            color: #ff4444;
+
+            &:active {
+              background-color: rgba(255, 68, 68, 0.2);
+            }
           }
         }
       }
@@ -236,6 +319,13 @@ export default {
         padding: 60rpx 0;
         text-align: center;
         color: #999;
+        font-size: 26rpx;
+      }
+
+      .conversation-loading {
+        padding: 60rpx 0;
+        text-align: center;
+        color: #f48c42;
         font-size: 26rpx;
       }
     }

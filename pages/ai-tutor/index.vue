@@ -48,9 +48,12 @@
       :show="showConversationDrawer"
       :conversations="conversations"
       :current-id="currentConversationId"
+      :is-loading="isLoadingConversations"
       @close="closeConversationDrawer"
       @select="handleSelectConversation"
       @create="startNewConversation"
+      @delete="handleDeleteConversation"
+      @edit-title="handleEditConversationTitle"
     />
 
     <vip-popup :show.sync="showVipPopup" @open="onPopupOpen" @close="onPopupClose" />
@@ -63,6 +66,7 @@ import { mapState } from "vuex";
 import VipPopup from "@/components/vip-popup/index.vue";
 import * as userApi from "@/api/user.js";
 import * as aiApi from "@/api/ai.js";
+import * as conversationApi from "@/api/aiConversation.js";
 import ChatMessageList from "./components/ChatMessageList.vue";
 import ChatInputArea from "./components/ChatInputArea.vue";
 import ConversationDrawer from "./components/ConversationDrawer.vue";
@@ -118,6 +122,7 @@ export default {
       showConversationDrawer: false,
       isRestoringConversation: false,
       chatHistoryUnwatch: null,
+      isLoadingConversations: false,
     };
   },
   async onShow() {
@@ -127,9 +132,16 @@ export default {
       this.updateResetTime();
     }, 60000);
   },
-  onLoad(options) {
+  async onLoad(options) {
     this.questionId = options.questionId || "";
-    this.initializeConversations();
+    const questionTitle = options.questionTitle ? decodeURIComponent(options.questionTitle) : "";
+    
+    await this.initializeConversations();
+    
+    // 如果从题目页面跳转过来，自动创建新对话
+    if (this.questionId && questionTitle) {
+      await this.createConversationForQuestion(questionTitle);
+    }
   },
   methods: {
     async getUserInfo() {
@@ -206,6 +218,16 @@ export default {
         const userMessage = this.message.trim();
         this.message = "";
 
+        // 构建请求参数
+        const params = {
+          conversationId: this.currentConversationId
+        };
+        
+        // 如果有 questionId，也传递
+        if (this.questionId) {
+          params.questionId = this.questionId;
+        }
+
         await aiApi.chat(userMessage, (newText) => {
           const lastMessage = this.chatHistory[this.chatHistory.length - 1];
           if (newText === "<|stop|>") {
@@ -223,7 +245,7 @@ export default {
               this.scrollToBottom();
             }
           }
-        });
+        }, params);
 
         if (!this.isVip && this.freeChatNum > 0) {
           this.freeChatNum--;
@@ -303,9 +325,15 @@ export default {
           this.scrollToBottom();
 
           // 构建请求参数
-          const params = this.questionId
-            ? { questionId: this.questionId, type: "aq" }
-            : {};
+          const params = {
+            conversationId: this.currentConversationId
+          };
+          
+          // 如果有 questionId，也传递
+          if (this.questionId) {
+            params.questionId = this.questionId;
+            params.type = "aq";
+          }
 
           aiApi
             .chat(
@@ -351,27 +379,100 @@ export default {
     updateInputAreaHeight(height = 0) {
       this.inputAreaHeight = height;
     },
-    initializeConversations() {
+    async initializeConversations() {
+      this.isLoadingConversations = true;
+      try {
+        // 从后端获取对话列表
+        const res = await conversationApi.listConversations();
+        
+        if (res.code === 200 && res.data && Array.isArray(res.data)) {
+          // 转换后端数据格式
+          this.conversations = res.data.map(item => ({
+            id: item.conversationId || item.id,
+            title: item.title || "未命名对话",
+            messages: item.messages ? JSON.parse(item.messages) : this.getDefaultMessages(),
+            updatedAt: new Date(item.updateTime).getTime(),
+          }));
+
+          if (this.conversations.length > 0) {
+            // 加载最新的对话
+            this.currentConversationId = this.conversations[0].id;
+            await this.loadConversationDetail(this.conversations[0].id);
+          } else {
+            // 如果没有对话，创建第一个
+            await this.createFirstConversation();
+          }
+        } else {
+          throw new Error(res.message || "获取对话列表失败");
+        }
+      } catch (error) {
+        console.error("初始化对话列表失败:", error);
+        // 降级：尝试从本地存储读取
+        await this.initializeFromLocalStorage();
+      } finally {
+        this.isLoadingConversations = false;
+        this.setupChatHistoryWatcher();
+      }
+    },
+    async initializeFromLocalStorage() {
       let stored = [];
       try {
         stored = uni.getStorageSync("aiTutorConversations") || [];
       } catch (error) {
-        console.warn("读取对话历史失败", error);
+        console.warn("读取本地对话历史失败", error);
       }
 
       if (!Array.isArray(stored) || !stored.length) {
-        const firstConversation = this.createConversation();
+        const firstConversation = this.createLocalConversation();
         this.conversations = [firstConversation];
         this.currentConversationId = firstConversation.id;
         this.replaceChatHistoryFromConversation(firstConversation);
-        this.persistConversations();
       } else {
         this.conversations = stored;
         this.currentConversationId = stored[0].id;
         this.replaceChatHistoryFromConversation(stored[0]);
       }
+    },
+    async createFirstConversation() {
+      try {
+        const title = "对话1";
+        const messages = this.getDefaultMessages();
+        const res = await conversationApi.createConversation({
+          title: title,
+          messages: JSON.stringify(messages),
+        });
 
-      this.setupChatHistoryWatcher();
+        if (res.code === 200 && res.data) {
+          const newConversation = {
+            id: res.data.conversationId || res.data.id,
+            title: res.data.title || title,
+            messages: messages,
+            updatedAt: new Date(res.data.updateTime).getTime(),
+          };
+          this.conversations = [newConversation];
+          this.currentConversationId = newConversation.id;
+          this.replaceChatHistoryFromConversation(newConversation);
+        } else {
+          throw new Error(res.message || "创建对话失败");
+        }
+      } catch (error) {
+        console.error("创建首个对话失败:", error);
+        // 降级：使用本地对话
+        const firstConversation = this.createLocalConversation();
+        this.conversations = [firstConversation];
+        this.currentConversationId = firstConversation.id;
+        this.replaceChatHistoryFromConversation(firstConversation);
+      }
+    },
+    createLocalConversation(title) {
+      const timestamp = Date.now();
+      const defaultTitle = title || `对话${(this.conversations.length || 0) + 1}`;
+      return {
+        id: `conv_${timestamp}`,
+        title: defaultTitle,
+        messages: this.getDefaultMessages(),
+        updatedAt: timestamp,
+      };
     },
     createConversation(title) {
       const timestamp = Date.now();
@@ -444,8 +545,9 @@ export default {
         updatedConversation.title = derivedTitle;
       }
 
+      // 只更新本地数据，不调用后端接口
+      // 因为后端在 /ai/chat 接口中已经保存了对话记录
       this.$set(this.conversations, index, updatedConversation);
-      this.persistConversations();
     },
     deriveConversationTitle(currentTitle, messages) {
       const title = currentTitle || "";
@@ -458,21 +560,13 @@ export default {
       if (!firstUserMessage) return "";
       return firstUserMessage.content.trim().slice(0, 20);
     },
-    persistConversations(list) {
-      const targetList = list || this.conversations;
-      try {
-        uni.setStorageSync("aiTutorConversations", targetList);
-      } catch (error) {
-        console.warn("保存对话历史失败", error);
-      }
-    },
     openConversationDrawer() {
       this.showConversationDrawer = true;
     },
     closeConversationDrawer() {
       this.showConversationDrawer = false;
     },
-    handleSelectConversation(conversation) {
+    async handleSelectConversation(conversation) {
       if (!conversation || conversation.id === this.currentConversationId) {
         this.closeConversationDrawer();
         return;
@@ -485,10 +579,12 @@ export default {
         return;
       }
       this.currentConversationId = conversation.id;
-      this.replaceChatHistoryFromConversation(conversation);
       this.closeConversationDrawer();
+      
+      // 从后端获取对话详情
+      await this.loadConversationDetail(conversation.id);
     },
-    startNewConversation() {
+    async startNewConversation() {
       if (this.isReceivingReply) {
         uni.showToast({
           title: "正在回复中，请稍后再试",
@@ -496,12 +592,245 @@ export default {
         });
         return;
       }
-      const newConversation = this.createConversation();
-      this.conversations = [newConversation, ...this.conversations];
-      this.currentConversationId = newConversation.id;
-      this.persistConversations();
-      this.replaceChatHistoryFromConversation(newConversation);
-      this.closeConversationDrawer();
+
+      uni.showLoading({ title: "创建中..." });
+      
+      try {
+        const title = `对话${this.conversations.length + 1}`;
+        const messages = this.getDefaultMessages();
+        
+        const res = await conversationApi.createConversation({
+          title: title,
+          messages: JSON.stringify(messages),
+        });
+
+        if (res.code === 200 && res.data) {
+          const newConversation = {
+            id: res.data.conversationId || res.data.id,
+            title: res.data.title || title,
+            messages: messages,
+            updatedAt: new Date(res.data.updateTime || Date.now()).getTime(),
+          };
+          
+          this.conversations = [newConversation, ...this.conversations];
+          this.currentConversationId = newConversation.id;
+          this.replaceChatHistoryFromConversation(newConversation);
+          this.closeConversationDrawer();
+          
+          uni.hideLoading();
+          uni.showToast({
+            title: "创建成功",
+            icon: "success",
+          });
+        } else {
+          throw new Error(res.message || "创建对话失败");
+        }
+      } catch (error) {
+        console.error("创建新对话失败:", error);
+        uni.hideLoading();
+        uni.showToast({
+          title: error.message || "创建失败，请重试",
+          icon: "none",
+        });
+      }
+    },
+    async handleDeleteConversation(conversation) {
+      if (this.isReceivingReply) {
+        uni.showToast({
+          title: "正在回复中，请稍后再试",
+          icon: "none",
+        });
+        return;
+      }
+
+      // 如果只有一个对话，不允许删除
+      if (this.conversations.length <= 1) {
+        uni.showToast({
+          title: "至少保留一个对话",
+          icon: "none",
+        });
+        return;
+      }
+
+      uni.showLoading({ title: "删除中..." });
+
+      try {
+        // 如果不是本地ID，调用后端删除
+        if (!conversation.id.toString().startsWith("conv_")) {
+          const res = await conversationApi.deleteConversation(conversation.id);
+          
+          if (res.code !== 200) {
+            throw new Error(res.message || "删除对话失败");
+          }
+        }
+
+        // 从列表中移除
+        const index = this.conversations.findIndex(
+          (item) => item.id === conversation.id
+        );
+        
+        if (index !== -1) {
+          this.conversations.splice(index, 1);
+          
+          // 如果删除的是当前对话，切换到第一个对话
+          if (conversation.id === this.currentConversationId) {
+            if (this.conversations.length > 0) {
+              this.currentConversationId = this.conversations[0].id;
+              await this.loadConversationDetail(this.conversations[0].id);
+            }
+          }
+        }
+
+        uni.hideLoading();
+        uni.showToast({
+          title: "删除成功",
+          icon: "success",
+        });
+      } catch (error) {
+        console.error("删除对话失败:", error);
+        uni.hideLoading();
+        uni.showToast({
+          title: error.message || "删除失败，请重试",
+          icon: "none",
+        });
+      }
+    },
+    async handleEditConversationTitle(conversation, newTitle) {
+      if (!newTitle || !newTitle.trim()) {
+        return;
+      }
+
+      uni.showLoading({ title: "修改中..." });
+
+      try {
+        // 如果不是本地ID，调用后端更新
+        if (!conversation.id.toString().startsWith("conv_")) {
+          const res = await conversationApi.updateConversation(conversation.id, {
+            conversationId: conversation.id,
+            title: newTitle,
+            messages: JSON.stringify(conversation.messages),
+          });
+
+          if (res.code !== 200) {
+            throw new Error(res.message || "修改标题失败");
+          }
+        }
+
+        // 更新本地数据
+        const index = this.conversations.findIndex(
+          (item) => item.id === conversation.id
+        );
+
+        if (index !== -1) {
+          this.$set(this.conversations[index], "title", newTitle);
+          this.$set(this.conversations[index], "updatedAt", Date.now());
+        }
+
+        uni.hideLoading();
+        uni.showToast({
+          title: "修改成功",
+          icon: "success",
+        });
+      } catch (error) {
+        console.error("修改标题失败:", error);
+        uni.hideLoading();
+        uni.showToast({
+          title: error.message || "修改失败，请重试",
+          icon: "none",
+        });
+      }
+    },
+    async loadConversationDetail(conversationId) {
+      // 如果是本地ID，直接从本地数据加载
+      if (conversationId.toString().startsWith("conv_")) {
+        const conversation = this.conversations.find(
+          (item) => item.id === conversationId
+        );
+        if (conversation) {
+          this.replaceChatHistoryFromConversation(conversation);
+        }
+        return;
+      }
+
+      try {
+        uni.showLoading({ title: "加载中..." });
+        
+        const res = await conversationApi.getConversationDetail(conversationId);
+        
+        if (res.code === 200 && res.data) {
+          // 转换并更新对话数据
+          const detailData = {
+            id: res.data.conversationId || res.data.id,
+            title: res.data.title || "未命名对话",
+            messages: res.data.messages ? JSON.parse(res.data.messages) : this.getDefaultMessages(),
+            updatedAt: new Date(res.data.updateTime).getTime(),
+          };
+
+          // 更新本地对话列表中的数据
+          const index = this.conversations.findIndex(
+            (item) => item.id === conversationId
+          );
+          if (index !== -1) {
+            this.$set(this.conversations, index, detailData);
+          }
+
+          // 加载到聊天界面
+          this.replaceChatHistoryFromConversation(detailData);
+          
+          uni.hideLoading();
+        } else {
+          throw new Error(res.message || "加载对话详情失败");
+        }
+      } catch (error) {
+        console.error("加载对话详情失败:", error);
+        uni.hideLoading();
+        
+        // 降级：使用本地数据
+        const conversation = this.conversations.find(
+          (item) => item.id === conversationId
+        );
+        if (conversation) {
+          this.replaceChatHistoryFromConversation(conversation);
+        } else {
+          uni.showToast({
+            title: "加载失败，请重试",
+            icon: "none",
+          });
+        }
+      }
+    },
+    async createConversationForQuestion(questionTitle) {
+      try {
+        // 使用题目内容前20个字符作为对话标题
+        const title = questionTitle || "题目对话";
+        const messages = this.getDefaultMessages();
+        
+        const res = await conversationApi.createConversation({
+          title: title,
+          messages: JSON.stringify(messages),
+        });
+
+        if (res.code === 200 && res.data) {
+          const newConversation = {
+            id: res.data.conversationId || res.data.id,
+            title: res.data.title || title,
+            messages: messages,
+            updatedAt: new Date(res.data.updateTime || Date.now()).getTime(),
+          };
+          
+          // 将新对话添加到列表顶部
+          this.conversations = [newConversation, ...this.conversations];
+          this.currentConversationId = newConversation.id;
+          this.replaceChatHistoryFromConversation(newConversation);
+          
+          console.log("自动创建题目对话成功:", title);
+        } else {
+          throw new Error(res.message || "创建对话失败");
+        }
+      } catch (error) {
+        console.error("自动创建题目对话失败:", error);
+        // 静默失败，使用默认对话
+      }
     },
   },
   onHide() {
