@@ -252,6 +252,7 @@ export default {
           this.chatHistory.push({
             type: "user",
             content: selectedTemplate,
+            status: 1,
           });
 
           this.chatHistory.push({
