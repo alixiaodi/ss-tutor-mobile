@@ -8,66 +8,25 @@
       titleStyle="color: #ffffff; font-weight: 500;"
     ></Navbar>
 
-    <view class="chat-container">
-      <view class="message-list">
-        <view
-          v-for="(item, index) in chatHistory"
-          :key="index"
-          :class="['message-item', item.type === 'user' ? 'user-msg' : 'ai-msg']"
-        >
-          <view class="avatar">
-            <image
-              :src="
-                item.type === 'user' ? '/static/img/stu-avatar.png' : '/static/img/ai.png'
-              "
-              mode="aspectFill"
-            />
-          </view>
-          <view class="message-content">
-            <view class="light">
-              <f-md :content="item.content" :isStreaming="item.status !== 1"></f-md>
-            </view>
-          </view>
-        </view>
-      </view>
+    <view class="chat-wrapper">
+      <ChatMessageList
+        ref="messageList"
+        :chat-history="chatHistory"
+        :bottom-padding="inputAreaHeight + 20"
+        @manual-scroll="handleManualScroll"
+      />
     </view>
 
-    <view class="input-area">
-      <view v-if="!isVip" class="chat-info">
-        <text class="free-chat-count">
-          今日剩余{{ freeChatNum }}次
-          <text class="reset-time">({{ resetTimeText }})</text>
-        </text>
-      </view>
-
-      <view class="input-wrapper">
-        <view class="input-container">
-          <u-input
-            v-model="message"
-            placeholder="请输入您的问题"
-            border="surround"
-            :clearable="true"
-          ></u-input>
-          <view class="button-group">
-            <u-button
-              @click="sendMessage"
-              type="primary"
-              size="mini"
-              :disabled="!message.trim()"
-              >发送</u-button
-            >
-            <u-button
-              v-if="questionId"
-              @click="showTemplates"
-              type="info"
-              size="mini"
-              icon="plus"
-              class="template-btn"
-            ></u-button>
-          </view>
-        </view>
-      </view>
-    </view>
+    <ChatInputArea
+      v-model="message"
+      :is-vip="isVip"
+      :free-chat-num="freeChatNum"
+      :reset-time-text="resetTimeText"
+      :question-id="questionId"
+      @send="sendMessage"
+      @show-templates="showTemplates"
+      @height-change="updateInputAreaHeight"
+    />
 
     <view class="debug-info" style="display: none">
       <text>VIP状态: {{ isVip }}</text>
@@ -79,18 +38,20 @@
 </template>
 
 <script>
-import fMd from "../../components/f-md/f-md.vue";
 import Navbar from "@/components/navbar/Navbar";
 import { mapState } from "vuex";
 import VipPopup from "@/components/vip-popup/index.vue";
 import * as userApi from "@/api/user.js";
 import * as aiApi from "@/api/ai.js";
+import ChatMessageList from "./components/ChatMessageList.vue";
+import ChatInputArea from "./components/ChatInputArea.vue";
 
 export default {
   components: {
     VipPopup,
-    fMd,
     Navbar,
+    ChatMessageList,
+    ChatInputArea,
   },
   computed: {
     ...mapState({
@@ -114,9 +75,12 @@ export default {
       resetTimeText: "",
       scrollAnimationDuration: 100,
       isScrolling: false,
+      manualScrollInterrupted: false,
+      isReceivingReply: false,
       templates: ["请解释一下这个题目"],
       showTemplatePopup: false,
       questionId: "",
+      inputAreaHeight: 0,
     };
   },
   async onShow() {
@@ -196,6 +160,8 @@ export default {
         content: "",
       });
 
+      this.manualScrollInterrupted = false;
+      this.isReceivingReply = true;
       this.scrollToBottom();
 
       try {
@@ -205,6 +171,7 @@ export default {
         await aiApi.chat(userMessage, (newText) => {
           const lastMessage = this.chatHistory[this.chatHistory.length - 1];
           if (newText === "<|stop|>") {
+            this.isReceivingReply = false;
             this.$set(lastMessage, "status", 1);
             this.$nextTick(() => {
               setTimeout(() => {
@@ -225,6 +192,7 @@ export default {
         }
       } catch (error) {
         console.error("AI回复失败:", error);
+        this.isReceivingReply = false;
         // 移除失败的 AI 消息
         this.chatHistory.pop();
         // 移除用户消息
@@ -236,26 +204,27 @@ export default {
         });
       }
     },
+    handleManualScroll() {
+      if (this.manualScrollInterrupted) return;
+      if (!this.isReceivingReply && !this.isScrolling) return;
+      this.manualScrollInterrupted = true;
+      this.isScrolling = false;
+    },
     scrollToBottom() {
-      if (this.isScrolling) return;
+      if (this.manualScrollInterrupted || this.isScrolling) return;
       this.isScrolling = true;
 
       this.$nextTick(() => {
-        const query = uni.createSelectorQuery().in(this);
-        query
-          .select(".message-list")
-          .boundingClientRect((data) => {
-            uni.pageScrollTo({
-              scrollTop: data.height + 2000,
-              duration: 100,
-              complete: () => {
-                setTimeout(() => {
-                  this.isScrolling = false;
-                }, 150);
-              },
-            });
-          })
-          .exec();
+        const messageList = this.$refs.messageList;
+        if (!messageList || typeof messageList.scrollToBottom !== "function") {
+          this.isScrolling = false;
+          return;
+        }
+        messageList.scrollToBottom().finally(() => {
+          setTimeout(() => {
+            this.isScrolling = false;
+          }, 150);
+        });
       });
     },
     onPopupOpen() {
@@ -290,6 +259,8 @@ export default {
             content: "",
           });
 
+          this.manualScrollInterrupted = false;
+          this.isReceivingReply = true;
           this.scrollToBottom();
 
           // 构建请求参数
@@ -303,6 +274,7 @@ export default {
               (newText) => {
                 const lastMessage = this.chatHistory[this.chatHistory.length - 1];
                 if (newText === "<|stop|>") {
+                  this.isReceivingReply = false;
                   this.$set(lastMessage, "status", 1);
                   this.$nextTick(() => {
                     setTimeout(() => {
@@ -321,6 +293,7 @@ export default {
             ) // 传入参数
             .catch((error) => {
               console.error("AI回复失败:", error);
+              this.isReceivingReply = false;
               this.chatHistory.pop();
               this.chatHistory.pop();
 
@@ -335,6 +308,9 @@ export default {
           }
         },
       });
+    },
+    updateInputAreaHeight(height = 0) {
+      this.inputAreaHeight = height;
     },
   },
   onHide() {
@@ -357,123 +333,9 @@ export default {
   display: flex;
   flex-direction: column;
 
-  .chat-container {
+  .chat-wrapper {
     flex: 1;
-    padding: 20rpx;
-    box-sizing: border-box;
-    background-color: #f5f5f5;
-
-    .message-list {
-      padding-bottom: 120rpx;
-    }
-
-    .message-item {
-      margin-bottom: 20rpx;
-      padding: 10rpx;
-      display: flex;
-      align-items: flex-start;
-
-      .avatar {
-        width: 80rpx;
-        height: 80rpx;
-        flex-shrink: 0;
-
-        image {
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-        }
-      }
-
-      .message-content {
-        margin: 0 20rpx;
-        display: inline-block;
-        padding: 16rpx 24rpx;
-        border-radius: 8rpx;
-        max-width: calc(80% - 120rpx);
-        word-break: break-all;
-      }
-    }
-
-    .user-msg {
-      flex-direction: row-reverse;
-
-      .message-content {
-        background-color: #4ecdb6;
-        color: #ffffff;
-      }
-    }
-
-    .ai-msg {
-      flex-direction: row;
-
-      .message-content {
-        background-color: #ffffff;
-        color: #333333;
-      }
-    }
-  }
-
-  .input-area {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: #ffffff;
-    padding: 20rpx;
-    box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
-
-    .chat-info {
-      padding-bottom: 10rpx;
-
-      .free-chat-count {
-        font-size: 24rpx;
-        color: #666;
-
-        .reset-time {
-          color: #999;
-          margin-left: 4rpx;
-        }
-      }
-    }
-
-    .input-wrapper {
-      .input-container {
-        display: flex;
-        align-items: center;
-        gap: 10rpx;
-
-        :deep(.u-input) {
-          flex: 1;
-          min-height: 80rpx;
-
-          &__content {
-            min-height: 80rpx;
-            padding: 0 20rpx;
-          }
-
-          &__input {
-            height: 80rpx;
-            font-size: 28rpx;
-          }
-        }
-
-        .button-group {
-          display: flex;
-          align-items: center;
-          gap: 10rpx;
-
-          .u-button {
-            height: 64rpx;
-          }
-
-          .template-btn {
-            padding: 0;
-            width: 64rpx;
-          }
-        }
-      }
-    }
+    display: flex;
   }
 }
 </style>
