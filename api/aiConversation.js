@@ -3,8 +3,8 @@ import request from '@/config/request.js';
 export const listConversations = (params) =>
   request.get('/ai/conversation/list', params, {});
 
-export const getConversationDetail = (conversationId) =>
-  request.get(`/ai/conversation/${conversationId}`, null, {});
+export const getConversationDetail = (conversationId, params) =>
+  request.get(`/ai/conversation/${conversationId}`, params, {});
 
 export const createConversation = (data) =>
   request.post('/ai/conversation', data, {});

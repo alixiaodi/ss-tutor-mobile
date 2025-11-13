@@ -129,22 +129,35 @@ export default {
       return `${month}-${day} ${hours}:${minutes}`;
     },
     getConversationPreview(conversation) {
-      if (!conversation || !Array.isArray(conversation.messages)) {
+      if (!conversation) {
         return "暂无内容";
       }
-      const reverseList = conversation.messages.slice().reverse();
-      const targetMessage = reverseList.find(
-        (msg) => msg && typeof msg.content === "string" && msg.content.trim()
-      );
-      if (!targetMessage) return "暂无内容";
-      const text = targetMessage.content.trim().replace(/\s+/g, " ");
-      return text.length > 30 ? `${text.slice(0, 30)}...` : text;
+      if (conversation.preview && conversation.preview.trim()) {
+        return conversation.preview.trim();
+      }
+      if (Array.isArray(conversation.messages) && conversation.messages.length) {
+        const reverseList = conversation.messages.slice().reverse();
+        const targetMessage = reverseList.find(
+          (msg) => msg && typeof msg.content === "string" && msg.content.trim()
+        );
+        if (targetMessage && targetMessage.content) {
+          const text = targetMessage.content.trim().replace(/\s+/g, " ");
+          return text.length > 30 ? `${text.slice(0, 30)}...` : text;
+        }
+      }
+      return "暂无内容";
     },
     getConversationMessageCount(conversation) {
-      if (!conversation || !Array.isArray(conversation.messages)) {
+      if (!conversation) {
         return 0;
       }
-      return conversation.messages.length;
+      if (typeof conversation.messageCount === "number") {
+        return conversation.messageCount;
+      }
+      if (Array.isArray(conversation.messages)) {
+        return conversation.messages.length;
+      }
+      return 0;
     },
   },
 };

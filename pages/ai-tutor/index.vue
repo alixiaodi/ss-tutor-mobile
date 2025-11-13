@@ -71,6 +71,8 @@ import ChatMessageList from "./components/ChatMessageList.vue";
 import ChatInputArea from "./components/ChatInputArea.vue";
 import ConversationDrawer from "./components/ConversationDrawer.vue";
 
+const CONVERSATION_PAGE_SIZE = 100;
+
 export default {
   components: {
     VipPopup,
@@ -116,6 +118,7 @@ export default {
       templates: ["请解释一下这个题目"],
       showTemplatePopup: false,
       questionId: "",
+      questionTitle: "",
       inputAreaHeight: 0,
       conversations: [],
       currentConversationId: "",
@@ -123,6 +126,8 @@ export default {
       isRestoringConversation: false,
       chatHistoryUnwatch: null,
       isLoadingConversations: false,
+      shouldAutoCreateDefaultConversation: true,
+      conversationPageSize: CONVERSATION_PAGE_SIZE,
     };
   },
   async onShow() {
@@ -134,13 +139,17 @@ export default {
   },
   async onLoad(options) {
     this.questionId = options.questionId || "";
-    const questionTitle = options.questionTitle ? decodeURIComponent(options.questionTitle) : "";
+    this.questionTitle = options.questionTitle ? decodeURIComponent(options.questionTitle) : "";
+    this.shouldAutoCreateDefaultConversation = !(
+      this.questionId &&
+      this.questionTitle
+    );
     
     await this.initializeConversations();
     
     // 如果从题目页面跳转过来，自动创建新对话
-    if (this.questionId && questionTitle) {
-      await this.createConversationForQuestion(questionTitle);
+    if (this.questionId && this.questionTitle) {
+      await this.createConversationForQuestion(this.questionTitle);
     }
   },
   methods: {
@@ -197,6 +206,8 @@ export default {
 
       if (!this.message.trim()) return;
 
+      await this.ensureConversationReady();
+
       // 添加用户消息
       this.chatHistory.push({
         type: "user",
@@ -220,12 +231,12 @@ export default {
 
         // 构建请求参数
         const params = {
-          conversationId: this.currentConversationId
+          conversationId: this.currentConversationId,
         };
-        
-        // 如果有 questionId，也传递
+
         if (this.questionId) {
           params.questionId = this.questionId;
+          params.type = "aq";
         }
 
         await aiApi.chat(userMessage, (newText) => {
@@ -308,76 +319,87 @@ export default {
       uni.showActionSheet({
         itemList: this.templates,
         success: (res) => {
-          const selectedTemplate = this.templates[res.tapIndex];
-          this.chatHistory.push({
-            type: "user",
-            content: selectedTemplate,
-            status: 1,
-          });
-
-          this.chatHistory.push({
-            type: "ai",
-            content: "",
-          });
-
-          this.manualScrollInterrupted = false;
-          this.isReceivingReply = true;
-          this.scrollToBottom();
-
-          // 构建请求参数
-          const params = {
-            conversationId: this.currentConversationId
-          };
-          
-          // 如果有 questionId，也传递
-          if (this.questionId) {
-            params.questionId = this.questionId;
-            params.type = "aq";
-          }
-
-          aiApi
-            .chat(
-              selectedTemplate,
-              (newText) => {
-                const lastMessage = this.chatHistory[this.chatHistory.length - 1];
-                if (newText === "<|stop|>") {
-                  this.isReceivingReply = false;
-                  this.$set(lastMessage, "status", 1);
-                  this.$nextTick(() => {
-                    setTimeout(() => {
-                      this.isScrolling = false;
-                      this.scrollToBottom();
-                    }, 200);
-                  });
-                } else {
-                  lastMessage.content += newText;
-                  if (!this.isScrolling) {
-                    this.scrollToBottom();
-                  }
-                }
-              },
-              params
-            ) // 传入参数
-            .catch((error) => {
-              console.error("AI回复失败:", error);
-              this.isReceivingReply = false;
-              this.chatHistory.pop();
-              this.chatHistory.pop();
-
-              uni.showToast({
-                title: error.message || "获取回复失败，请重试",
-                icon: "none",
-              });
-            });
-
-          if (!this.isVip && this.freeChatNum > 0) {
-            this.freeChatNum--;
-          }
+          this.handleTemplateSend(res.tapIndex);
         },
       });
     },
+    async handleTemplateSend(templateIndex) {
+      const selectedTemplate = this.templates[templateIndex];
+      if (!selectedTemplate) {
+        return;
+      }
+      await this.ensureConversationReady();
+      this.chatHistory.push({
+        type: "user",
+        content: selectedTemplate,
+        status: 1,
+      });
+
+      this.chatHistory.push({
+        type: "ai",
+        content: "",
+      });
+
+      this.manualScrollInterrupted = false;
+      this.isReceivingReply = true;
+      this.scrollToBottom();
+
+      const params = {
+        conversationId: this.currentConversationId,
+      };
+      if (this.questionId) {
+        params.questionId = this.questionId;
+        params.type = "aq";
+      }
+
+      aiApi
+        .chat(
+          selectedTemplate,
+          (newText) => {
+            const lastMessage = this.chatHistory[this.chatHistory.length - 1];
+            if (newText === "<|stop|>") {
+              this.isReceivingReply = false;
+              this.$set(lastMessage, "status", 1);
+              this.$nextTick(() => {
+                setTimeout(() => {
+                  this.isScrolling = false;
+                  this.scrollToBottom();
+                }, 200);
+              });
+            } else {
+              lastMessage.content += newText;
+              if (!this.isScrolling) {
+                this.scrollToBottom();
+              }
+            }
+          },
+          params
+        )
+        .catch((error) => {
+          console.error("AI回复失败:", error);
+          this.isReceivingReply = false;
+          this.chatHistory.pop();
+          this.chatHistory.pop();
+
+          uni.showToast({
+            title: error.message || "获取回复失败，请重试",
+            icon: "none",
+          });
+        });
+
+      if (!this.isVip && this.freeChatNum > 0) {
+        this.freeChatNum--;
+      }
+    },
     updateInputAreaHeight(height = 0) {
       this.inputAreaHeight = height;
+    },
+    async ensureConversationReady() {
+      if (this.currentConversationId) {
+        return this.currentConversationId;
+      }
+      await this.createFirstConversation();
+      return this.currentConversationId;
     },
     async initializeConversations() {
       this.isLoadingConversations = true;
@@ -390,17 +412,25 @@ export default {
           this.conversations = res.data.map(item => ({
             id: item.conversationId || item.id,
             title: item.title || "未命名对话",
-            messages: item.messages ? JSON.parse(item.messages) : this.getDefaultMessages(),
-            updatedAt: new Date(item.updateTime).getTime(),
+            messageCount: item.messageCount || 0,
+            updatedAt: item.updateTime ? new Date(item.updateTime).getTime() : Date.now(),
+            preview: "",
+            questionId: item.questionId || "",
+            messages: [],
           }));
 
           if (this.conversations.length > 0) {
             // 加载最新的对话
             this.currentConversationId = this.conversations[0].id;
             await this.loadConversationDetail(this.conversations[0].id);
-          } else {
+          } else if (this.shouldAutoCreateDefaultConversation) {
             // 如果没有对话，创建第一个
             await this.createFirstConversation();
+          } else {
+            // 延迟创建默认对话，等待题目上下文创建专属会话
+            this.conversations = [];
+            this.currentConversationId = "";
+            this.replaceChatHistoryFromConversation(null);
           }
         } else {
           throw new Error(res.message || "获取对话列表失败");
@@ -423,14 +453,28 @@ export default {
       }
 
       if (!Array.isArray(stored) || !stored.length) {
-        const firstConversation = this.createLocalConversation();
-        this.conversations = [firstConversation];
-        this.currentConversationId = firstConversation.id;
-        this.replaceChatHistoryFromConversation(firstConversation);
+        if (this.shouldAutoCreateDefaultConversation) {
+          const firstConversation = this.createLocalConversation();
+          this.conversations = [firstConversation];
+          this.currentConversationId = firstConversation.id;
+          this.replaceChatHistoryFromConversation(firstConversation);
+        } else {
+          this.conversations = [];
+          this.currentConversationId = "";
+          this.replaceChatHistoryFromConversation(null);
+        }
       } else {
-        this.conversations = stored;
-        this.currentConversationId = stored[0].id;
-        this.replaceChatHistoryFromConversation(stored[0]);
+        this.conversations = stored.map((item) => {
+          const messages = Array.isArray(item.messages) ? item.messages : this.getDefaultMessages();
+          return {
+            ...item,
+            messages,
+            messageCount: messages.length,
+            preview: this.buildConversationPreview(messages),
+          };
+        });
+        this.currentConversationId = this.conversations[0].id;
+        this.replaceChatHistoryFromConversation(this.conversations[0]);
       }
     },
     async createFirstConversation() {
@@ -439,7 +483,6 @@ export default {
         const messages = this.getDefaultMessages();
         const res = await conversationApi.createConversation({
           title: title,
-          messages: JSON.stringify(messages),
         });
 
         if (res.code === 200 && res.data) {
@@ -447,7 +490,10 @@ export default {
             id: res.data.conversationId || res.data.id,
             title: res.data.title || title,
             messages: messages,
-            updatedAt: new Date(res.data.updateTime).getTime(),
+            preview: this.buildConversationPreview(messages),
+            messageCount: messages.length,
+            questionId: res.data.questionId || "",
+            updatedAt: res.data.updateTime ? new Date(res.data.updateTime).getTime() : Date.now(),
           };
           this.conversations = [newConversation];
           this.currentConversationId = newConversation.id;
@@ -467,20 +513,26 @@ export default {
     createLocalConversation(title) {
       const timestamp = Date.now();
       const defaultTitle = title || `对话${(this.conversations.length || 0) + 1}`;
+      const messages = this.getDefaultMessages();
       return {
         id: `conv_${timestamp}`,
         title: defaultTitle,
-        messages: this.getDefaultMessages(),
+        messages,
+        messageCount: messages.length,
+        preview: this.buildConversationPreview(messages),
         updatedAt: timestamp,
       };
     },
     createConversation(title) {
       const timestamp = Date.now();
       const defaultTitle = title || `对话${(this.conversations.length || 0) + 1}`;
+      const messages = this.getDefaultMessages();
       return {
         id: `conv_${timestamp}`,
         title: defaultTitle,
-        messages: this.getDefaultMessages(),
+        messages,
+        messageCount: messages.length,
+        preview: this.buildConversationPreview(messages),
         updatedAt: timestamp,
       };
     },
@@ -492,6 +544,19 @@ export default {
           status: 1,
         },
       ];
+    },
+    buildConversationPreview(messages) {
+      if (!Array.isArray(messages) || !messages.length) {
+        return "";
+      }
+      const target = [...messages]
+        .reverse()
+        .find((msg) => msg && typeof msg.content === "string" && msg.content.trim());
+      if (!target) {
+        return "";
+      }
+      const text = target.content.trim().replace(/\s+/g, " ");
+      return text.length > 30 ? `${text.slice(0, 30)}...` : text;
     },
     replaceChatHistoryFromConversation(conversation) {
       const messages =
@@ -536,6 +601,10 @@ export default {
         messages: this.cloneMessages(this.chatHistory),
         updatedAt: Date.now(),
       };
+      updatedConversation.messageCount = updatedConversation.messages.length;
+      updatedConversation.preview = this.buildConversationPreview(
+        updatedConversation.messages
+      );
 
       const derivedTitle = this.deriveConversationTitle(
         updatedConversation.title,
@@ -601,7 +670,6 @@ export default {
         
         const res = await conversationApi.createConversation({
           title: title,
-          messages: JSON.stringify(messages),
         });
 
         if (res.code === 200 && res.data) {
@@ -609,7 +677,10 @@ export default {
             id: res.data.conversationId || res.data.id,
             title: res.data.title || title,
             messages: messages,
-            updatedAt: new Date(res.data.updateTime || Date.now()).getTime(),
+            preview: this.buildConversationPreview(messages),
+            messageCount: messages.length,
+            questionId: res.data.questionId || "",
+            updatedAt: res.data.updateTime ? new Date(res.data.updateTime).getTime() : Date.now(),
           };
           
           this.conversations = [newConversation, ...this.conversations];
@@ -706,9 +777,7 @@ export default {
         // 如果不是本地ID，调用后端更新
         if (!conversation.id.toString().startsWith("conv_")) {
           const res = await conversationApi.updateConversation(conversation.id, {
-            conversationId: conversation.id,
             title: newTitle,
-            messages: JSON.stringify(conversation.messages),
           });
 
           if (res.code !== 200) {
@@ -755,15 +824,47 @@ export default {
       try {
         uni.showLoading({ title: "加载中..." });
         
-        const res = await conversationApi.getConversationDetail(conversationId);
+        const res = await conversationApi.getConversationDetail(conversationId, {
+          pageNum: 1,
+          pageSize: this.conversationPageSize,
+        });
         
         if (res.code === 200 && res.data) {
-          // 转换并更新对话数据
+          const conversationInfo = res.data.conversation || {};
+          const messagePage = res.data.messages || {};
+          let records = Array.isArray(messagePage.records) ? messagePage.records : [];
+          // 接口按创建时间倒序返回，这里还原成时间升序
+          records = records
+            .map((item) => ({
+              type: item.role === "user" ? "user" : "ai",
+              content: item.content || "",
+              status: 1,
+              createTime: item.createTime,
+            }))
+            .sort((a, b) => {
+              const timeA = a.createTime ? new Date(a.createTime).getTime() : 0;
+              const timeB = b.createTime ? new Date(b.createTime).getTime() : 0;
+              return timeA - timeB;
+            });
+          if (!records.length) {
+            records = this.getDefaultMessages();
+          }
+          const totalMessages =
+            typeof messagePage.total === "number"
+              ? messagePage.total
+              : typeof conversationInfo.messageCount === "number"
+              ? conversationInfo.messageCount
+              : records.length;
           const detailData = {
-            id: res.data.conversationId || res.data.id,
-            title: res.data.title || "未命名对话",
-            messages: res.data.messages ? JSON.parse(res.data.messages) : this.getDefaultMessages(),
-            updatedAt: new Date(res.data.updateTime).getTime(),
+            id: conversationInfo.conversationId || conversationInfo.id || conversationId,
+            title: conversationInfo.title || "未命名对话",
+            messages: records,
+            preview: this.buildConversationPreview(records),
+            messageCount: totalMessages,
+            questionId: conversationInfo.questionId || "",
+            updatedAt: conversationInfo.updateTime
+              ? new Date(conversationInfo.updateTime).getTime()
+              : Date.now(),
           };
 
           // 更新本地对话列表中的数据
@@ -772,6 +873,8 @@ export default {
           );
           if (index !== -1) {
             this.$set(this.conversations, index, detailData);
+          } else {
+            this.conversations = [detailData, ...this.conversations];
           }
 
           // 加载到聊天界面
@@ -807,7 +910,7 @@ export default {
         
         const res = await conversationApi.createConversation({
           title: title,
-          messages: JSON.stringify(messages),
+          questionId: this.questionId || undefined,
         });
 
         if (res.code === 200 && res.data) {
@@ -815,7 +918,10 @@ export default {
             id: res.data.conversationId || res.data.id,
             title: res.data.title || title,
             messages: messages,
-            updatedAt: new Date(res.data.updateTime || Date.now()).getTime(),
+            preview: this.buildConversationPreview(messages),
+            messageCount: messages.length,
+            questionId: res.data.questionId || this.questionId || "",
+            updatedAt: res.data.updateTime ? new Date(res.data.updateTime).getTime() : Date.now(),
           };
           
           // 将新对话添加到列表顶部
